@@ -17,7 +17,7 @@
     <!-- ШАПКА -->
     <header class="header">
       <div class="logo">
-        <div class="logo-icon">◖)))</div>
+        <div class="logo-icon">◖))</div>
 
         <div>
           <h1>ECHO</h1>
@@ -147,6 +147,68 @@
         </div>
 
       </section>
+<!-- ОКНО ДОБАВЛЕНИЯ ФРАЗЫ -->
+<div class="modal" id="addPhraseModal">
+
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <div>
+        <p class="small-title">НОВАЯ КАРТОЧКА</p>
+        <h2>Добавить фразу</h2>
+      </div>
+
+      <button class="close-modal" id="closeModal">✕</button>
+    </div>
+
+    <label class="field-label">Иконка</label>
+
+    <div class="emoji-list">
+      <button class="emoji-option selected">💧</button>
+      <button class="emoji-option">🍎</button>
+      <button class="emoji-option">🆘</button>
+      <button class="emoji-option">🏠</button>
+      <button class="emoji-option">❤️</button>
+      <button class="emoji-option">💊</button>
+      <button class="emoji-option">😣</button>
+      <button class="emoji-option">🚻</button>
+    </div>
+
+
+    <label class="field-label" for="newPhraseName">
+      Название
+    </label>
+
+    <input
+      class="modal-input"
+      id="newPhraseName"
+      type="text"
+      maxlength="30"
+      placeholder="Например: Голова"
+    >
+
+
+    <label class="field-label" for="newPhraseText">
+      Что должен сказать ECHO?
+    </label>
+
+    <textarea
+      class="modal-input modal-textarea"
+      id="newPhraseText"
+      maxlength="150"
+      placeholder="Например: У меня болит голова"
+    ></textarea>
+    
+    <button type="button" class="save-phrase" id="savePhrase">
+  Сохранить фразу
+</button>
+
+
+    
+
+  </div>
+
+</div>
 
     </main>
 
