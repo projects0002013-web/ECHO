@@ -261,3 +261,8 @@ button{
     grid-template-columns:repeat(3,1fr);
   }
 }
+.phrase-card.speaking{
+  background:var(--green-light);
+  border-color:var(--green);
+  transform:scale(.96);
+}
