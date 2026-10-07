@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f7f8f5">
+
+  <title>ECHO — твой голос</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <div class="app">
+
+    <!-- ШАПКА -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">◖)))</div>
+
+        <div>
+          <h1>ECHO</h1>
+          <p>Твой голос рядом</p>
+        </div>
+      </div>
+
+      <button class="settings-btn" aria-label="Настройки">
+        ⚙
+      </button>
+    </header>
+
+
+    <!-- ОСНОВНАЯ ЧАСТЬ -->
+    <main>
+
+      <section class="welcome">
+        <p class="small-title">БЫСТРЫЕ ФРАЗЫ</p>
+
+        <h2>Что ты хочешь сказать?</h2>
+
+        <p class="description">
+          Нажми на карточку — ECHO произнесёт фразу за тебя.
+        </p>
+      </section>
+
+
+      <!-- КАРТОЧКИ -->
+      <section class="phrase-grid">
+
+        <button
+          class="phrase-card"
+          data-text="Я хочу пить"
+          onclick="speakPhrase(this)"
+        >
+          <span class="phrase-icon">💧</span>
+          <span class="phrase-name">Вода</span>
+          <span class="phrase-text">Я хочу пить</span>
+          <span class="sound-icon">🔊</span>
+        </button>
+
+
+        <button
+          class="phrase-card"
+          data-text="Я хочу есть"
+          onclick="speakPhrase(this)"
+        >
+          <span class="phrase-icon">🍎</span>
+          <span class="phrase-name">Еда</span>
+          <span class="phrase-text">Я хочу есть</span>
+          <span class="sound-icon">🔊</span>
+        </button>
+
+
+        <button
+          class="phrase-card"
+          data-text="Мне нужна помощь"
+          onclick="speakPhrase(this)"
+        >
+          <span class="phrase-icon">🆘</span>
+          <span class="phrase-name">Помощь</span>
+          <span class="phrase-text">Мне нужна помощь</span>
+          <span class="sound-icon">🔊</span>
+        </button>
+
+
+        <button
+          class="phrase-card"
+          data-text="Я хочу домой"
+          onclick="speakPhrase(this)"
+        >
+          <span class="phrase-icon">🏠</span>
+          <span class="phrase-name">Домой</span>
+          <span class="phrase-text">Я хочу домой</span>
+          <span class="sound-icon">🔊</span>
+        </button>
+
+
+        <button
+          class="phrase-card"
+          data-text="Да"
+          onclick="speakPhrase(this)"
+        >
+          <span class="phrase-icon">👍</span>
+          <span class="phrase-name">Да</span>
+          <span class="phrase-text">Да</span>
+          <span class="sound-icon">🔊</span>
+        </button>
+
+
+        <button
+          class="phrase-card"
+          data-text="Нет"
+          onclick="speakPhrase(this)"
+        >
+          <span class="phrase-icon">👎</span>
+          <span class="phrase-name">Нет</span>
+          <span class="phrase-text">Нет</span>
+          <span class="sound-icon">🔊</span>
+        </button>
+
+      </section>
+
+
+      <!-- СОБСТВЕННАЯ ФРАЗА -->
+      <section class="custom-section">
+
+        <p class="small-title">СВОЯ ФРАЗА</p>
+
+        <div class="custom-box">
+
+          <input
+            id="customPhrase"
+            type="text"
+            placeholder="Напишите сообщение..."
+            autocomplete="off"
+          >
+
+          <button
+            class="speak-custom"
+            onclick="speakCustomPhrase()"
+            aria-label="Произнести сообщение"
+          >
+            🔊
+          </button>
+
+        </div>
+
+      </section>
+
+    </main>
+
+
+    <!-- НИЖНЕЕ МЕНЮ -->
+    <nav class="bottom-nav">
+
+      <button class="nav-item active">
+        <span>💬</span>
+        <small>Фразы</small>
+      </button>
+
+      <button class="nav-item">
+        <span>♥</span>
+        <small>Избранное</small>
+      </button>
+
+      <button class="nav-item add-button">
+        <span>＋</span>
+        <small>Добавить</small>
+      </button>
+
+      <button class="nav-item">
+        <span>⚙</span>
+        <small>Настройки</small>
+      </button>
+
+    </nav>
+
+  </div>
+
+
+  <script src="script.js"></script>
+
+</body>
+</html>
