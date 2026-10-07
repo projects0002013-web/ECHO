@@ -178,6 +178,65 @@
 
   </div>
 
+<!-- ОКНО ДОБАВЛЕНИЯ ФРАЗЫ -->
+
+<div class="modal" id="addPhraseModal">
+
+  <div class="modal-content">
+
+    <div class="modal-header">
+      <div>
+        <p class="small-title">НОВАЯ ФРАЗА</p>
+        <h2>Добавить карточку</h2>
+      </div>
+
+      <button class="close-modal" id="closeModal">
+        ×
+      </button>
+    </div>
+
+    <label class="input-label">
+      Иконка
+    </label>
+
+    <input
+      id="newPhraseIcon"
+      class="modal-input icon-input"
+      type="text"
+      maxlength="4"
+      placeholder="😊"
+    >
+
+    <label class="input-label">
+      Название
+    </label>
+
+    <input
+      id="newPhraseName"
+      class="modal-input"
+      type="text"
+      maxlength="30"
+      placeholder="Например: Холодно"
+    >
+
+    <label class="input-label">
+      Что должен сказать ECHO?
+    </label>
+
+    <textarea
+      id="newPhraseText"
+      class="modal-input modal-textarea"
+      maxlength="150"
+      placeholder="Например: Мне холодно"
+    ></textarea>
+
+    <button id="savePhraseButton" class="save-phrase">
+      Добавить фразу
+    </button>
+
+  </div>
+
+</div>
 
   <script src="script.js"></script>
 

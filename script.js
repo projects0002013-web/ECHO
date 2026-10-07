@@ -129,3 +129,169 @@ function saveSettings() {
     JSON.stringify(echoSettings)
   );
 }
+// ===============================
+// ДОБАВЛЕНИЕ СВОИХ ФРАЗ
+// ===============================
+
+const addButton = document.querySelector(".add-button");
+const modal = document.getElementById("addPhraseModal");
+const closeModal = document.getElementById("closeModal");
+
+const iconInput = document.getElementById("newPhraseIcon");
+const nameInput = document.getElementById("newPhraseName");
+const textInput = document.getElementById("newPhraseText");
+
+const savePhraseButton =
+  document.getElementById("savePhraseButton");
+
+
+// Загружаем сохранённые карточки
+let customPhrases =
+  JSON.parse(localStorage.getItem("echoPhrases")) || [];
+
+
+// Открыть окно
+addButton.addEventListener("click", () => {
+
+  modal.classList.add("open");
+
+  nameInput.focus();
+
+});
+
+
+// Закрыть окно
+closeModal.addEventListener("click", () => {
+
+  modal.classList.remove("open");
+
+});
+
+
+// Нажатие по затемнённой области
+modal.addEventListener("click", event => {
+
+  if(event.target === modal){
+    modal.classList.remove("open");
+  }
+
+});
+
+
+// Создание карточки
+function createPhraseCard(phrase){
+
+  const card = document.createElement("button");
+
+  card.className = "phrase-card";
+
+  card.dataset.text = phrase.text;
+
+  card.innerHTML = `
+    <span class="phrase-icon">${phrase.icon}</span>
+
+    <span class="phrase-name">
+      ${phrase.name}
+    </span>
+
+    <span class="phrase-text">
+      ${phrase.text}
+    </span>
+
+    <span class="sound-icon">
+      🔊
+    </span>
+  `;
+
+  card.addEventListener("click", () => {
+
+    card.classList.add("speaking");
+
+    setTimeout(() => {
+      card.classList.remove("speaking");
+    },400);
+
+    speak(phrase.text);
+
+  });
+
+  document
+    .querySelector(".phrase-grid")
+    .appendChild(card);
+}
+
+
+// Показываем сохранённые карточки
+customPhrases.forEach(phrase => {
+
+  createPhraseCard(phrase);
+
+});
+
+
+// Сохранить новую карточку
+savePhraseButton.addEventListener("click", () => {
+
+  const icon =
+    iconInput.value.trim() || "💬";
+
+  const name =
+    nameInput.value.trim();
+
+  const text =
+    textInput.value.trim();
+
+
+  if(!name){
+
+    nameInput.focus();
+    return;
+
+  }
+
+
+  if(!text){
+
+    textInput.focus();
+    return;
+
+  }
+
+
+  const newPhrase = {
+
+    id: Date.now(),
+
+    icon: icon,
+
+    name: name,
+
+    text: text
+
+  };
+
+
+  customPhrases.push(newPhrase);
+
+
+  // Сохраняем на устройстве
+  localStorage.setItem(
+    "echoPhrases",
+    JSON.stringify(customPhrases)
+  );
+
+
+  // Показываем карточку
+  createPhraseCard(newPhrase);
+
+
+  // Очищаем поля
+  iconInput.value = "";
+  nameInput.value = "";
+  textInput.value = "";
+
+
+  // Закрываем окно
+  modal.classList.remove("open");
+
+});

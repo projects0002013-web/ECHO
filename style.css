@@ -570,3 +570,143 @@ input:focus-visible {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+/* ============================= */
+/* ADD PHRASE MODAL */
+/* ============================= */
+
+.modal{
+  position:fixed;
+  inset:0;
+
+  background:rgba(15,25,18,.45);
+
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+
+  padding:18px;
+
+  opacity:0;
+  visibility:hidden;
+
+  transition:.2s;
+
+  z-index:1000;
+}
+
+.modal.open{
+  opacity:1;
+  visibility:visible;
+}
+
+.modal-content{
+  width:100%;
+  max-width:600px;
+
+  background:white;
+
+  border-radius:28px;
+
+  padding:24px;
+
+  transform:translateY(40px);
+
+  transition:.25s;
+}
+
+.modal.open .modal-content{
+  transform:translateY(0);
+}
+
+.modal-header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+
+  margin-bottom:25px;
+}
+
+.modal-header h2{
+  font-size:25px;
+}
+
+.close-modal{
+  width:42px;
+  height:42px;
+
+  border:0;
+  border-radius:13px;
+
+  background:#f0f2ef;
+
+  font-size:27px;
+
+  cursor:pointer;
+}
+
+.input-label{
+  display:block;
+
+  margin:17px 0 7px;
+
+  font-size:13px;
+  font-weight:700;
+
+  color:#4c554e;
+}
+
+.modal-input{
+  width:100%;
+
+  border:1px solid var(--border);
+
+  border-radius:15px;
+
+  padding:14px;
+
+  outline:none;
+
+  background:#f8f9f7;
+
+  font-size:16px;
+}
+
+.modal-input:focus{
+  border-color:var(--green);
+  background:white;
+}
+
+.icon-input{
+  font-size:25px;
+}
+
+.modal-textarea{
+  min-height:90px;
+
+  resize:none;
+
+  font-family:inherit;
+}
+
+.save-phrase{
+  width:100%;
+
+  margin-top:22px;
+
+  border:0;
+  border-radius:16px;
+
+  padding:16px;
+
+  background:var(--green);
+  color:white;
+
+  font-size:16px;
+  font-weight:700;
+
+  cursor:pointer;
+}
+
+.save-phrase:active{
+  transform:scale(.98);
+}
