@@ -1,28 +1,51 @@
-/* =========================
-   ECHO — STYLE.CSS
-   ========================= */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+/* ==========================================
+   ECHO — STYLE.CSS
+   ЧАСТЬ 1/6
+========================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap");
+
+/* ==========================================
+   1. ЦВЕТА
+========================================== */
 
 :root {
-  --background: #f4f7f4;
+  --bg: #f4f8f7;
   --surface: #ffffff;
-  --surface-soft: #edf5ef;
+  --surface2: #edf7f3;
 
-  --primary: #356b4a;
-  --primary-dark: #28543a;
-  --primary-light: #dfeee4;
+  --text: #15352e;
+  --muted: #70877e;
 
-  --text: #172019;
-  --text-soft: #6f7871;
+  --primary: #078568;
+  --primary2: #06aa80;
 
-  --border: #dfe6e0;
+  --border: #dcebe5;
+  --danger: #e34d58;
 
-  --shadow: 0 8px 25px rgba(25, 50, 32, 0.07);
+  --radius: 22px;
+  --shadow: 0 12px 32px rgba(13, 70, 53, 0.07);
+
+  /* Совместимость с JS и старыми классами */
+
+  --background: var(--bg);
+  --surface-soft: var(--surface2);
+  --primary-dark: #056e57;
+  --primary-light: var(--surface2);
+  --text-soft: var(--muted);
+  --green: var(--primary);
+  --green-light: var(--surface2);
+}
+
+/* ==========================================
+   2. ОСНОВА СТРАНИЦЫ
+========================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html {
@@ -30,298 +53,1314 @@ html {
 }
 
 body {
+  margin: 0;
   min-height: 100vh;
-  background: var(--background);
+
+  background: var(--bg);
   color: var(--text);
 
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Arial,
-    sans-serif;
+  font-family: "Nunito", system-ui, sans-serif;
+  line-height: 1.5;
 }
 
 button,
-input {
+input,
+textarea,
+select {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--primary2);
+  outline-offset: 3px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ==========================================
+   3. ГЛАВНЫЙ КОНТЕЙНЕР
+========================================== */
 
 .app {
   width: 100%;
-  max-width: 720px;
+  max-width: 780px;
   min-height: 100vh;
 
   margin: 0 auto;
-  padding: 0 20px 110px;
+  padding: 0 20px 125px;
 }
 
+.app main {
+  width: 100%;
+  margin: 0 auto 30px;
+}
 
-/* =========================
-   HEADER
-   ========================= */
+/* ==========================================
+   4. ШАПКА
+========================================== */
 
 .header {
-  min-height: 100px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  gap: 20px;
+  gap: 16px;
+  min-height: 96px;
+
+  padding: 12px 0;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .logo-icon {
+  display: grid;
+  place-items: center;
+
   width: 54px;
   height: 54px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
   flex-shrink: 0;
 
   border-radius: 18px;
 
-  background: var(--primary);
-  color: white;
+  background: linear-gradient(
+    135deg,
+    #078568,
+    #08b98d
+  );
 
-  font-size: 18px;
-  font-weight: 800;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
 
-  box-shadow: 0 6px 18px rgba(53, 107, 74, 0.2);
+  box-shadow: 0 9px 24px rgba(7, 133, 104, 0.2);
 }
 
 .logo h1 {
-  font-size: 26px;
-  line-height: 1;
-  letter-spacing: 2px;
+  margin: 0;
+
+  color: var(--text);
+  font-size: 27px;
+  font-weight: 900;
 }
 
 .logo p {
-  margin-top: 6px;
-  color: var(--text-soft);
-  font-size: 13px;
+  margin: 3px 0 0;
+
+  color: var(--muted);
+  font-size: 12px;
 }
 
 .settings-btn {
+  display: grid;
+  place-items: center;
+
   width: 48px;
   height: 48px;
+  flex-shrink: 0;
 
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 14px;
 
   background: var(--surface);
   color: var(--text);
 
-  font-size: 20px;
-
+  font-size: 22px;
   box-shadow: var(--shadow);
-
-  transition:
-    transform 0.15s ease,
-    background 0.15s ease;
 }
 
-.settings-btn:hover {
-  background: var(--primary-light);
-}
-
-.settings-btn:active {
-  transform: scale(0.92);
-}
-
-
-/* =========================
-   WELCOME
-   ========================= */
+/* ==========================================
+   5. ПРИВЕТСТВИЕ
+========================================== */
 
 .welcome {
-  margin-top: 15px;
-  margin-bottom: 28px;
+  margin: 14px 0 26px;
 }
 
 .small-title {
-  margin-bottom: 9px;
+  display: inline-block;
+
+  margin: 0 0 10px;
 
   color: var(--primary);
 
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
 }
 
 .welcome h2 {
-  max-width: 500px;
+  margin: 0 0 10px;
 
-  margin-bottom: 10px;
-
-  font-size: 32px;
-  line-height: 1.15;
+  font-size: clamp(27px, 5vw, 38px);
+  line-height: 1.16;
 }
 
 .description {
-  max-width: 500px;
+  max-width: 580px;
 
-  color: var(--text-soft);
+  margin: 0;
 
+  color: var(--muted);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-
-/* =========================
-   PHRASE GRID
-   ========================= */
+/* ==========================================
+   6. СЕТКА КАРТОЧЕК
+========================================== */
 
 .phrase-grid {
   display: grid;
 
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
 
-  gap: 14px;
+  gap: 16px;
+  margin: 18px 0 30px;
 }
 
-
-/* =========================
-   PHRASE CARD
-   ========================= */
+/* ==========================================
+   7. КАРТОЧКА
+========================================== */
 
 .phrase-card {
   position: relative;
-
-  min-height: 180px;
-
-  padding: 20px;
 
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 
-  overflow: hidden;
+  min-width: 0;
+  min-height: 245px;
 
-  border: 1px solid var(--border);
-  border-radius: 24px;
+  padding: 18px 18px 105px;
+
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
 
   background: var(--surface);
   color: var(--text);
 
   text-align: left;
-
   box-shadow: var(--shadow);
 
+  overflow: hidden;
+
   transition:
-    transform 0.16s ease,
-    border-color 0.16s ease,
-    background 0.16s ease,
-    box-shadow 0.16s ease;
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .phrase-card:hover {
   transform: translateY(-3px);
 
-  border-color: #c7d9cc;
+  border-color: var(--primary2);
 
-  box-shadow: 0 12px 30px rgba(25, 50, 32, 0.1);
-}
-
-.phrase-card:active {
-  transform: scale(0.96);
-  background: var(--primary-light);
+  box-shadow:
+    0 16px 36px rgba(0, 121, 89, 0.13);
 }
 
 .phrase-card.speaking {
-  background: var(--primary-light);
+  background: var(--surface2);
   border-color: var(--primary);
-  transform: scale(0.96);
 }
 
+/* ==========================================
+   8. ИКОНКА
+========================================== */
+
 .phrase-icon {
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
   width: 58px;
   height: 58px;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-bottom: 17px;
 
-  margin-bottom: auto;
+  border-radius: 17px;
+  background: var(--surface2);
 
-  border-radius: 18px;
-
-  background: var(--surface-soft);
-
-  font-size: 32px;
+  font-size: 30px;
+  line-height: 1;
 }
+
+/* ==========================================
+   9. НАЗВАНИЕ И ТЕКСТ
+========================================== */
 
 .phrase-name {
   display: block;
+  width: 100%;
 
-  margin-top: 20px;
+  margin-bottom: 6px;
+
+  color: var(--text);
 
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 900;
+  line-height: 1.25;
+
+  overflow-wrap: anywhere;
 }
 
 .phrase-text {
   display: block;
+  width: 100%;
 
-  margin-top: 5px;
+  color: var(--muted);
 
-  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.4;
 
-  font-size: 13px;
-  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
+
+/* ==========================================
+   10. ИКОНКА ЗВУКА
+========================================== */
 
 .sound-icon {
   position: absolute;
 
-  top: 20px;
-  right: 20px;
+  top: 13px;
+  right: 13px;
+
+  display: grid;
+  place-items: center;
 
   width: 36px;
   height: 36px;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
   border-radius: 12px;
 
-  background: var(--primary-light);
+  background: var(--surface2);
+  color: var(--primary);
 
-  font-size: 17px;
+  font-size: 18px;
+
+  pointer-events: none;
 }
 
+/* ==========================================
+   11. КНОПКИ КАРТОЧЕК
+========================================== */
 
-/* =========================
-   CUSTOM PHRASE
-   ========================= */
+.phrase-card .favorite-star,
+.phrase-card .echo-pin-button,
+.phrase-card .edit-card,
+.phrase-card .delete-card {
+  position: absolute;
 
-.custom-section {
-  margin-top: 34px;
+  bottom: 13px;
+  top: auto;
+
+  display: grid;
+  place-items: center;
+
+  width: 37px;
+  height: 37px;
+
+  padding: 0;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 18px;
+  line-height: 1;
+
+  z-index: 2;
 }
 
-.custom-box {
-  width: 100%;
+/* Избранное */
+
+.phrase-card .favorite-star {
+  right: 13px;
+  left: auto;
+}
+
+.phrase-card .favorite-star.is-favorite {
+  color: #e5a91b;
+}
+
+/* Закрепление */
+
+.phrase-card .echo-pin-button {
+  left: 13px;
+  right: auto;
+}
+
+/* Редактирование */
+
+.phrase-card .edit-card {
+  left: 58px;
+  right: auto;
+}
+
+/* Удаление */
+
+.phrase-card .delete-card {
+  left: 103px;
+  right: auto;
+
+  color: var(--danger);
+}
+
+/* ==========================================
+   КОНЕЦ ЧАСТИ 1/6
+========================================== */
+
+/* ==========================================
+   ECHO — STYLE.CSS
+   ЧАСТЬ 2/6
+   РАЗМЕРЫ И НАВИГАЦИЯ
+========================================== */
+
+/* ==========================================
+   1. СКРЫТЫЕ КАРТОЧКИ
+========================================== */
+
+.phrase-card[hidden],
+.phrase-card.favorite-hidden {
+  display: none !important;
+}
+
+/* ==========================================
+   2. МАЛЕНЬКИЕ КАРТОЧКИ
+========================================== */
+
+.cards-small .phrase-grid {
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+}
+
+.cards-small .phrase-card {
+  min-height: 220px;
+  padding: 13px 12px 105px;
+}
+
+.cards-small .phrase-icon {
+  width: 43px;
+  height: 43px;
+
+  margin-bottom: 12px;
+  font-size: 24px;
+}
+
+.cards-small .phrase-name {
+  font-size: 16px;
+}
+
+.cards-small .phrase-text {
+  font-size: 12px;
+}
+
+/* ==========================================
+   3. СРЕДНИЕ КАРТОЧКИ
+========================================== */
+
+.cards-medium .phrase-grid {
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+}
+
+/* ==========================================
+   4. БОЛЬШИЕ КАРТОЧКИ
+========================================== */
+
+.cards-large .phrase-grid {
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+}
+
+.cards-large .phrase-card {
+  min-height: 285px;
+  padding: 26px 23px 105px;
+}
+
+.cards-large .phrase-icon {
+  width: 76px;
+  height: 76px;
+
+  margin-bottom: 18px;
+  font-size: 39px;
+}
+
+.cards-large .phrase-name {
+  font-size: 24px;
+}
+
+.cards-large .phrase-text {
+  font-size: 16px;
+}
+
+/* ==========================================
+   5. НИЖНЯЯ НАВИГАЦИЯ
+========================================== */
+
+.bottom-nav {
+  position: fixed;
+
+  bottom: 12px;
+  left: 50%;
+
+  transform: translateX(-50%);
 
   display: flex;
   align-items: center;
+  justify-content: space-around;
 
   gap: 6px;
 
-  padding: 6px;
+  width: calc(100% - 24px);
+  max-width: 740px;
+  min-height: 75px;
+
+  padding:
+    8px 10px
+    max(8px, env(safe-area-inset-bottom));
+
+  border: 1px solid var(--border);
+  border-radius: 23px;
+
+  background: var(--surface);
+
+  box-shadow:
+    0 12px 38px rgba(11, 57, 44, 0.12);
+
+  backdrop-filter: blur(14px);
+
+  z-index: 100;
+}
+
+/* ==========================================
+   6. КНОПКИ НИЖНЕГО МЕНЮ
+========================================== */
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  flex: 1;
+  min-width: 0;
+
+  gap: 3px;
+
+  padding: 7px 3px;
+
+  border: 0;
+  border-radius: 15px;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-size: 13px;
+  font-weight: 800;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.nav-item span {
+  font-size: 21px;
+  line-height: 1.2;
+}
+
+.nav-item small {
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* Активная вкладка */
+
+.nav-item.active {
+  background: var(--surface2);
+  color: var(--primary);
+}
+
+/* Эффект нажатия */
+
+.nav-item:active {
+  transform: scale(0.96);
+}
+
+/* ==========================================
+   7. КНОПКА «ДОБАВИТЬ»
+========================================== */
+
+.add-button {
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+  color: var(--muted);
+
+  box-shadow: none;
+}
+
+.add-button span {
+  display: grid;
+  place-items: center;
+
+  width: 45px;
+  height: 45px;
+
+  border-radius: 15px;
+
+  background: var(--primary);
+  color: #ffffff;
+
+  font-size: 27px;
+  font-weight: 900;
+
+  box-shadow:
+    0 7px 17px rgba(7, 133, 104, 0.2);
+}
+
+.add-button:hover span {
+  background: var(--primary2);
+}
+
+/* ==========================================
+   8. ПЛАНШЕТЫ
+========================================== */
+
+@media (max-width: 800px) {
+
+  .phrase-grid,
+  .cards-medium .phrase-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .cards-small .phrase-grid {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+
+  .cards-large .phrase-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .phrase-card {
+    min-height: 235px;
+  }
+
+}
+
+/* ==========================================
+   9. ТЕЛЕФОНЫ
+========================================== */
+
+@media (max-width: 480px) {
+
+  /* Основной контейнер */
+
+  .app {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Шапка */
+
+  .header {
+    min-height: 83px;
+  }
+
+  .logo-icon {
+    width: 47px;
+    height: 47px;
+
+    border-radius: 15px;
+  }
+
+  .logo h1 {
+    font-size: 24px;
+  }
+
+  .welcome h2 {
+    font-size: 28px;
+  }
+
+  /* Сетка */
+
+  .phrase-grid,
+  .cards-medium .phrase-grid,
+  .cards-small .phrase-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 11px;
+  }
+
+  /* Карточки */
+
+  .phrase-card,
+  .cards-small .phrase-card {
+    min-height: 222px;
+
+    padding: 14px 12px 105px;
+
+    border-radius: 18px;
+  }
+
+  .phrase-icon {
+    width: 49px;
+    height: 49px;
+
+    font-size: 27px;
+  }
+
+  .phrase-name {
+    font-size: 18px;
+  }
+
+  .phrase-text {
+    font-size: 12px;
+  }
+
+  /* Большие карточки */
+
+  .cards-large .phrase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cards-large .phrase-card {
+    min-height: 270px;
+    padding: 22px 20px 105px;
+  }
+
+  /* Кнопки на карточке */
+
+  .phrase-card .favorite-star {
+    right: 11px;
+    bottom: 11px;
+  }
+
+  .phrase-card .echo-pin-button {
+    left: 11px;
+    bottom: 11px;
+  }
+
+  .phrase-card .edit-card {
+    left: 53px;
+    bottom: 11px;
+  }
+
+  .phrase-card .delete-card {
+    left: 95px;
+    bottom: 11px;
+  }
+
+  .sound-icon {
+    top: 11px;
+    right: 11px;
+  }
+
+  /* Нижнее меню */
+
+  .bottom-nav {
+    bottom: 8px;
+
+    width: calc(100% - 16px);
+
+    border-radius: 20px;
+  }
+
+  .nav-item {
+    padding: 7px 2px;
+  }
+
+  .nav-item small {
+    font-size: 10px;
+  }
+
+}
+
+/* ==========================================
+   10. ОЧЕНЬ УЗКИЕ ЭКРАНЫ
+========================================== */
+
+@media (max-width: 360px) {
+
+  .phrase-card,
+  .cards-small .phrase-card {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .phrase-card .favorite-star,
+  .phrase-card .echo-pin-button,
+  .phrase-card .edit-card,
+  .phrase-card .delete-card {
+    width: 30px;
+    height: 34px;
+
+    font-size: 15px;
+  }
+
+  .phrase-card .echo-pin-button {
+    left: 9px;
+  }
+
+  .phrase-card .edit-card {
+    left: 43px;
+  }
+
+  .phrase-card .delete-card {
+    left: 77px;
+  }
+
+  .phrase-card .favorite-star {
+    right: 9px;
+  }
+
+  .nav-item small {
+    font-size: 9px;
+  }
+
+}
+
+/* ==========================================
+   КОНЕЦ ЧАСТИ 2/6
+========================================== */
+
+/* ==========================================
+   ECHO — STYLE.CSS
+   ЧАСТЬ 3/6
+   ПОИСК, КАТЕГОРИИ И СВОИ ФРАЗЫ
+========================================== */
+
+
+/* ==========================================
+   1. ОБЩИЙ СТИЛЬ ПАНЕЛЕЙ
+========================================== */
+
+.echo-search-panel,
+.echo-category-manager,
+.echo-custom-category-manager,
+.echo-quick-panel {
+  width: 100%;
+  min-width: 0;
+
+  margin: 0 0 18px;
+  padding: 22px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  box-shadow: var(--shadow);
+}
+
+
+/* ==========================================
+   2. ПОЛЕ ПОИСКА
+========================================== */
+
+.echo-search-box {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+  min-height: 54px;
+
+  padding: 0 14px;
+
+  background: var(--bg);
+
+  border: 1px solid var(--border);
+  border-radius: 15px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.echo-search-box:focus-within {
+  border-color: var(--primary2);
+
+  box-shadow:
+    0 0 0 3px rgba(6, 170, 128, 0.12);
+}
+
+/* Иконка поиска */
+
+.echo-search-box > span {
+  flex-shrink: 0;
+
+  color: var(--muted);
+  font-size: 20px;
+}
+
+/* Поле ввода */
+
+#echoSearchInput {
+  flex: 1;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+
+  padding: 12px 0;
+
+  border: 0;
+  outline: none;
+
+  background: transparent;
+  color: var(--text);
+
+  font-size: 15px;
+}
+
+#echoSearchInput::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+/* Убираем внутреннюю рамку поиска */
+
+#echoSearchInput:focus {
+  outline: none;
+}
+
+
+/* ==========================================
+   3. КНОПКА ОЧИСТКИ ПОИСКА
+========================================== */
+
+#echoClearSearch {
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  width: 34px;
+  height: 34px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: var(--surface2);
+  color: var(--muted);
+
+  font-size: 23px;
+  line-height: 1;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+#echoClearSearch:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+#echoClearSearch[hidden] {
+  display: none !important;
+}
+
+
+/* ==========================================
+   4. ПАНЕЛЬ КАТЕГОРИЙ
+========================================== */
+
+.echo-category-filters,
+.echo-category-list,
+#echoCategoryFilters {
+  display: flex;
+  align-items: center;
+
+  flex-wrap: nowrap;
+  gap: 9px;
+
+  width: 100%;
+  min-width: 0;
+
+  margin-top: 16px;
+  padding: 4px 2px 10px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Полоса прокрутки */
+
+.echo-category-filters::-webkit-scrollbar,
+.echo-category-list::-webkit-scrollbar {
+  height: 5px;
+}
+
+.echo-category-filters::-webkit-scrollbar-thumb,
+.echo-category-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 10px;
+}
+
+
+/* ==========================================
+   5. КНОПКИ КАТЕГОРИЙ
+========================================== */
+
+.echo-category-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  min-height: 44px;
+  padding: 10px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+
+  white-space: nowrap;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.echo-category-button:hover {
+  border-color: var(--primary2);
+  background: var(--surface2);
+}
+
+/* Выбранная категория */
+
+.echo-category-button.active {
+  background: var(--primary);
+  color: #ffffff;
+
+  border-color: var(--primary);
+}
+
+.echo-category-button.active:hover {
+  background: var(--primary2);
+  border-color: var(--primary2);
+}
+
+
+/* ==========================================
+   6. СООБЩЕНИЯ ПРИ ПУСТОМ ПОИСКЕ
+========================================== */
+
+.echo-search-empty,
+.favorite-empty {
+  grid-column: 1 / -1;
+
+  width: 100%;
+  padding: 35px 16px;
+
+  color: var(--muted);
+
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   7. УПРАВЛЕНИЕ СВОИМИ КАТЕГОРИЯМИ
+========================================== */
+
+.echo-category-manager,
+.echo-custom-category-manager {
+  margin: 15px 0 18px;
+}
+
+.echo-category-manager h3,
+.echo-custom-category-manager h3 {
+  margin: 0 0 12px;
+
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.echo-category-manager p,
+.echo-custom-category-manager p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   8. ПОЛЕ НОВОЙ КАТЕГОРИИ
+========================================== */
+
+#echoNewCategoryName {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+
+  padding: 12px 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  font-size: 15px;
+}
+
+#echoNewCategoryName::placeholder {
+  color: var(--muted);
+}
+
+#echoNewCategoryName:focus {
+  border-color: var(--primary2);
+  outline: 3px solid rgba(6, 170, 128, 0.12);
+}
+
+
+/* ==========================================
+   9. СПИСОК СОЗДАННЫХ КАТЕГОРИЙ
+========================================== */
+
+.echo-custom-category-list,
+.echo-category-items,
+#echoCustomCategoryList {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+  min-width: 0;
+
+  margin-top: 12px;
+}
+
+/* Отдельная строка категории */
+
+.echo-custom-category-list > *,
+.echo-category-items > *,
+#echoCustomCategoryList > * {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex-wrap: wrap;
+  gap: 12px;
+
+  min-width: 0;
+  padding: 12px 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 15px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  overflow-wrap: anywhere;
+}
+
+/* Название категории */
+
+.echo-custom-category-list > * > span,
+.echo-category-items > * > span,
+#echoCustomCategoryList > * > span {
+  flex: 1 1 120px;
+  min-width: 0;
+
+  font-size: 14px;
+  font-weight: 800;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ==========================================
+   10. УДАЛЕНИЕ СВОЕЙ КАТЕГОРИИ
+========================================== */
+
+.echo-custom-category-list > * > button,
+.echo-category-items > * > button,
+#echoCustomCategoryList > * > button {
+  position: static;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  min-height: 40px;
+
+  margin-left: auto;
+  padding: 9px 14px;
+
+  border: 1px solid rgba(225, 68, 82, 0.28);
+  border-radius: 11px;
+
+  background: rgba(225, 68, 82, 0.1);
+  color: #d94a59;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.echo-custom-category-list > * > button:hover,
+.echo-category-items > * > button:hover,
+#echoCustomCategoryList > * > button:hover {
+  background: rgba(225, 68, 82, 0.18);
+}
+
+
+/* ==========================================
+   11. БЫСТРЫЕ ФРАЗЫ
+========================================== */
+
+.echo-quick-panel {
+  margin-bottom: 18px;
+}
+
+.echo-quick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.echo-quick-header h3 {
+  margin: 0;
+
+  font-size: 19px;
+  font-weight: 900;
+}
+
+/* Список быстрых фраз */
+
+.echo-quick-list,
+#echoQuickList {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* Кнопка быстрой фразы */
+
+.echo-quick-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 46px;
+  max-width: 100%;
+
+  padding: 11px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  text-align: center;
+  overflow-wrap: anywhere;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.echo-quick-button:hover {
+  border-color: var(--primary);
+  background: var(--surface);
+}
+
+.echo-quick-button:active {
+  transform: scale(0.97);
+}
+
+
+/* ==========================================
+   12. СЕКЦИЯ «СВОЯ ФРАЗА»
+========================================== */
+
+.custom-section {
+  margin: 32px 0 10px;
+}
+
+.custom-section .small-title {
+  margin-bottom: 12px;
+}
+
+
+/* ==========================================
+   13. ПОЛЕ СВОЕЙ ФРАЗЫ
+========================================== */
+
+.custom-box {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+  min-height: 68px;
+
+  padding: 7px;
 
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -329,828 +1368,2780 @@ button {
   background: var(--surface);
 
   box-shadow: var(--shadow);
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.custom-box input {
+.custom-box:focus-within {
+  border-color: var(--primary2);
+
+  box-shadow:
+    0 0 0 3px rgba(6, 170, 128, 0.12);
+}
+
+/* Текстовое поле */
+
+#customPhrase {
+  flex: 1;
+
   width: 100%;
   min-width: 0;
 
-  padding: 15px 14px;
+  padding: 13px 12px;
 
-  border: none;
+  border: 0;
   outline: none;
 
   background: transparent;
-
   color: var(--text);
 
   font-size: 16px;
 }
 
-.custom-box input::placeholder {
-  color: #9ca49e;
+#customPhrase::placeholder {
+  color: var(--muted);
 }
 
+#customPhrase:focus {
+  outline: none;
+}
+
+
+/* ==========================================
+   14. КНОПКА ОЗВУЧИВАНИЯ СВОЕЙ ФРАЗЫ
+========================================== */
+
 .speak-custom {
-  width: 54px;
-  height: 54px;
+  display: grid;
+  place-items: center;
 
   flex-shrink: 0;
 
-  border: none;
-  border-radius: 16px;
+  width: 54px;
+  height: 54px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 15px;
 
   background: var(--primary);
-  color: white;
+  color: #ffffff;
 
-  font-size: 20px;
+  font-size: 21px;
 
   transition:
-    transform 0.15s ease,
-    background 0.15s ease;
+    background 0.2s ease,
+    transform 0.2s ease;
 }
 
 .speak-custom:hover {
-  background: var(--primary-dark);
+  background: var(--primary2);
 }
 
 .speak-custom:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 
 
-/* =========================
-   BOTTOM NAVIGATION
-   ========================= */
-
-.bottom-nav {
-  position: fixed;
-
-  z-index: 100;
-
-  bottom: 14px;
-  left: 50%;
-
-  transform: translateX(-50%);
-
-  width: calc(100% - 24px);
-  max-width: 680px;
-
-  min-height: 76px;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-
-  padding: 8px;
-
-  border: 1px solid var(--border);
-  border-radius: 24px;
-
-  background: rgba(255, 255, 255, 0.96);
-
-  box-shadow: 0 10px 35px rgba(20, 40, 25, 0.13);
-}
-
-.nav-item {
-  min-width: 65px;
-
-  flex: 1;
-
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-
-  gap: 5px;
-
-  padding: 5px;
-
-  border: none;
-
-  background: transparent;
-
-  color: var(--text-soft);
-
-  transition:
-    color 0.15s ease,
-    transform 0.15s ease;
-}
-
-.nav-item:hover {
-  color: var(--primary);
-}
-
-.nav-item:active {
-  transform: scale(0.92);
-}
-
-.nav-item span {
-  font-size: 21px;
-}
-
-.nav-item small {
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.nav-item.active {
-  color: var(--primary);
-}
-
-.add-button span {
-  width: 42px;
-  height: 42px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 14px;
-
-  background: var(--primary);
-  color: white;
-
-  font-size: 27px;
-
-  box-shadow: 0 5px 14px rgba(53, 107, 74, 0.22);
-}
-
-
-/* =========================
-   ACCESSIBILITY
-   ========================= */
-
-button:focus-visible,
-input:focus-visible {
-  outline: 3px solid rgba(53, 107, 74, 0.3);
-  outline-offset: 3px;
-}
-
-
-/* =========================
-   MOBILE
-   ========================= */
+/* ==========================================
+   15. АДАПТАЦИЯ ДЛЯ ТЕЛЕФОНОВ
+========================================== */
 
 @media (max-width: 480px) {
 
-  .app {
-    padding-left: 14px;
-    padding-right: 14px;
+  .echo-search-panel,
+  .echo-category-manager,
+  .echo-custom-category-manager,
+  .echo-quick-panel {
+    padding: 16px;
+    border-radius: 18px;
   }
 
-  .header {
-    min-height: 88px;
+  .echo-category-filters,
+  .echo-category-list {
+    gap: 7px;
   }
 
-  .logo-icon {
+  .echo-category-button {
+    min-height: 42px;
+    padding: 9px 12px;
+
+    font-size: 12px;
+  }
+
+  .echo-custom-category-list > *,
+  .echo-category-items > *,
+  #echoCustomCategoryList > * {
+    padding: 11px 12px;
+    gap: 9px;
+  }
+
+  .echo-quick-list,
+  #echoQuickList {
+    gap: 8px;
+  }
+
+  .echo-quick-button {
+    min-height: 44px;
+    padding: 10px 12px;
+
+    font-size: 13px;
+  }
+
+  .custom-section {
+    margin-top: 26px;
+  }
+
+  .custom-box {
+    min-height: 62px;
+    border-radius: 17px;
+  }
+
+  #customPhrase {
+    font-size: 16px;
+  }
+
+  .speak-custom {
     width: 48px;
     height: 48px;
-    border-radius: 15px;
+
+    border-radius: 13px;
   }
 
-  .logo h1 {
-    font-size: 23px;
+}
+
+/* ==========================================
+   КОНЕЦ ЧАСТИ 3/6
+========================================== */
+
+/* ==========================================
+   ECHO — STYLE.CSS
+   ЧАСТЬ 4/6
+
+   МОДАЛЬНЫЕ ОКНА И КАРТОЧКИ
+========================================== */
+
+
+/* ==========================================
+   1. ФОН МОДАЛЬНОГО ОКНА
+========================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+
+  display: none;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 16px;
+
+  background: rgba(4, 25, 20, 0.58);
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+
+  z-index: 1000;
+}
+
+/* Открытое окно */
+
+.modal.open {
+  display: flex;
+}
+
+/* Дополнительная совместимость */
+
+#addPhraseModal.open {
+  display: flex;
+}
+
+
+/* ==========================================
+   2. СОДЕРЖИМОЕ ОКНА
+========================================== */
+
+.modal-box,
+.modal-content {
+  width: 100%;
+  max-width: 520px;
+
+  max-height: 90vh;
+  max-height: 90dvh;
+
+  padding: 24px;
+
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  background: var(--surface);
+  color: var(--text);
+
+  border: 1px solid var(--border);
+  border-radius: 26px;
+
+  box-shadow:
+    0 26px 80px rgba(0, 0, 0, 0.22);
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+
+/* ==========================================
+   3. ЗАГОЛОВОК МОДАЛЬНОГО ОКНА
+========================================== */
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.modal-header h2 {
+  min-width: 0;
+  margin: 0;
+
+  color: var(--text);
+
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.25;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ==========================================
+   4. КНОПКА ЗАКРЫТИЯ
+========================================== */
+
+.close-modal {
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  width: 42px;
+  height: 42px;
+
+  padding: 0;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 22px;
+  line-height: 1;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.close-modal:hover {
+  background: var(--border);
+}
+
+.close-modal:active {
+  transform: scale(0.94);
+}
+
+
+/* ==========================================
+   5. ПОДПИСИ ПОЛЕЙ
+========================================== */
+
+.input-label,
+.field-label,
+.modal-box label {
+  display: block;
+
+  margin: 16px 0 7px;
+
+  color: var(--text);
+
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+
+/* ==========================================
+   6. ПОЛЯ ВВОДА
+========================================== */
+
+.modal-input,
+.modal-textarea,
+#newPhraseName,
+#newPhraseText {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+
+  padding: 13px 15px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  font-size: 16px;
+  line-height: 1.5;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.modal-input::placeholder,
+.modal-textarea::placeholder,
+#newPhraseName::placeholder,
+#newPhraseText::placeholder {
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.modal-input:focus,
+.modal-textarea:focus,
+#newPhraseName:focus,
+#newPhraseText:focus {
+  border-color: var(--primary2);
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(6, 170, 128, 0.12);
+}
+
+
+/* ==========================================
+   7. МНОГОСТРОЧНЫЙ ТЕКСТ
+========================================== */
+
+.modal-textarea,
+textarea#newPhraseText {
+  min-height: 100px;
+
+  resize: vertical;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ==========================================
+   8. ВЫБОР ЭМОДЗИ
+========================================== */
+
+.emoji-list {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 9px;
+  margin-top: 10px;
+}
+
+/* Отдельный эмодзи */
+
+.emoji-option {
+  display: grid;
+  place-items: center;
+
+  flex: 0 0 auto;
+
+  width: 49px;
+  height: 49px;
+
+  padding: 0;
+
+  border: 1.5px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 23px;
+  line-height: 1;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.emoji-option:hover {
+  border-color: var(--primary2);
+  transform: translateY(-2px);
+}
+
+/* Выбранный эмодзи */
+
+.emoji-option.selected,
+.emoji-option.active,
+.emoji-option[aria-pressed="true"] {
+  border-color: var(--primary);
+
+  background: rgba(6, 170, 128, 0.15);
+
+  box-shadow:
+    0 0 0 2px rgba(6, 170, 128, 0.12);
+}
+
+
+/* ==========================================
+   9. КНОПКА СОХРАНЕНИЯ
+========================================== */
+
+.save-phrase,
+#savePhrase {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 52px;
+
+  margin-top: 22px;
+  padding: 14px 18px;
+
+  border: 0;
+  border-radius: 15px;
+
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--primary2)
+  );
+
+  color: #ffffff;
+
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.3;
+
+  text-align: center;
+
+  box-shadow:
+    0 8px 20px rgba(4, 136, 98, 0.18);
+
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.save-phrase:hover,
+#savePhrase:hover {
+  filter: brightness(1.06);
+}
+
+.save-phrase:active,
+#savePhrase:active {
+  transform: scale(0.98);
+}
+
+/* Недоступная кнопка */
+
+.save-phrase:disabled,
+#savePhrase:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+
+/* ==========================================
+   10. ВЫПАДАЮЩИЙ СПИСОК КАТЕГОРИЙ
+========================================== */
+
+.modal-box select,
+.modal-content select {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+
+  padding: 12px 42px 12px 15px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background-color: var(--bg);
+  color: var(--text);
+
+  font-size: 15px;
+  line-height: 1.4;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      var(--primary) 50%
+    ),
+    linear-gradient(
+      135deg,
+      var(--primary) 50%,
+      transparent 50%
+    );
+
+  background-position:
+    calc(100% - 21px) 23px,
+    calc(100% - 15px) 23px;
+
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.modal-box select:focus,
+.modal-content select:focus {
+  border-color: var(--primary2);
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(6, 170, 128, 0.12);
+}
+
+.modal-box select option,
+.modal-content select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+
+/* ==========================================
+   11. УВЕДОМЛЕНИЕ ОБ УДАЛЕНИИ
+========================================== */
+
+.delete-undo {
+  position: fixed;
+
+  left: 50%;
+  bottom: 100px;
+
+  transform: translateX(-50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  width: max-content;
+  max-width: calc(100% - 28px);
+
+  padding: 14px 18px;
+
+  border-radius: 16px;
+
+  background: var(--text);
+  color: var(--surface);
+
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.2);
+
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.4;
+
+  z-index: 2000;
+}
+
+
+/* ==========================================
+   12. КНОПКА «ОТМЕНИТЬ»
+========================================== */
+
+.undo-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  min-height: 38px;
+
+  padding: 8px 12px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: var(--primary2);
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  white-space: nowrap;
+}
+
+.undo-delete:hover {
+  filter: brightness(1.08);
+}
+
+
+/* ==========================================
+   13. УДОБНОЕ УПРАВЛЕНИЕ
+========================================== */
+
+.modal-box button,
+.modal-content button {
+  touch-action: manipulation;
+}
+
+.modal-box input,
+.modal-box textarea,
+.modal-box select {
+  max-width: 100%;
+}
+
+
+/* ==========================================
+   14. АДАПТАЦИЯ ДЛЯ ТЕЛЕФОНОВ
+========================================== */
+
+@media (max-width: 480px) {
+
+  .modal {
+    padding: 12px;
   }
 
-  .welcome h2 {
-    font-size: 27px;
-  }
+  .modal-box,
+  .modal-content {
+    max-height: 92vh;
+    max-height: 92dvh;
 
-  .phrase-grid {
-    gap: 10px;
-  }
-
-  .phrase-card {
-    min-height: 165px;
-
-    padding: 16px;
-
-    border-radius: 20px;
-  }
-
-  .phrase-icon {
-    width: 52px;
-    height: 52px;
-
-    font-size: 29px;
-  }
-
-  .phrase-name {
-    font-size: 18px;
-  }
-
-  .sound-icon {
-    top: 15px;
-    right: 15px;
-  }
-
-  .bottom-nav {
-    bottom: 8px;
-
-    width: calc(100% - 16px);
+    padding: 18px;
 
     border-radius: 21px;
   }
-}
 
-
-/* =========================
-   DESKTOP
-   ========================= */
-
-@media (min-width: 700px) {
-
-  .app {
-    padding-left: 30px;
-    padding-right: 30px;
+  .modal-header {
+    margin-bottom: 16px;
   }
 
-  .phrase-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .modal-header h2 {
+    font-size: 21px;
   }
-}
-/* ============================= */
-/* ADD PHRASE MODAL */
-/* ============================= */
 
-.modal{
-  position:fixed;
-  inset:0;
+  .close-modal {
+    width: 40px;
+    height: 40px;
+  }
 
-  background:rgba(15,25,18,.45);
+  .emoji-list {
+    gap: 8px;
+  }
 
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
+  .emoji-option {
+    width: 45px;
+    height: 45px;
 
-  padding:18px;
+    font-size: 21px;
+  }
 
-  opacity:0;
-  visibility:hidden;
+  .modal-input,
+  .modal-textarea,
+  #newPhraseName,
+  #newPhraseText {
+    font-size: 16px;
+  }
 
-  transition:.2s;
+  .delete-undo {
+    bottom: 96px;
 
-  z-index:1000;
-}
+    gap: 10px;
+    padding: 12px 14px;
 
-.modal.open{
-  opacity:1;
-  visibility:visible;
-}
+    font-size: 12px;
+  }
 
-.modal-content{
-  width:100%;
-  max-width:600px;
+  .undo-delete {
+    font-size: 12px;
+  }
 
-  background:white;
-
-  border-radius:28px;
-
-  padding:24px;
-
-  transform:translateY(40px);
-
-  transition:.25s;
-}
-
-.modal.open .modal-content{
-  transform:translateY(0);
-}
-
-.modal-header{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-
-  margin-bottom:25px;
-}
-
-.modal-header h2{
-  font-size:25px;
-}
-
-.close-modal{
-  width:42px;
-  height:42px;
-
-  border:0;
-  border-radius:13px;
-
-  background:#f0f2ef;
-
-  font-size:27px;
-
-  cursor:pointer;
-}
-
-.input-label{
-  display:block;
-
-  margin:17px 0 7px;
-
-  font-size:13px;
-  font-weight:700;
-
-  color:#4c554e;
-}
-
-.modal-input{
-  width:100%;
-
-  border:1px solid var(--border);
-
-  border-radius:15px;
-
-  padding:14px;
-
-  outline:none;
-
-  background:#f8f9f7;
-
-  font-size:16px;
-}
-
-.modal-input:focus{
-  border-color:var(--green);
-  background:white;
-}
-
-.icon-input{
-  font-size:25px;
-}
-
-.modal-textarea{
-  min-height:90px;
-
-  resize:none;
-
-  font-family:inherit;
-}
-
-.save-phrase{
-  width:100%;
-
-  margin-top:22px;
-
-  border:0;
-  border-radius:16px;
-
-  padding:16px;
-
-  background:var(--green);
-  color:white;
-
-  font-size:16px;
-  font-weight:700;
-
-  cursor:pointer;
-}
-
-.save-phrase:active{
-  transform:scale(.98);
-}
-/* =========================
-   ADD PHRASE MODAL
-========================= */
-
-.modal{
-  position:fixed;
-  inset:0;
-  z-index:1000;
-
-  display:none;
-  align-items:center;
-  justify-content:center;
-
-  padding:20px;
-
-  background:rgba(20,30,23,.45);
-  backdrop-filter:blur(5px);
-}
-
-.modal.open{
-  display:flex;
-}
-
-.modal-box{
-  width:min(500px,100%);
-  max-height:85vh;
-  overflow-y:auto;
-
-  background:#fff;
-  border-radius:26px;
-  padding:24px;
-
-  box-shadow:0 20px 60px rgba(0,0,0,.18);
-}
-.modal-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-
-  margin-bottom:24px;
-}
-
-.modal-header h2{
-  font-size:25px;
-}
-
-.close-modal{
-  width:42px;
-  height:42px;
-
-  border:0;
-  border-radius:13px;
-
-  background:#f0f2ef;
-
-  font-size:18px;
-}
-
-.field-label{
-  display:block;
-
-  margin:
-    18px 0
-    8px;
-
-  font-size:13px;
-  font-weight:700;
-
-  color:var(--text);
-}
-
-.emoji-list{
-  display:flex;
-  flex-wrap:wrap;
-
-  gap:9px;
-}
-
-.emoji-option{
-  width:50px;
-  height:50px;
-
-  border:
-    2px solid
-    transparent;
-
-  border-radius:15px;
-
-  background:#f4f6f3;
-
-  font-size:24px;
-}
-
-.emoji-option.selected{
-  border-color:
-    var(--green);
-
-  background:
-    var(--green-light);
-}
-
-.modal-input{
-  width:100%;
-
-  padding:14px 15px;
-
-  border:
-    1px solid
-    var(--border);
-
-  border-radius:14px;
-
-  outline:none;
-
-  background:#fafbfa;
-
-  font-size:16px;
-}
-
-.modal-input:focus{
-  border-color:
-    var(--green);
-
-  background:#fff;
-}
-
-.modal-textarea{
-  min-height:100px;
-
-  resize:vertical;
-}
-
-.save-phrase{
-  width:100%;
-
-  margin-top:22px;
-
-  padding:16px;
-
-  border:0;
-  border-radius:16px;
-
-  background:
-    var(--green);
-
-  color:white;
-
-  font-size:16px;
-  font-weight:700;
-}
-
-.save-phrase:active{
-  transform:scale(.98);
-}
-.save-phrase{
-  display:block;
-  width:100%;
-
-  margin-top:20px;
-  padding:16px;
-
-  border:none;
-  border-radius:16px;
-
-  background:var(--green);
-  color:white;
-
-  font-size:16px;
-  font-weight:700;
-  cursor:pointer;
-
-  position:sticky;
-  bottom:0;
-
-  z-index:5;
-}
-
-.save-phrase:hover{
-  filter:brightness(.95);
-}
-
-.save-phrase:active{
-  transform:scale(.98);
-}
-/* ===== КНОПКА СОХРАНЕНИЯ КАРТОЧКИ ===== */
-
-#savePhrase{
-  display:block !important;
-  width:100% !important;
-
-  margin-top:24px !important;
-  padding:17px 20px !important;
-
-  background:#3f8f6b !important;
-  color:#ffffff !important;
-
-  border:none !important;
-  border-radius:16px !important;
-
-  font-size:16px !important;
-  font-weight:700 !important;
-  font-family:inherit !important;
-
-  text-align:center !important;
-
-  cursor:pointer !important;
-
-  opacity:1 !important;
-  visibility:visible !important;
-
-  position:relative !important;
-  z-index:10 !important;
-}
-
-#savePhrase:hover{
-  background:#347b5b !important;
-}
-
-#savePhrase:active{
-  transform:scale(.98);
-}
-/* ==========================================
-   УДАЛЕНИЕ КАРТОЧКИ
-========================================== */
-
-.custom-card{
-  position:relative;
-}
-
-.delete-card{
-  position:absolute;
-
-  top:12px;
-  left:12px;
-
-  width:28px;
-  height:28px;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  border-radius:50%;
-
-  background:#f1f3f1;
-  color:#7b827d;
-
-  font-size:19px;
-  font-weight:600;
-  line-height:1;
-
-  cursor:pointer;
-
-  opacity:0;
-  transform:scale(.8);
-
-  transition:
-    opacity .15s,
-    transform .15s,
-    background .15s;
-}
-
-.custom-card:hover .delete-card{
-  opacity:1;
-  transform:scale(1);
-}
-
-.delete-card:hover{
-  background:#ffe8e8;
-  color:#c94a4a;
 }
 
 
 /* ==========================================
-   ОКНО ОТМЕНЫ
+   15. УМЕНЬШЕНИЕ АНИМАЦИЙ
 ========================================== */
 
-.delete-undo{
-  position:fixed;
+@media (prefers-reduced-motion: reduce) {
 
-  left:50%;
-  bottom:95px;
+  .modal *,
+  .delete-undo,
+  .emoji-option {
+    animation: none !important;
+    transition: none !important;
+  }
 
-  transform:
-    translateX(-50%);
+}
 
-  z-index:9999;
+/* ==========================================
+   КОНЕЦ ЧАСТИ 4/6
+========================================== */
 
-  width:
-    min(
-      420px,
-      calc(100% - 30px)
+/* ==========================================
+   ECHO — STYLE.CSS
+   ЧАСТЬ 5/6
+
+   ГОЛОС, ТЕМЫ И ИСТОРИЯ
+========================================== */
+
+
+/* ==========================================
+   1. ОБЩИЙ СТИЛЬ ПАНЕЛЕЙ
+========================================== */
+
+.echo-voice-panel,
+.echo-theme-panel,
+.echo-history-panel,
+.card-size-panel {
+  width: 100%;
+  min-width: 0;
+
+  margin: 0 0 18px;
+  padding: 22px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  background: var(--surface);
+  color: var(--text);
+
+  box-shadow: var(--shadow);
+}
+
+/* Скрытые панели */
+
+.echo-voice-panel[hidden],
+.echo-theme-panel[hidden],
+.echo-history-panel[hidden],
+.card-size-panel[hidden] {
+  display: none !important;
+}
+
+/* Заголовки */
+
+.echo-voice-panel h3,
+.echo-theme-panel h3,
+.echo-history-panel h3,
+.card-size-panel h3 {
+  margin: 0 0 14px;
+
+  color: var(--text);
+
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+/* Описания */
+
+.echo-voice-panel p,
+.echo-theme-panel p,
+.card-size-panel p {
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   2. ПОЛЯ НАСТРОЕК ГОЛОСА
+========================================== */
+
+.echo-voice-field {
+  width: 100%;
+  min-width: 0;
+
+  margin: 20px 0;
+}
+
+.echo-voice-field label {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+
+/* ==========================================
+   3. ВЫБОР ЯЗЫКА И ГОЛОСА
+========================================== */
+
+.echo-voice-field select {
+  display: block;
+
+  width: 100%;
+  max-width: 100%;
+  min-height: 52px;
+
+  padding: 12px 42px 12px 15px;
+
+  border: 1px solid var(--border);
+  border-radius: 14px;
+
+  background-color: var(--bg);
+  color: var(--text);
+
+  font-size: 15px;
+  line-height: 1.4;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      var(--primary) 50%
+    ),
+    linear-gradient(
+      135deg,
+      var(--primary) 50%,
+      transparent 50%
     );
 
-  display:flex;
-  align-items:center;
+  background-position:
+    calc(100% - 21px) 23px,
+    calc(100% - 15px) 23px;
 
-  gap:12px;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
 
-  padding:
-    14px 16px;
-
-  background:#1f2922;
-  color:white;
-
-  border-radius:16px;
-
-  box-shadow:
-    0 10px 35px
-    rgba(0,0,0,.22);
-
-  animation:
-    undoAppear .2s ease;
-}
-
-
-.delete-message{
-  flex:1;
-
-  font-size:14px;
-  font-weight:600;
-}
-
-
-.undo-delete{
-  border:0;
-
-  background:transparent;
-
-  color:#8fe0ae;
-
-  font-size:14px;
-  font-weight:700;
-
-  cursor:pointer;
-}
-
-
-.delete-countdown{
-  width:28px;
-  height:28px;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  background:
-    rgba(255,255,255,.12);
-
-  border-radius:50%;
-
-  font-size:13px;
-  font-weight:700;
-}
-
-
-@keyframes undoAppear{
-
-  from{
-    opacity:0;
-
-    transform:
-      translate(-50%,20px);
-  }
-
-  to{
-    opacity:1;
-
-    transform:
-      translate(-50%,0);
-  }
-
-}
-
-
-/* На телефоне крестик всегда виден */
-
-@media(max-width:700px){
-
-  .delete-card{
-    opacity:1;
-    transform:scale(1);
-  }
-
-}
-/* ==========================================
-   РЕДАКТИРОВАНИЕ КАРТОЧКИ
-========================================== */
-
-.edit-card{
-  position:absolute;
-
-  top:12px;
-  right:12px;
-
-  width:28px;
-  height:28px;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  border-radius:50%;
-
-  background:#f1f3f1;
-  color:#66706a;
-
-  font-size:17px;
-  font-weight:700;
-
-  cursor:pointer;
-
-  opacity:0;
-  transform:scale(.8);
+  cursor: pointer;
 
   transition:
-    opacity .15s,
-    transform .15s,
-    background .15s;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* Наведение */
+
+.echo-voice-field select:hover {
+  border-color: var(--primary2);
+}
+
+/* Фокус */
+
+.echo-voice-field select:focus {
+  border-color: var(--primary2);
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(6, 170, 128, 0.12);
+}
+
+/* Пункты списка */
+
+.echo-voice-field select option {
+  background: var(--surface);
+  color: var(--text);
 }
 
 
-.custom-card:hover .edit-card{
-  opacity:1;
-  transform:scale(1);
+/* ==========================================
+   4. ПОЛЗУНКИ СКОРОСТИ И ТОНА
+========================================== */
+
+.echo-voice-field input[type="range"] {
+  display: block;
+
+  width: 100%;
+  min-height: 30px;
+
+  margin: 8px 0;
+
+  accent-color: var(--primary);
+
+  cursor: pointer;
+}
+
+/* Текстовые значения настроек */
+
+.echo-voice-field output,
+.echo-voice-field .range-value {
+  color: var(--primary);
+
+  font-size: 14px;
+  font-weight: 900;
 }
 
 
-.edit-card:hover{
-  background:#e2f4e8;
-  color:#3f8f6b;
+/* ==========================================
+   5. ОБЫЧНЫЕ ПОЛЯ НАСТРОЕК
+========================================== */
+
+.echo-voice-field input:not([type="range"]) {
+  display: block;
+
+  width: 100%;
+  min-height: 48px;
+
+  padding: 12px 14px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--bg);
+  color: var(--text);
+
+  font-size: 15px;
+}
+
+.echo-voice-field input:not([type="range"]):focus {
+  border-color: var(--primary2);
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(6, 170, 128, 0.12);
 }
 
 
-/* На телефоне кнопка всегда видна */
+/* ==========================================
+   6. ПРОВЕРКА ГОЛОСА
+========================================== */
 
-@media(max-width:700px){
+.echo-test-voice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-  .edit-card{
-    opacity:1;
-    transform:scale(1);
+  min-height: 48px;
+
+  margin-top: 10px;
+  padding: 12px 20px;
+
+  border: 0;
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--primary2)
+  );
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 900;
+
+  box-shadow:
+    0 8px 20px rgba(4, 136, 98, 0.18);
+
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.echo-test-voice:hover {
+  filter: brightness(1.06);
+}
+
+.echo-test-voice:active {
+  transform: scale(0.97);
+}
+
+
+/* ==========================================
+   7. УВЕДОМЛЕНИЯ О ГОЛОСЕ
+========================================== */
+
+#echoVoiceNotice {
+  margin: 12px 0;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+/* Предупреждение */
+
+#echoVoiceNotice.warning {
+  color: var(--danger);
+}
+
+
+/* ==========================================
+   8. ПРОФИЛИ ГОЛОСА
+========================================== */
+
+.echo-voice-profile-panel {
+  margin-top: 22px;
+  padding-top: 20px;
+
+  border-top: 1px solid var(--border);
+}
+
+.echo-voice-profile-panel h3 {
+  margin: 0 0 10px;
+}
+
+.echo-voice-profile-panel p {
+  margin: 0 0 14px;
+
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Контейнер кнопок */
+
+.echo-voice-profile-buttons {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 9px;
+  margin-top: 16px;
+}
+
+/* Кнопка профиля */
+
+.echo-voice-profile-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 42px;
+
+  padding: 10px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.echo-voice-profile-button:hover {
+  border-color: var(--primary2);
+}
+
+/* Выбранный профиль */
+
+.echo-voice-profile-button.active {
+  border-color: var(--primary);
+
+  background: var(--primary);
+  color: #ffffff;
+}
+
+
+/* ==========================================
+   9. ВЫБОР ТЕМЫ
+========================================== */
+
+.echo-theme-options {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.echo-theme-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 44px;
+
+  padding: 10px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.echo-theme-option:hover {
+  border-color: var(--primary2);
+}
+
+.echo-theme-option.active {
+  border-color: var(--primary);
+
+  background: var(--primary);
+  color: #ffffff;
+}
+
+
+/* ==========================================
+   10. ТЁМНАЯ ТЕМА
+========================================== */
+
+body.dark-theme {
+  --bg: #0c1716;
+  --surface: #162522;
+  --surface2: #20332e;
+
+  --text: #eaf8f1;
+  --muted: #a4bcb2;
+
+  --primary: #24bc92;
+  --primary2: #36d9a9;
+
+  --border: #304740;
+
+  --shadow:
+    0 12px 36px rgba(0, 0, 0, 0.18);
+
+  --background: var(--bg);
+  --surface-soft: var(--surface2);
+  --primary-dark: #12a47c;
+  --primary-light: var(--surface2);
+  --text-soft: var(--muted);
+  --green: var(--primary);
+  --green-light: var(--surface2);
+
+  color-scheme: dark;
+}
+
+
+/* ==========================================
+   11. ВЫБОР РАЗМЕРА КАРТОЧЕК
+========================================== */
+
+.card-size-options {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.card-size-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 44px;
+
+  padding: 10px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.card-size-option:hover {
+  border-color: var(--primary2);
+}
+
+.card-size-option.active {
+  border-color: var(--primary);
+
+  background: var(--primary);
+  color: #ffffff;
+}
+
+
+/* ==========================================
+   12. КНОПКА ОТКРЫТИЯ ИСТОРИИ
+========================================== */
+
+.echo-history-toggle {
+  display: block;
+
+  width: 100%;
+  min-height: 48px;
+
+  margin-bottom: 15px;
+  padding: 13px 18px;
+
+  border: 1px solid var(--border);
+  border-radius: 15px;
+
+  background: var(--surface);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  text-align: left;
+}
+
+.echo-history-toggle:hover {
+  border-color: var(--primary2);
+}
+
+
+/* ==========================================
+   13. ЗАГОЛОВОК ИСТОРИИ
+========================================== */
+
+.echo-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex-wrap: wrap;
+  gap: 12px;
+
+  margin-bottom: 15px;
+}
+
+.echo-history-header h3 {
+  margin: 0;
+}
+
+
+/* ==========================================
+   14. СПИСОК ИСТОРИИ
+========================================== */
+
+.echo-history-list {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+/* Отдельная запись */
+
+.echo-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+  min-width: 0;
+
+  padding: 14px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 16px;
+
+  background: var(--surface2);
+  color: var(--text);
+}
+
+
+/* ==========================================
+   15. СОДЕРЖИМОЕ ЗАПИСИ
+========================================== */
+
+.echo-history-content,
+.echo-history-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.echo-history-text {
+  color: var(--text);
+
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+}
+
+.echo-history-time {
+  margin-top: 4px;
+
+  color: var(--muted);
+
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+
+/* ==========================================
+   16. ПОВТОРНОЕ ПРОИЗНЕСЕНИЕ
+========================================== */
+
+.echo-history-play,
+.echo-history-replay {
+  display: grid;
+  place-items: center;
+
+  flex-shrink: 0;
+
+  min-width: 46px;
+  min-height: 46px;
+
+  padding: 10px;
+
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  background: var(--surface);
+  color: var(--primary);
+
+  font-size: 19px;
+}
+
+.echo-history-play:hover,
+.echo-history-replay:hover {
+  border-color: var(--primary2);
+  background: var(--bg);
+}
+
+
+/* ==========================================
+   17. ОЧИСТКА ИСТОРИИ
+========================================== */
+
+.echo-clear-history,
+.echo-history-clear,
+#echoClearHistory {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 42px;
+
+  padding: 10px 15px;
+
+  border: 1px solid rgba(227, 77, 88, 0.35);
+  border-radius: 12px;
+
+  background: rgba(227, 77, 88, 0.09);
+  color: var(--danger);
+
+  font-size: 14px;
+  font-weight: 800;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.echo-clear-history:hover,
+.echo-history-clear:hover,
+#echoClearHistory:hover {
+  background: rgba(227, 77, 88, 0.17);
+  border-color: var(--danger);
+}
+
+
+/* ==========================================
+   18. ПУСТАЯ ИСТОРИЯ
+========================================== */
+
+.echo-history-empty {
+  width: 100%;
+
+  padding: 30px 16px;
+
+  color: var(--muted);
+
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.echo-history-description {
+  margin: 10px 0 0;
+
+  color: var(--muted);
+
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   19. АДАПТАЦИЯ ДЛЯ ТЕЛЕФОНОВ
+========================================== */
+
+@media (max-width: 480px) {
+
+  .echo-voice-panel,
+  .echo-theme-panel,
+  .echo-history-panel,
+  .card-size-panel {
+    padding: 16px;
+    border-radius: 18px;
   }
 
+  .echo-voice-field {
+    margin: 16px 0;
+  }
+
+  .echo-voice-field select {
+    min-height: 50px;
+    font-size: 14px;
+  }
+
+  .echo-voice-profile-buttons,
+  .echo-theme-options,
+  .card-size-options {
+    gap: 8px;
+  }
+
+  .echo-voice-profile-button,
+  .echo-theme-option,
+  .card-size-option {
+    padding: 9px 12px;
+    font-size: 12px;
+  }
+
+  .echo-history-item {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .echo-history-text {
+    font-size: 14px;
+  }
+
+  .echo-history-time {
+    font-size: 11px;
+  }
+
+  .echo-history-play,
+  .echo-history-replay {
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .echo-history-header {
+    align-items: flex-start;
+  }
+
+  .echo-clear-history,
+  .echo-history-clear,
+  #echoClearHistory {
+    font-size: 12px;
+    padding: 9px 12px;
+  }
+
+}
+
+/* ==========================================
+   КОНЕЦ ЧАСТИ 5/6
+========================================== */
+
+/* ==========================================
+   ECHO — STYLE.CSS
+   ЧАСТЬ 6/6
+
+   SOS, ДИАГНОСТИКА И ФИНАЛЬНЫЕ СТИЛИ
+========================================== */
+
+
+/* ==========================================
+   1. ПАНЕЛЬ SOS
+========================================== */
+
+.echo-sos-panel {
+  width: 100%;
+  min-width: 0;
+
+  margin: 0 0 18px;
+  padding: 22px;
+
+  border: 1.5px solid rgba(227, 77, 88, 0.25);
+  border-radius: var(--radius);
+
+  background: linear-gradient(
+    135deg,
+    var(--surface),
+    var(--surface2)
+  );
+
+  color: var(--text);
+
+  box-shadow: var(--shadow);
+}
+
+/* Активная экстренная ситуация */
+
+.echo-sos-panel.active {
+  border-color: var(--danger);
+
+  box-shadow:
+    0 0 0 3px rgba(227, 77, 88, 0.10);
+}
+
+
+/* ==========================================
+   2. ЗАГОЛОВОК SOS
+========================================== */
+
+.echo-sos-header h3 {
+  margin: 0 0 6px;
+
+  color: var(--text);
+
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.echo-sos-header p {
+  margin: 0 0 16px;
+
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   3. КНОПКИ SOS
+========================================== */
+
+.echo-sos-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 12px;
+}
+
+/* Главная экстренная кнопка */
+
+.echo-sos-button,
+#echoSOSButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 145px;
+  min-height: 58px;
+
+  padding: 12px 22px;
+
+  border: 0;
+  border-radius: 16px;
+
+  background: linear-gradient(
+    135deg,
+    #f45f67,
+    #d8334a
+  );
+
+  color: #ffffff;
+
+  font-size: 19px;
+  font-weight: 900;
+  line-height: 1.2;
+
+  text-align: center;
+
+  box-shadow:
+    0 9px 20px rgba(224, 55, 73, 0.17);
+
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
+}
+
+.echo-sos-button:hover,
+#echoSOSButton:hover {
+  filter: brightness(1.06);
+}
+
+.echo-sos-button:active,
+#echoSOSButton:active {
+  transform: scale(0.97);
+}
+
+/* Недоступная кнопка */
+
+.echo-sos-button:disabled,
+#echoSOSButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+/* ==========================================
+   4. ОСТАНОВКА SOS
+========================================== */
+
+.echo-sos-stop,
+#echoSOSStop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 50px;
+
+  padding: 11px 18px;
+
+  border: 1px solid #eea8af;
+  border-radius: 13px;
+
+  background: var(--surface);
+  color: var(--danger);
+
+  font-size: 15px;
+  font-weight: 900;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.echo-sos-stop:hover,
+#echoSOSStop:hover {
+  background: rgba(227, 77, 88, 0.10);
+}
+
+.echo-sos-stop:active,
+#echoSOSStop:active {
+  transform: scale(0.97);
+}
+
+
+/* ==========================================
+   5. СТАТУС SOS
+========================================== */
+
+.echo-sos-status {
+  margin: 12px 0 0;
+
+  color: var(--danger);
+
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ==========================================
+   6. ПАНЕЛЬ ДИАГНОСТИКИ
+========================================== */
+
+.echo-diagnostics-panel {
+  width: 100%;
+  min-width: 0;
+
+  margin: 0 0 18px;
+  padding: 22px;
+
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  background: var(--surface);
+  color: var(--text);
+
+  box-shadow: var(--shadow);
+}
+
+.echo-diagnostics-panel h3 {
+  margin: 0 0 14px;
+
+  color: var(--text);
+
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.echo-diagnostics-panel p {
+  color: var(--muted);
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+
+/* ==========================================
+   7. СТРОКИ ДИАГНОСТИКИ
+========================================== */
+
+.echo-diagnostic-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex-wrap: wrap;
+  gap: 9px 12px;
+
+  min-width: 0;
+  min-height: 50px;
+
+  padding: 12px 2px;
+
+  border-bottom: 1px solid var(--border);
+
+  color: var(--text);
+
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.echo-diagnostic-row:last-child {
+  border-bottom: 0;
+}
+
+/* Текст внутри строки */
+
+.echo-diagnostic-row > * {
+  min-width: 0;
+  max-width: 100%;
+
+  overflow-wrap: anywhere;
+}
+
+/* Название проверки */
+
+.echo-diagnostic-row strong {
+  color: var(--text);
+  font-weight: 800;
+}
+
+/* Статус проверки */
+
+.echo-diagnostic-row .success,
+.echo-diagnostic-row .ok {
+  color: var(--primary);
+  font-weight: 900;
+}
+
+.echo-diagnostic-row .warning,
+.echo-diagnostic-row .error {
+  color: var(--danger);
+  font-weight: 900;
+}
+
+
+/* ==========================================
+   8. ИТОГ ДИАГНОСТИКИ
+========================================== */
+
+.echo-diagnostics-summary {
+  display: block;
+
+  margin: 14px 0;
+  padding: 14px 16px;
+
+  border: 1px solid var(--border);
+  border-radius: 13px;
+
+  background: var(--surface2);
+  color: var(--text);
+
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* ==========================================
+   9. КНОПКА ЗАПУСКА ДИАГНОСТИКИ
+========================================== */
+
+#echoRunDiagnostics {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-height: 46px;
+
+  padding: 12px 16px;
+
+  border: 1px solid var(--primary);
+  border-radius: 13px;
+
+  background: var(--primary);
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 900;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+#echoRunDiagnostics:hover {
+  background: var(--primary2);
+}
+
+#echoRunDiagnostics:active {
+  transform: scale(0.97);
+}
+
+
+/* ==========================================
+   10. СКРЫТЫЕ ПАНЕЛИ
+========================================== */
+
+.echo-sos-panel[hidden],
+.echo-diagnostics-panel[hidden],
+.echo-voice-panel[hidden],
+.echo-theme-panel[hidden],
+.echo-history-panel[hidden],
+.card-size-panel[hidden],
+.echo-search-panel[hidden],
+.echo-quick-panel[hidden],
+.echo-category-manager[hidden],
+.echo-custom-category-manager[hidden] {
+  display: none !important;
+}
+
+
+/* ==========================================
+   11. ОБЩИЕ СОСТОЯНИЯ КНОПОК
+========================================== */
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid var(--primary2);
+  outline-offset: 3px;
+}
+
+/* Не показываем эффекты наведения
+   на устройствах без мыши */
+
+@media (hover: none) {
+
+  .phrase-card:hover {
+    transform: none;
+  }
+
+  .emoji-option:hover {
+    transform: none;
+  }
+
+}
+
+
+/* ==========================================
+   12. ЗАЩИТА ОТ ПЕРЕПОЛНЕНИЯ
+========================================== */
+
+.app,
+.echo-sos-panel,
+.echo-diagnostics-panel,
+.echo-voice-panel,
+.echo-theme-panel,
+.echo-history-panel,
+.echo-search-panel,
+.echo-quick-panel,
+.echo-custom-category-manager {
+  min-width: 0;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+
+/* ==========================================
+   13. АДАПТАЦИЯ SOS И ДИАГНОСТИКИ
+========================================== */
+
+@media (max-width: 480px) {
+
+  .echo-sos-panel,
+  .echo-diagnostics-panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .echo-sos-header h3 {
+    font-size: 18px;
+  }
+
+  .echo-sos-header p {
+    font-size: 13px;
+  }
+
+  .echo-sos-controls {
+    gap: 10px;
+  }
+
+  .echo-sos-button,
+  #echoSOSButton {
+    min-height: 56px;
+    font-size: 17px;
+  }
+
+  .echo-sos-stop,
+  #echoSOSStop {
+    min-height: 48px;
+    font-size: 14px;
+  }
+
+  .echo-diagnostic-row {
+    padding: 11px 0;
+    font-size: 13px;
+  }
+
+  .echo-diagnostics-summary {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  #echoRunDiagnostics {
+    width: 100%;
+  }
+
+}
+
+
+/* ==========================================
+   14. ОЧЕНЬ УЗКИЕ ЭКРАНЫ
+========================================== */
+
+@media (max-width: 360px) {
+
+  .echo-sos-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .echo-sos-button,
+  #echoSOSButton,
+  .echo-sos-stop,
+  #echoSOSStop {
+    width: 100%;
+  }
+
+  .echo-diagnostic-row {
+    align-items: flex-start;
+  }
+
+}
+
+
+/* ==========================================
+   15. БЕЗОПАСНАЯ ЗОНА ТЕЛЕФОНА
+========================================== */
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+
+  .app {
+    padding-bottom:
+      calc(125px + env(safe-area-inset-bottom));
+  }
+
+}
+
+
+/* ==========================================
+   16. УМЕНЬШЕНИЕ АНИМАЦИЙ
+========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+
+}
+
+/* ==========================================
+   КОНЕЦ ЧАСТИ 6/6
+   ECHO — CSS
+========================================== */
+/* =====================================
+   ECHO — БЫСТРОЕ ИСПРАВЛЕНИЕ НАСТРОЕК
+   ===================================== */
+
+/* Общие панели настроек */
+.card-size-panel,
+.theme-settings-panel,
+.voice-settings-panel,
+.language-panel,
+.vibration-settings-panel,
+.echo-voice-profiles {
+  background: linear-gradient(135deg, #183d39, #122d2b);
+  border: 1px solid rgba(86, 224, 190, 0.25);
+  border-radius: 24px;
+  padding: 24px;
+  margin: 18px 0;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+}
+
+/* Заголовки */
+.card-size-panel h2,
+.card-size-panel h3,
+.theme-settings-panel h2,
+.theme-settings-panel h3,
+.voice-settings-panel h2,
+.voice-settings-panel h3,
+.language-panel h2,
+.language-panel h3,
+.vibration-settings-panel h2,
+.vibration-settings-panel h3,
+.echo-voice-profiles h2,
+.echo-voice-profiles h3 {
+  color: #ffffff;
+  font-size: 21px;
+  font-weight: 800;
+  margin: 0 0 18px;
+}
+
+/* Кнопки настроек */
+.theme-settings-panel button,
+.voice-settings-panel button,
+.language-panel button,
+.vibration-settings-panel button,
+.echo-voice-profiles button {
+  background: #24544c;
+  color: #ffffff;
+  border: 1px solid #39786b;
+  border-radius: 13px;
+  padding: 12px 16px;
+  margin: 5px 4px 5px 0;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.theme-settings-panel button:hover,
+.voice-settings-panel button:hover,
+.language-panel button:hover,
+.vibration-settings-panel button:hover,
+.echo-voice-profiles button:hover {
+  background: #32b994;
+  color: #08251e;
+}
+
+/* Выбор голоса */
+.voice-settings-panel select,
+.echo-voice-profiles select,
+.language-panel select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  background: #21443e;
+  color: #ffffff;
+  border: 1px solid #438475;
+  border-radius: 13px;
+  padding: 14px;
+  font-size: 15px;
+  margin: 12px 0;
+}
+
+/* Ползунки */
+.voice-settings-panel input[type="range"],
+.echo-voice-profiles input[type="range"] {
+  display: block;
+  width: 100%;
+  accent-color: #45dfb2;
+  margin: 12px 0 20px;
+}
+
+/* Подписи */
+.voice-settings-panel label,
+.language-panel label,
+.vibration-settings-panel label,
+.echo-voice-profiles label {
+  display: block;
+  color: #e4f8f0;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+/* Текст */
+.voice-settings-panel p,
+.language-panel p,
+.vibration-settings-panel p,
+.echo-voice-profiles p {
+  color: #b9d9d0;
+  line-height: 1.6;
+}
+
+/* На мобильных */
+@media (max-width: 600px) {
+  .card-size-panel,
+  .theme-settings-panel,
+  .voice-settings-panel,
+  .language-panel,
+  .vibration-settings-panel,
+  .echo-voice-profiles {
+    padding: 17px;
+    border-radius: 18px;
+  }
+
+  .theme-settings-panel button,
+  .voice-settings-panel button,
+  .language-panel button,
+  .vibration-settings-panel button,
+  .echo-voice-profiles button {
+    min-height: 44px;
+  }
+}
+/* ==================================
+   ECHO — ИСПРАВЛЕНИЕ SOS
+   ================================== */
+
+.echo-sos-panel {
+  background: linear-gradient(145deg, #172e2b, #20453f);
+  border: 1px solid rgba(255, 110, 110, 0.3);
+  border-radius: 24px;
+  padding: 24px;
+  margin: 20px 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+}
+
+.echo-sos-panel h2,
+.echo-sos-panel h3 {
+  color: #fff;
+  margin: 0 0 12px;
+  font-size: 23px;
+}
+
+.echo-sos-panel p {
+  color: #c9e1da;
+  line-height: 1.6;
+  margin: 10px 0 18px;
+}
+
+#echoSOSButton {
+  display: block;
+  width: 100%;
+  min-height: 65px;
+  padding: 16px 20px;
+  margin: 16px 0;
+  border: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #ff5555, #d62845);
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(255,60,80,.25);
+}
+
+#echoSOSButton:hover {
+  filter: brightness(1.08);
+}
+
+#echoSOSStop {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 13px;
+  margin: 10px 0;
+  border: 1px solid #48766b;
+  border-radius: 14px;
+  background: #254b44;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.echo-sos-panel button {
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 600px) {
+  .echo-sos-panel {
+    padding: 17px;
+    border-radius: 18px;
+  }
+
+  #echoSOSButton {
+    font-size: 16px;
+  }
+}
+/* =====================================
+   ECHO — ИСПРАВЛЕНИЕ ОКНА КАТЕГОРИЙ
+   ===================================== */
+
+.echo-category-modal,
+.echo-category-dialog {
+  box-sizing: border-box;
+  width: min(440px, 94vw);
+  max-width: 100%;
+}
+
+.echo-category-dialog {
+  padding: 24px;
+  border-radius: 24px;
+  background: #17332f;
+  color: #fff;
+}
+
+/* Поля ввода */
+.echo-category-dialog input,
+.echo-category-modal input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
+  margin: 8px 0 16px;
+  border: 1px solid #467c70;
+  border-radius: 12px;
+  background: #23453e;
+  color: white;
+  font: inherit;
+}
+
+/* Подписи */
+.echo-category-dialog label,
+.echo-category-modal label {
+  display: block;
+  margin: 10px 0 5px;
+  color: #e5f8f1;
+  font-weight: 700;
+}
+
+/* Поле эмодзи */
+.echo-category-dialog input[maxlength="2"],
+.echo-category-modal input[maxlength="2"] {
+  width: 90px;
+  text-align: center;
+  font-size: 25px;
+}
+
+/* Кнопки */
+.echo-category-dialog button,
+.echo-category-modal button {
+  min-height: 46px;
+  padding: 12px 18px;
+  margin: 6px 6px 0 0;
+  border: 1px solid #438b76;
+  border-radius: 12px;
+  background: #285b4d;
+  color: white;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Кнопка сохранения */
+.echo-category-dialog button[type="submit"],
+.echo-category-modal button[type="submit"] {
+  background: #25bc88;
+  color: #08271e;
+  border-color: #25bc88;
+}
+
+/* Защита от выхода за края */
+.echo-category-dialog *,
+.echo-category-modal * {
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .echo-category-dialog {
+    padding: 18px;
+  }
+
+  .echo-category-dialog button,
+  .echo-category-modal button {
+    width: 100%;
+    margin: 6px 0;
+  }
+}
+/* =========================================
+   ECHO — PREMIUM SOS DESIGN
+   ========================================= */
+
+/* Главная SOS-панель */
+.echo-sos-panel,
+.sos-panel {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  padding: 28px;
+  margin: 24px 0;
+
+  background: linear-gradient(
+    145deg,
+    #173b38 0%,
+    #12302f 55%,
+    #102724 100%
+  );
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px;
+
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Красивое свечение */
+.echo-sos-panel::before,
+.sos-panel::before {
+  content: "";
+  position: absolute;
+  top: -100px;
+  right: -100px;
+
+  width: 300px;
+  height: 300px;
+
+  background: radial-gradient(
+    circle,
+    rgba(255, 95, 115, 0.13),
+    transparent 70%
+  );
+
+  pointer-events: none;
+}
+
+/* Заголовок */
+.echo-sos-panel h2,
+.echo-sos-panel h3,
+.sos-panel h2,
+.sos-panel h3 {
+  color: #ffffff;
+  font-size: clamp(24px, 4vw, 32px);
+  font-weight: 850;
+  letter-spacing: -0.6px;
+  margin: 0 0 18px;
+}
+
+/* Описание */
+.echo-sos-panel p,
+.sos-panel p {
+  color: #d4e9e3;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Все кнопки SOS */
+.echo-sos-panel button,
+.sos-panel button {
+  position: relative;
+  box-sizing: border-box;
+
+  min-height: 54px;
+  max-width: 100%;
+
+  padding: 14px 20px;
+  margin: 7px 0;
+
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 750;
+
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Основная кнопка — позвать на помощь */
+#echoSOSButton {
+  display: block;
+  width: 100%;
+
+  background: linear-gradient(
+    135deg,
+    #ff6175,
+    #e83d58
+  );
+
+  color: #ffffff;
+  border: 1px solid #ff8292;
+
+  box-shadow: 0 6px 18px rgba(232, 61, 88, 0.25);
+}
+
+#echoSOSButton:hover {
+  background: linear-gradient(
+    135deg,
+    #ff7385,
+    #ed4b64
+  );
+
+  transform: translateY(-2px);
+}
+
+/* Кнопка остановки */
+#echoSOSStop {
+  display: block;
+  width: 100%;
+
+  background: rgba(255, 255, 255, 0.07);
+  color: #e5f8f2;
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#echoSOSStop:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+/* Кнопка звонка */
+.echo-sos-panel a[href^="tel:"],
+.sos-panel a[href^="tel:"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+  min-height: 50px;
+  max-width: 100%;
+
+  padding: 13px 20px;
+  margin: 8px 0;
+
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+
+  font-weight: 750;
+  text-decoration: none;
+
+  transition: background 0.2s ease;
+}
+
+.echo-sos-panel a[href^="tel:"]:hover,
+.sos-panel a[href^="tel:"]:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Предупреждение */
+.echo-sos-panel small,
+.sos-panel small {
+  display: block;
+  margin-top: 14px;
+
+  color: #c5dad4;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Своя фраза */
+.custom-section,
+.custom-box {
+  box-sizing: border-box;
+  border-radius: 22px;
+}
+
+/* Поле своей фразы */
+.custom-box input,
+.custom-section input,
+.custom-box textarea,
+.custom-section textarea {
+  box-sizing: border-box;
+
+  width: 100%;
+  min-width: 0;
+
+  padding: 17px 20px;
+
+  background: #183a36;
+  color: #ffffff;
+
+  border: 1px solid #35675e;
+  border-radius: 16px;
+
+  font-family: inherit;
+  font-size: 16px;
+
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.custom-box input:focus,
+.custom-section input:focus,
+.custom-box textarea:focus,
+.custom-section textarea:focus {
+  border-color: #42dfb1;
+}
+
+.custom-box input::placeholder,
+.custom-section input::placeholder {
+  color: #a9c5bd;
+}
+
+/* Мобильная версия */
+@media (max-width: 600px) {
+  .echo-sos-panel,
+  .sos-panel {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .echo-sos-panel button,
+  .sos-panel button {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .echo-sos-panel h2,
+  .sos-panel h2 {
+    font-size: 25px;
+  }
+}
+
+/* Учитываем пользователей без анимаций */
+@media (prefers-reduced-motion: reduce) {
+  .echo-sos-panel button,
+  .sos-panel button {
+    transition: none;
+  }
+}
+/* ==========================================
+   ECHO — SOS + БЫСТРЫЕ ФРАЗЫ
+   ========================================== */
+
+/* 🔴 1. ЭКСТРЕННАЯ ПОМОЩЬ */
+
+.echo-sos-panel,
+.sos-panel {
+  background: linear-gradient(
+    135deg,
+    #641d2c 0%,
+    #481b29 55%,
+    #2b1721 100%
+  ) !important;
+
+  border: 2px solid #ff647b !important;
+  border-radius: 26px;
+  padding: 28px;
+
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.25),
+    0 0 30px rgba(255, 60, 90, 0.13);
+}
+
+/* Заголовок SOS */
+
+.echo-sos-panel h2,
+.echo-sos-panel h3,
+.sos-panel h2,
+.sos-panel h3 {
+  color: #ffffff !important;
+  font-size: clamp(25px, 3vw, 34px);
+  font-weight: 850;
+  letter-spacing: -0.5px;
+}
+
+/* Обычный текст */
+
+.echo-sos-panel p,
+.sos-panel p {
+  color: #ffe4e8 !important;
+  line-height: 1.7;
+}
+
+/* Основная кнопка */
+
+#echoSOSButton {
+  display: block;
+  width: 100%;
+  background: linear-gradient(
+    135deg,
+    #ff405e,
+    #e11d48
+  ) !important;
+
+  color: #ffffff !important;
+  border: 1px solid #ff8a9b !important;
+  border-radius: 16px;
+
+  font-size: 17px;
+  font-weight: 800;
+
+  box-shadow: 0 6px 20px rgba(225, 29, 72, 0.3);
+}
+
+/* Кнопка остановки */
+
+#echoSOSStop {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Кнопка звонка */
+
+.echo-sos-panel a[href^="tel:"],
+.sos-panel a[href^="tel:"] {
+  background: #ffffff !important;
+  color: #b91c1c !important;
+
+  border: 2px solid #fecaca;
+  border-radius: 14px;
+
+  font-weight: 800;
+}
+
+/* ==========================================
+   ✨ 2. БЫСТРЫЕ ФРАЗЫ
+   ========================================== */
+
+.echo-quick-panel {
+  background: linear-gradient(
+    135deg,
+    #173e38,
+    #102b28
+  ) !important;
+
+  border: 1px solid rgba(76, 220, 177, 0.35);
+  border-radius: 24px;
+  padding: 26px;
+  margin: 22px 0;
+}
+
+/* Заголовок */
+
+.echo-quick-panel h2,
+.echo-quick-panel h3 {
+  color: #ffffff;
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 850;
+  letter-spacing: -0.5px;
+  margin: 0 0 12px;
+}
+
+/* Описание */
+
+.echo-quick-panel p {
+  color: #c5e6da;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Контейнер быстрых фраз */
+
+#echoQuickList {
+  display: grid;
+  grid-template-columns:
+    repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+/* Кнопки закреплённых фраз */
+
+#echoQuickList button,
+.echo-quick-item {
+  min-height: 64px;
+  padding: 16px;
+
+  background: #24554a;
+  color: #ffffff;
+
+  border: 1px solid #438a74;
+  border-radius: 16px;
+
+  font: inherit;
+  font-size: 16px;
+  font-weight: 750;
+
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+#echoQuickList button:hover {
+  background: #2d8068;
+  transform: translateY(-2px);
+}
+
+/* Текст, когда нет закреплённых фраз */
+
+#echoQuickList > p,
+#echoQuickList > div:only-child {
+  grid-column: 1 / -1;
+
+  padding: 20px 22px;
+
+  background: rgba(69, 215, 167, 0.08);
+  border: 1px dashed rgba(88, 225, 180, 0.35);
+  border-radius: 16px;
+
+  color: #d8f7ea;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* ==========================================
+   📱 МОБИЛЬНАЯ ВЕРСИЯ
+   ========================================== */
+
+@media (max-width: 600px) {
+
+  .echo-sos-panel,
+  .sos-panel,
+  .echo-quick-panel {
+    padding: 19px;
+    border-radius: 20px;
+  }
+
+  #echoQuickList {
+    grid-template-columns: 1fr;
+  }
+
+  .echo-quick-panel h2,
+  .echo-quick-panel h3 {
+    font-size: 24px;
+  }
 }
