@@ -1,407 +1,250 @@
-
 <!DOCTYPE html>
 <html lang="ru">
-
-<head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="theme-color"
-    content="#f7f8f5"
-  >
-
-  <meta
-    name="description"
-    content="ECHO — приложение альтернативной коммуникации. Твой голос рядом."
-  >
-
-  <title>ECHO — твой голос</title>
-
-  <!-- ДИЗАЙН -->
-  <link rel="stylesheet" href="style.css">
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
-
-  <!-- ИКОНКИ -->
-  <link
-    rel="icon"
-    type="image/png"
-    href="icon-192.png"
-  >
-
-  <link
-    rel="apple-touch-icon"
-    href="icon-192.png"
-  >
-</head>
-
-<body>
-
-<div class="app">
-
-  <!-- ШАПКА -->
-  <header class="header">
-
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <meta content="#f4f8f7" name="theme-color"/>
+  <meta content="ECHO — приложение альтернативной коммуникации. Твой голос рядом." name="description"/>
+  <title>
+   ECHO — твой голос
+  </title>
+  <link href="style.css" rel="stylesheet"/>
+  <link href="manifest.json" rel="manifest"/>
+  <link href="icon-192.png" rel="icon"/>
+  <link href="icon-192.png" rel="apple-touch-icon"/>
+ </head>
+ <body>
+  <div class="app">
+   <header class="header">
     <div class="logo">
-      <div class="logo-icon">◖))</div>
-
-      <div>
-        <h1>ECHO</h1>
-        <p>Твой голос рядом</p>
-      </div>
+     <div class="logo-icon">
+      ◖))
+     </div>
+     <div>
+      <h1>
+       ECHO
+      </h1>
+      <p>
+       Твой голос рядом
+      </p>
+     </div>
     </div>
-
-    <button
-      class="settings-btn"
-      type="button"
-      aria-label="Настройки"
-    >
-      ⚙
+    <button aria-label="Настройки" class="settings-btn" type="button">
+     ⚙
     </button>
-
-  </header>
-
-  <!-- ОСНОВНАЯ ЧАСТЬ -->
-  <main>
-
-    <!-- ПРИВЕТСТВИЕ -->
+   </header>
+   <main>
     <section class="welcome">
-
-      <p class="small-title">
-        БЫСТРЫЕ ФРАЗЫ
-      </p>
-
-      <h2>Что ты хочешь сказать?</h2>
-
-      <p class="description">
-        Нажми на карточку — ECHO произнесёт фразу за тебя.
-      </p>
-
+     <p class="small-title">
+      БЫСТРЫЕ ФРАЗЫ
+     </p>
+     <h2>
+      Что ты хочешь сказать?
+     </h2>
+     <p class="description">
+      Нажми на карточку — ECHO произнесёт фразу за тебя.
+     </p>
     </section>
-
-    <!-- СТАНДАРТНЫЕ КАРТОЧКИ -->
     <section class="phrase-grid">
-
-      <!-- ВОДА -->
-      <button
-        class="phrase-card"
-        type="button"
-        data-category="food"
-        data-text="Я хочу пить"
-        onclick="speakPhrase(this)"
-      >
-        <span class="phrase-icon">💧</span>
-        <span class="phrase-name">Вода</span>
-        <span class="phrase-text">Я хочу пить</span>
-        <span class="sound-icon">🔊</span>
-      </button>
-
-      <!-- ЕДА -->
-      <button
-        class="phrase-card"
-        type="button"
-        data-category="food"
-        data-text="Я хочу есть"
-        onclick="speakPhrase(this)"
-      >
-        <span class="phrase-icon">🍎</span>
-        <span class="phrase-name">Еда</span>
-        <span class="phrase-text">Я хочу есть</span>
-        <span class="sound-icon">🔊</span>
-      </button>
-
-      <!-- ПОМОЩЬ -->
-      <button
-        class="phrase-card"
-        type="button"
-        data-category="help"
-        data-text="Мне нужна помощь"
-        onclick="speakPhrase(this)"
-      >
-        <span class="phrase-icon">🆘</span>
-        <span class="phrase-name">Помощь</span>
-        <span class="phrase-text">Мне нужна помощь</span>
-        <span class="sound-icon">🔊</span>
-      </button>
-
-      <!-- ДОМОЙ -->
-      <button
-        class="phrase-card"
-        type="button"
-        data-category="communication"
-        data-text="Я хочу домой"
-        onclick="speakPhrase(this)"
-      >
-        <span class="phrase-icon">🏠</span>
-        <span class="phrase-name">Домой</span>
-        <span class="phrase-text">Я хочу домой</span>
-        <span class="sound-icon">🔊</span>
-      </button>
-
-      <!-- ДА -->
-      <button
-        class="phrase-card"
-        type="button"
-        data-category="communication"
-        data-text="Да"
-        onclick="speakPhrase(this)"
-      >
-        <span class="phrase-icon">👍</span>
-        <span class="phrase-name">Да</span>
-        <span class="phrase-text">Да</span>
-        <span class="sound-icon">🔊</span>
-      </button>
-
-      <!-- НЕТ -->
-      <button
-        class="phrase-card"
-        type="button"
-        data-category="communication"
-        data-text="Нет"
-        onclick="speakPhrase(this)"
-      >
-        <span class="phrase-icon">👎</span>
-        <span class="phrase-name">Нет</span>
-        <span class="phrase-text">Нет</span>
-        <span class="sound-icon">🔊</span>
-      </button>
-
+     <button class="phrase-card" data-category="food" data-text="Я хочу пить" onclick="speakPhrase(this)" type="button">
+      <span class="phrase-icon">
+       💧
+      </span>
+      <span class="phrase-name">
+       Вода
+      </span>
+      <span class="phrase-text">
+       Я хочу пить
+      </span>
+      <span class="sound-icon">
+       🔊
+      </span>
+     </button>
+     <button class="phrase-card" data-category="food" data-text="Я хочу есть" onclick="speakPhrase(this)" type="button">
+      <span class="phrase-icon">
+       🍎
+      </span>
+      <span class="phrase-name">
+       Еда
+      </span>
+      <span class="phrase-text">
+       Я хочу есть
+      </span>
+      <span class="sound-icon">
+       🔊
+      </span>
+     </button>
+     <button class="phrase-card" data-category="help" data-text="Мне нужна помощь" onclick="speakPhrase(this)" type="button">
+      <span class="phrase-icon">
+       🆘
+      </span>
+      <span class="phrase-name">
+       Помощь
+      </span>
+      <span class="phrase-text">
+       Мне нужна помощь
+      </span>
+      <span class="sound-icon">
+       🔊
+      </span>
+     </button>
+     <button class="phrase-card" data-category="communication" data-text="Я хочу домой" onclick="speakPhrase(this)" type="button">
+      <span class="phrase-icon">
+       🏠
+      </span>
+      <span class="phrase-name">
+       Домой
+      </span>
+      <span class="phrase-text">
+       Я хочу домой
+      </span>
+      <span class="sound-icon">
+       🔊
+      </span>
+     </button>
+     <button class="phrase-card" data-category="communication" data-text="Да" onclick="speakPhrase(this)" type="button">
+      <span class="phrase-icon">
+       👍
+      </span>
+      <span class="phrase-name">
+       Да
+      </span>
+      <span class="phrase-text">
+       Да
+      </span>
+      <span class="sound-icon">
+       🔊
+      </span>
+     </button>
+     <button class="phrase-card" data-category="communication" data-text="Нет" onclick="speakPhrase(this)" type="button">
+      <span class="phrase-icon">
+       👎
+      </span>
+      <span class="phrase-name">
+       Нет
+      </span>
+      <span class="phrase-text">
+       Нет
+      </span>
+      <span class="sound-icon">
+       🔊
+      </span>
+     </button>
     </section>
-
-    <!-- СОБСТВЕННАЯ ФРАЗА -->
     <section class="custom-section">
-
-      <p class="small-title">
-        СВОЯ ФРАЗА
-      </p>
-
-      <div class="custom-box">
-
-        <input
-          id="customPhrase"
-          type="text"
-          placeholder="Напишите сообщение..."
-          autocomplete="off"
-          maxlength="300"
-          aria-label="Текст своей фразы"
-        >
-
-        <button
-          class="speak-custom"
-          type="button"
-          onclick="speakCustomPhrase()"
-          aria-label="Произнести сообщение"
-        >
-          🔊
-        </button>
-
-      </div>
-
+     <p class="small-title">
+      СВОЯ ФРАЗА
+     </p>
+     <div class="custom-box">
+      <input aria-label="Текст своей фразы" autocomplete="off" id="customPhrase" maxlength="300" placeholder="Напишите сообщение..." type="text"/>
+      <button aria-label="Произнести сообщение" class="speak-custom" onclick="speakCustomPhrase()" type="button">
+       🔊
+      </button>
+     </div>
     </section>
-
-    <!-- ОКНО ДОБАВЛЕНИЯ / РЕДАКТИРОВАНИЯ -->
-    <div
-      class="modal"
-      id="addPhraseModal"
-    >
-
-      <div class="modal-box">
-
-        <div class="modal-header">
-
-          <div>
-            <p class="small-title">
-              НОВАЯ КАРТОЧКА
-            </p>
-
-            <h2>Добавить фразу</h2>
-          </div>
-
-          <button
-            class="close-modal"
-            id="closeModal"
-            type="button"
-            aria-label="Закрыть"
-          >
-            ✕
-          </button>
-
-        </div>
-
-        <!-- ВЫБОР ЭМОДЗИ -->
-        <label class="field-label">
-          Иконка
-        </label>
-
-        <div class="emoji-list">
-
-          <button
-            type="button"
-            class="emoji-option selected"
-          >💧</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >🍎</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >🆘</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >🏠</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >❤️</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >💊</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >😣</button>
-
-          <button
-            type="button"
-            class="emoji-option"
-          >🚻</button>
-
-        </div>
-
-        <!-- НАЗВАНИЕ КАРТОЧКИ -->
-        <label
-          class="field-label"
-          for="newPhraseName"
-        >
-          Название
-        </label>
-
-        <input
-          class="modal-input"
-          id="newPhraseName"
-          type="text"
-          maxlength="30"
-          placeholder="Например: Голова"
-        >
-
-        <!-- ТЕКСТ ДЛЯ ОЗВУЧИВАНИЯ -->
-        <label
-          class="field-label"
-          for="newPhraseText"
-        >
-          Что должен сказать ECHO?
-        </label>
-
-        <textarea
-          class="modal-input modal-textarea"
-          id="newPhraseText"
-          maxlength="150"
-          placeholder="Например: У меня болит голова"
-        ></textarea>
-
-        <!-- СОХРАНЕНИЕ -->
-        <button
-          type="button"
-          class="save-phrase"
-          id="savePhrase"
-        >
-          Сохранить фразу
-        </button>
-
+    <div class="modal" id="addPhraseModal">
+     <div class="modal-box">
+      <div class="modal-header">
+       <div>
+        <p class="small-title">
+         НОВАЯ КАРТОЧКА
+        </p>
+        <h2>
+         Добавить фразу
+        </h2>
+       </div>
+       <button aria-label="Закрыть" class="close-modal" id="closeModal" type="button">
+        ✕
+       </button>
       </div>
-
+      <label class="field-label">
+       Иконка
+      </label>
+      <div class="emoji-list">
+       <button class="emoji-option selected" type="button">
+        💧
+       </button>
+       <button class="emoji-option" type="button">
+        🍎
+       </button>
+       <button class="emoji-option" type="button">
+        🆘
+       </button>
+       <button class="emoji-option" type="button">
+        🏠
+       </button>
+       <button class="emoji-option" type="button">
+        ❤️
+       </button>
+       <button class="emoji-option" type="button">
+        💊
+       </button>
+       <button class="emoji-option" type="button">
+        😣
+       </button>
+       <button class="emoji-option" type="button">
+        🚻
+       </button>
+      </div>
+      <label class="field-label" for="newPhraseName">
+       Название
+      </label>
+      <input class="modal-input" id="newPhraseName" maxlength="30" placeholder="Например: Голова" type="text"/>
+      <label class="field-label" for="newPhraseText">
+       Что должен сказать ECHO?
+      </label>
+      <textarea class="modal-input modal-textarea" id="newPhraseText" maxlength="150" placeholder="Например: У меня болит голова"></textarea>
+      <button class="save-phrase" id="savePhrase" type="button">
+       Сохранить фразу
+      </button>
+     </div>
     </div>
-
-  </main>
-
-  <!-- НИЖНЕЕ МЕНЮ -->
-  <nav
-    class="bottom-nav"
-    aria-label="Основная навигация"
-  >
-
-    <!-- ФРАЗЫ -->
-    <button
-      class="nav-item active"
-      type="button"
-      id="phrasesTab"
-    >
-      <span>💬</span>
-      <small>Фразы</small>
+   </main>
+   <nav aria-label="Основная навигация" class="bottom-nav">
+    <button class="nav-item active" id="phrasesTab" type="button">
+     <span>
+      💬
+     </span>
+     <small>
+      Фразы
+     </small>
     </button>
-
-    <!-- ИЗБРАННОЕ -->
-    <button
-      class="nav-item"
-      type="button"
-      id="favoritesTab"
-    >
-      <span>⭐</span>
-      <small>Избранное</small>
+    <button class="nav-item" id="favoritesTab" type="button">
+     <span>
+      ⭐
+     </span>
+     <small>
+      Избранное
+     </small>
     </button>
-
-    <!-- ДОБАВИТЬ -->
-    <button
-      class="nav-item add-button"
-      type="button"
-    >
-      <span>＋</span>
-      <small>Добавить</small>
+    <button class="nav-item add-button" type="button">
+     <span>
+      ＋
+     </span>
+     <small>
+      Добавить
+     </small>
     </button>
-
-    <!-- НАСТРОЙКИ -->
-    <button
-      class="nav-item"
-      type="button"
-      id="settingsTab"
-    >
-      <span>⚙</span>
-      <small>Настройки</small>
+    <button class="nav-item" id="settingsTab" type="button">
+     <span>
+      ⚙
+     </span>
+     <small>
+      Настройки
+     </small>
     </button>
-
-  </nav>
-
-</div>
-
-<!-- ОСНОВНОЙ JAVASCRIPT -->
-<script src="script.js"></script>
-
-<!-- РЕГИСТРАЦИЯ SERVICE WORKER -->
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker
-        .register("./sw.js")
-        .then(registration => {
-          console.log(
-            "ECHO: Service Worker зарегистрирован",
-            registration.scope
-          );
-        })
-        .catch(error => {
-          console.error(
-            "ECHO: ошибка Service Worker",
-            error
-          );
-        });
-    });
-  }
-</script>
-
-</body>
+   </nav>
+  </div>
+  <script onerror="alert('Не найден script.js. Проверь, что index.html и script.js лежат в одной папке.')" src="script.js?v=20261009-fix2">
+  </script>
+  <script>
+   // Во время разработки Live Server старый Service Worker может отдавать устаревшие файлы.
+if ("serviceWorker" in navigator && (location.hostname === "127.0.0.1" || location.hostname === "localhost")) {
+  navigator.serviceWorker.getRegistrations().then(items => items.forEach(item => item.unregister()));
+  if ("caches" in window) caches.keys().then(keys => keys.filter(k => k.startsWith("echo-")).forEach(k => caches.delete(k)));
+} else if ("serviceWorker" in navigator && location.protocol === "https:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(console.warn));
+}
+  </script>
+ </body>
 </html>

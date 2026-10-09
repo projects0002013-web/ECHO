@@ -143,7 +143,59 @@ function applyVoiceSettings(message) {
 // 5. ПРОИЗНЕСЕНИЕ ТЕКСТА
 // ==========================================
 
+// Piper TTS: neural voices via optional local bridge. Browser voice remains fallback.
+const echoPiperConfigKey = "echoPiperConfig";
+let echoPiperConfig = { enabled: false, url: "http://127.0.0.1:8765", voice: "" };
+try { Object.assign(echoPiperConfig, JSON.parse(localStorage.getItem(echoPiperConfigKey) || "{}")); } catch (_) {}
+let echoPiperAudio = null;
+let echoPiperController = null;
+let echoPiperRequest = 0;
+function echoPiperSave() { localStorage.setItem(echoPiperConfigKey, JSON.stringify(echoPiperConfig)); }
+function echoPiperStop() {
+  ++echoPiperRequest;
+  if (echoPiperController) echoPiperController.abort();
+  echoPiperController = null;
+  if (echoPiperAudio) { echoPiperAudio.pause(); echoPiperAudio.src = ""; echoPiperAudio = null; }
+}
+async function echoPiperSpeak(text) {
+  const requestId = ++echoPiperRequest;
+  echoPiperController = new AbortController();
+  const timeout = setTimeout(() => echoPiperController?.abort(), 9000);
+  try {
+    const response = await fetch(echoPiperConfig.url.replace(/\/$/, "") + "/api/tts", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, voice: echoPiperConfig.voice, language: echoCurrentLanguage }),
+      signal: echoPiperController.signal
+    });
+    if (!response.ok) throw new Error("Piper HTTP " + response.status);
+    const blob = await response.blob();
+    if (requestId !== echoPiperRequest) return;
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    echoPiperAudio = audio;
+    audio.volume = Number(echoSettings.volume ?? 1);
+    audio.playbackRate = Number(echoSettings.rate ?? 1);
+    audio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
+    audio.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
+    await audio.play();
+  } catch (error) {
+    if (requestId === echoPiperRequest) {
+      console.warn("Piper недоступен; резервная озвучка:", error);
+      echoBrowserSpeak(text);
+    }
+  } finally { clearTimeout(timeout); }
+}
 function speak(text) {
+  if (typeof text !== "string" || !text.trim()) return;
+  echoPiperStop();
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  if (echoPiperConfig.enabled && echoPiperConfig.voice) {
+    echoPiperSpeak(text.trim());
+  } else {
+    echoBrowserSpeak(text.trim());
+  }
+}
+function echoBrowserSpeak(text) {
   if (!("speechSynthesis" in window)) {
     alert("На этом устройстве озвучка не поддерживается.");
     return;
@@ -2763,48 +2815,34 @@ echoCategoryModal.className = "echo-category-modal";
 echoCategoryModal.hidden = true;
 
 echoCategoryModal.innerHTML = `
-  <div
-    class="echo-category-dialog"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="echoCategoryDialogTitle"
-  >
-    <h3 id="echoCategoryDialogTitle">
-      ✨ Новая категория
-    </h3>
-
-    <label for="echoNewCategoryEmoji">Эмодзи</label>
-    <input
-      id="echoNewCategoryEmoji"
-      maxlength="8"
-      value="📁"
-      placeholder="📁"
-    >
-
-    <label for="echoNewCategoryName">Название</label>
-    <input
-      id="echoNewCategoryName"
-      maxlength="35"
-      placeholder="Например: Школа"
-    >
-
-    <p id="echoCategoryError" role="alert"></p>
-
-    <div class="echo-category-actions">
-      <button
-        type="button"
-        id="echoCancelCategory"
-      >
-        Отмена
-      </button>
-
-      <button
-        type="button"
-        id="echoSaveCategory"
-      >
-        Сохранить
-      </button>
+  <div class="echo-category-dialog" role="dialog" aria-modal="true"
+       aria-labelledby="echoCategoryDialogTitle">
+    <div class="echo-category-dialog-header">
+      <div>
+        <p class="small-title">МОИ КАТЕГОРИИ</p>
+        <h2 id="echoCategoryDialogTitle">Новая категория</h2>
+      </div>
+      <button type="button" class="echo-category-close" id="echoCancelCategory"
+              aria-label="Закрыть окно">✕</button>
     </div>
+
+    <label class="field-label">Выберите иконку</label>
+    <div class="echo-category-emoji-list" role="group" aria-label="Иконка категории">
+      ${["📁", "🏫", "🏠", "❤️", "💊", "🍎", "🎮", "🚗", "👨‍👩‍👧", "⭐", "🐱", "💬"]
+        .map(icon => `<button type="button" class="echo-category-emoji-option"
+          data-emoji="${icon}" aria-label="${icon}">${icon}</button>`).join("")}
+    </div>
+
+    <label class="field-label" for="echoNewCategoryEmoji">Или своя иконка</label>
+    <input id="echoNewCategoryEmoji" maxlength="8" value="📁" placeholder="📁">
+
+    <label class="field-label" for="echoNewCategoryName">Название категории</label>
+    <input id="echoNewCategoryName" maxlength="35" placeholder="Например: Школа">
+
+    <p id="echoCategoryError" class="echo-category-error" role="alert"></p>
+    <button type="button" id="echoSaveCategory" class="echo-category-save">
+      Создать категорию
+    </button>
   </div>
 `;
 
@@ -2837,14 +2875,37 @@ function echoOpenCategoryModal(category = null) {
   echoCategoryError.textContent = "";
 
   echoCategoryModal.hidden = false;
+  document.body.classList.add("echo-category-modal-open");
+  echoUpdateCategoryEmojiSelection();
+  document.getElementById("echoSaveCategory").textContent =
+    category ? "Сохранить изменения" : "Создать категорию";
   echoNewCategoryName.focus();
 }
 
 function echoCloseCategoryModal() {
   echoCategoryModal.hidden = true;
+  document.body.classList.remove("echo-category-modal-open");
   echoEditingCategoryId = null;
   echoPreviousFocus?.focus?.();
 }
+
+function echoUpdateCategoryEmojiSelection() {
+  const current = echoNewCategoryEmoji.value.trim();
+  echoCategoryModal.querySelectorAll(".echo-category-emoji-option")
+    .forEach(button => {
+      const selected = button.dataset.emoji === current;
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+}
+
+echoCategoryModal.addEventListener("click", event => {
+  const option = event.target.closest(".echo-category-emoji-option");
+  if (!option) return;
+  echoNewCategoryEmoji.value = option.dataset.emoji;
+  echoUpdateCategoryEmojiSelection();
+});
+echoNewCategoryEmoji.addEventListener("input", echoUpdateCategoryEmojiSelection);
 
 echoAddCategoryButton.addEventListener("click", () => {
   echoOpenCategoryModal();
@@ -4488,100 +4549,118 @@ if (typeof voicePanel !== "undefined" && voicePanel) {
   echoVoicePitch.addEventListener("input", updateEchoProfileSelection);
   updateEchoProfileSelection();
 }
-// =====================================
-// ECHO — УДАЛЕНИЕ СВОИХ КАТЕГОРИЙ
-// =====================================
 
-function echoEnableCategoryDelete() {
-
-  // Работает с категориями из нашей части 5
-  if (
-    typeof echoCustomCategories === "undefined" ||
-    typeof echoDeleteCategory !== "function"
-  ) {
-    console.warn("ECHO: система категорий не найдена");
-    return;
+// ==========================================
+// ECHO FIX — видимые кнопки удаления категорий
+// ==========================================
+const echoOriginalRenderUserCategories = echoRenderUserCategories;
+echoRenderUserCategories = function () {
+  echoOriginalRenderUserCategories();
+  echoCategoryList.querySelectorAll(".echo-user-category").forEach(button => {
+    if (button.querySelector(".echo-category-delete-btn")) return;
+    const remove = document.createElement("span");
+    remove.className = "echo-category-delete-btn";
+    remove.textContent = "✕";
+    remove.title = "Удалить категорию";
+    remove.setAttribute("role", "button");
+    remove.setAttribute("tabindex", "0");
+    remove.setAttribute("aria-label", "Удалить категорию");
+    button.appendChild(remove);
+  });
+};
+echoCategoryList.addEventListener("click", event => {
+  const remove = event.target.closest(".echo-category-delete-btn");
+  if (!remove) return;
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+  const id = remove.closest(".echo-user-category")?.dataset.category;
+  const category = echoUserCategories.find(item => item.id === id);
+  if (!category || !confirm(`Удалить категорию «${category.name}»? Карточки сохранятся.`)) return;
+  echoUserCategories = echoUserCategories.filter(item => item.id !== id);
+  Object.keys(echoCardCategories).forEach(cardId => {
+    if (echoCardCategories[cardId] === id) delete echoCardCategories[cardId];
+  });
+  if (echoActiveCategory === id) echoActiveCategory = "all";
+  echoSaveUserCategories();
+  echoRenderUserCategories();
+  echoAssignUserCardCategories();
+  updateEchoCategories();
+}, true);
+echoCategoryList.addEventListener("keydown", event => {
+  if ((event.key === "Enter" || event.key === " ") &&
+      event.target.matches(".echo-category-delete-btn")) {
+    event.preventDefault();
+    event.target.click();
   }
+});
+echoRenderUserCategories();
 
-  const style = document.createElement("style");
+// Make the existing edit action available on double click without changing functionality.
+echoCategoryList.addEventListener("dblclick", event => {
+  const button = event.target.closest(".echo-user-category");
+  if (button && !event.target.closest(".echo-category-delete-btn")) {
+    const category = echoUserCategories.find(item => item.id === button.dataset.category);
+    if (category) echoOpenCategoryModal(category);
+  }
+});
 
-  style.textContent = `
-    .echo-category-delete-btn {
-      margin-left: 8px;
-      padding: 6px 10px;
-      border: 1px solid #e35c70;
-      border-radius: 10px;
-      background: #692c3a;
-      color: white;
-      font-size: 15px;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
 
-    .echo-custom-category-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-    }
-  `;
-
-  document.head.appendChild(style);
-
-  const originalRender = echoRenderCategories;
-
-  echoRenderCategories = function() {
-    originalRender();
-
-    const container =
-      document.getElementById("echoCategoryList") ||
-      document.querySelector(".echo-category-list");
-
-    if (!container) return;
-
-    echoCustomCategories.forEach(category => {
-      const button = [...container.querySelectorAll("button")]
-        .find(item =>
-          item.textContent.trim() ===
-          (category.emoji + " " + category.name)
-        );
-
-      if (!button) return;
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "echo-custom-category-row";
-
-      button.parentNode.insertBefore(wrapper, button);
-      wrapper.appendChild(button);
-
-      const remove = document.createElement("button");
-
-      remove.type = "button";
-      remove.className = "echo-category-delete-btn";
-      remove.textContent = "🗑️";
-      remove.title = "Удалить категорию";
-      remove.setAttribute(
-        "aria-label",
-        "Удалить категорию " + category.name
-      );
-
-      remove.addEventListener("click", event => {
-        event.stopPropagation();
-        echoDeleteCategory(category.id);
-      });
-
-      wrapper.appendChild(remove);
-    });
-  };
-
-  echoRenderCategories();
-}
-
-if (document.readyState === "loading") {
-  document.addEventListener(
-    "DOMContentLoaded",
-    echoEnableCategoryDelete
-  );
-} else {
-  echoEnableCategoryDelete();
-}
+// ==========================================
+// PIPER — SETTINGS PANEL
+// ==========================================
+(function echoInstallPiperSettings() {
+  const panel = document.createElement("section");
+  panel.id = "echoPiperPanel";
+  panel.className = "echo-piper-panel";
+  panel.innerHTML = `
+    <h3>🗣️ Нейросетевые голоса Piper</h3>
+    <p>Бесплатная локальная озвучка. Требуется запущенный Piper Bridge и скачанные модели.</p>
+    <label class="echo-piper-check"><input id="echoPiperEnabled" type="checkbox"> Использовать Piper TTS</label>
+    <label for="echoPiperUrl">Адрес локального сервера</label>
+    <input id="echoPiperUrl" type="url" placeholder="http://127.0.0.1:8765">
+    <label for="echoPiperVoice">Нейросетевой голос</label>
+    <select id="echoPiperVoice"><option value="">Нажми «Обновить голоса»</option></select>
+    <div class="echo-piper-actions">
+      <button type="button" id="echoPiperRefresh">Обновить голоса</button>
+      <button type="button" id="echoPiperPreview">▶ Послушать</button>
+    </div>
+    <small id="echoPiperStatus" aria-live="polite">Без сервера используется обычный голос устройства.</small>`;
+  const target = document.querySelector(".voice-settings-panel") || document.querySelector("main") || document.body;
+  target.appendChild(panel);
+  const enabled = panel.querySelector("#echoPiperEnabled");
+  const url = panel.querySelector("#echoPiperUrl");
+  const voice = panel.querySelector("#echoPiperVoice");
+  const status = panel.querySelector("#echoPiperStatus");
+  enabled.checked = !!echoPiperConfig.enabled;
+  url.value = echoPiperConfig.url;
+  function save() {
+    echoPiperConfig.enabled = enabled.checked;
+    echoPiperConfig.url = url.value.trim() || "http://127.0.0.1:8765";
+    echoPiperConfig.voice = voice.value;
+    echoPiperSave();
+  }
+  enabled.addEventListener("change", save);
+  url.addEventListener("change", save);
+  voice.addEventListener("change", save);
+  panel.querySelector("#echoPiperRefresh").addEventListener("click", async () => {
+    save(); status.textContent = "Ищем модели…";
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      let response;
+      try { response = await fetch(echoPiperConfig.url.replace(/\/$/, "") + "/api/voices", { signal: controller.signal }); }
+      finally { clearTimeout(timeout); }
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const voices = await response.json();
+      voice.replaceChildren(new Option("Выбери голос", ""));
+      for (const item of voices) voice.add(new Option(item.label || item.id, item.id));
+      voice.value = echoPiperConfig.voice;
+      if (!voice.value) { echoPiperConfig.voice = ""; echoPiperSave(); }
+      status.textContent = voices.length ? `Найдено моделей: ${voices.length}` : "Модели не найдены. Добавь .onnx и .onnx.json в piper_models.";
+    } catch (error) { status.textContent = "Нет соединения с Piper Bridge. См. README_PIPER.md"; }
+  });
+  panel.querySelector("#echoPiperPreview").addEventListener("click", () => {
+    save(); speak(echoCurrentLanguage === "kk" ? "Сәлем! Мен ECHO." : "Привет! Я ECHO. Это мой голос.");
+  });
+})();
