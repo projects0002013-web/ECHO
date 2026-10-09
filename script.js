@@ -180,8 +180,8 @@ async function echoPiperSpeak(text) {
     await audio.play();
   } catch (error) {
     if (requestId === echoPiperRequest) {
-      console.warn("Piper недоступен; резервная озвучка:", error);
-      echoBrowserSpeak(text);
+      console.error("Piper: ошибка озвучивания", error);
+      alert("Piper не смог озвучить текст: " + error.message);
     }
   } finally { clearTimeout(timeout); }
 }
@@ -4661,6 +4661,12 @@ echoCategoryList.addEventListener("dblclick", event => {
     } catch (error) { status.textContent = "Нет соединения с Piper Bridge. См. README_PIPER.md"; }
   });
   panel.querySelector("#echoPiperPreview").addEventListener("click", () => {
-    save(); speak(echoCurrentLanguage === "kk" ? "Сәлем! Мен ECHO." : "Привет! Я ECHO. Это мой голос.");
+    save();
+    if (!echoPiperConfig.enabled || !echoPiperConfig.voice) {
+      status.textContent = "⚠️ Включи Piper и выбери нейросетевой голос.";
+      return;
+    }
+    status.textContent = "Проверяем голос: " + echoPiperConfig.voice;
+    speak(echoCurrentLanguage === "kk" ? "Сәлем! Мен ECHO." : echoCurrentLanguage === "en" ? "Hello! I am ECHO." : "Привет! Я ECHO. Это мой голос.");
   });
 })();
