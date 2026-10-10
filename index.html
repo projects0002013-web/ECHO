@@ -9,6 +9,7 @@
    ECHO — твой голос
   </title>
   <link href="style.css" rel="stylesheet"/>
+  <link href="features.css" rel="stylesheet"/>
   <link href="manifest.json" rel="manifest"/>
   <link href="icon-192.png" rel="icon"/>
   <link href="icon-192.png" rel="apple-touch-icon"/>
@@ -189,11 +190,11 @@
       <label class="field-label" for="newPhraseName">
        Название
       </label>
-      <input class="modal-input" id="newPhraseName" maxlength="30" placeholder="Например: Голова" type="text"/>
+      <input class="modal-input" id="newPhraseName" maxlength="40" placeholder="Например: Голова" type="text"/>
       <label class="field-label" for="newPhraseText">
        Что должен сказать ECHO?
       </label>
-      <textarea class="modal-input modal-textarea" id="newPhraseText" maxlength="150" placeholder="Например: У меня болит голова"></textarea>
+      <textarea class="modal-input modal-textarea" id="newPhraseText" maxlength="300" placeholder="Например: У меня болит голова"></textarea>
       <button class="save-phrase" id="savePhrase" type="button">
        Сохранить фразу
       </button>
@@ -235,16 +236,13 @@
     </button>
    </nav>
   </div>
-  <script onerror="alert('Не найден script.js. Проверь, что index.html и script.js лежат в одной папке.')" src="script.js?v=20261009-fix2">
+  <script onerror="alert('Не найден script.js. Проверь, что index.html и script.js лежат в одной папке.')" src="script.js">
   </script>
+  <script src="features.js"></script>
   <script>
-   // Во время разработки Live Server старый Service Worker может отдавать устаревшие файлы.
-if ("serviceWorker" in navigator && (location.hostname === "127.0.0.1" || location.hostname === "localhost")) {
-  navigator.serviceWorker.getRegistrations().then(items => items.forEach(item => item.unregister()));
-  if ("caches" in window) caches.keys().then(keys => keys.filter(k => k.startsWith("echo-")).forEach(k => caches.delete(k)));
-} else if ("serviceWorker" in navigator && location.protocol === "https:") {
-  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(console.warn));
-}
+    if ("serviceWorker" in navigator && window.isSecureContext) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(error => console.warn("ECHO: офлайн-режим недоступен", error)));
+    }
   </script>
  </body>
 </html>

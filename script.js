@@ -46,6 +46,12 @@ function saveSettings() {
   }
 }
 
+// Ignore damaged numeric settings instead of breaking speech controls.
+for (const [key, min, max] of [["rate", 0.5, 2], ["pitch", 0.5, 2], ["volume", 0, 1]]) {
+  const value = Number(echoSettings[key]);
+  echoSettings[key] = Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : defaultEchoSettings[key];
+}
+
 // ==========================================
 // 2. ЯЗЫКИ
 // ==========================================
@@ -102,7 +108,7 @@ function loadVoices() {
   const language = String(echoSettings.language || "ru-RU").toLowerCase();
   const code = language.split("-")[0];
   const voices = speechSynthesis.getVoices().filter(voice =>
-    voice.lang.toLowerCase().split("-")[0] === code
+    voice.localService && voice.lang.toLowerCase().split("-")[0] === code
   );
   currentVoice = voices.find(voice =>
     voice.name === echoSettings.voiceName
@@ -150,7 +156,17 @@ try { Object.assign(echoPiperConfig, JSON.parse(localStorage.getItem(echoPiperCo
 let echoPiperAudio = null;
 let echoPiperController = null;
 let echoPiperRequest = 0;
-function echoPiperSave() { localStorage.setItem(echoPiperConfigKey, JSON.stringify(echoPiperConfig)); }
+function echoPiperSave() {
+  try { localStorage.setItem(echoPiperConfigKey, JSON.stringify(echoPiperConfig)); }
+  catch (_) { window.echoSpeechNotice?.("Не удалось сохранить настройки Piper."); }
+}
+function echoPiperURL() {
+  const url = new URL(echoPiperConfig.url);
+  if (!["127.0.0.1", "localhost"].includes(url.hostname) || !["http:", "https:"].includes(url.protocol) || url.username || url.password) {
+    throw new Error("Piper должен работать на этом устройстве: localhost или 127.0.0.1");
+  }
+  return url.origin;
+}
 function echoPiperStop() {
   ++echoPiperRequest;
   if (echoPiperController) echoPiperController.abort();
@@ -162,7 +178,7 @@ async function echoPiperSpeak(text) {
   echoPiperController = new AbortController();
   const timeout = setTimeout(() => echoPiperController?.abort(), 9000);
   try {
-    const response = await fetch(echoPiperConfig.url.replace(/\/$/, "") + "/api/tts", {
+    const response = await fetch(echoPiperURL() + "/api/tts", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ text, voice: echoPiperConfig.voice, language: echoCurrentLanguage }),
       signal: echoPiperController.signal
@@ -187,6 +203,8 @@ async function echoPiperSpeak(text) {
 }
 function speak(text) {
   if (typeof text !== "string" || !text.trim()) return;
+  window.echoStopSpeech?.();
+  if (window.echoLocalSpeech?.(text.trim())) return;
   echoPiperStop();
   if ("speechSynthesis" in window) speechSynthesis.cancel();
   if (echoPiperConfig.enabled && echoPiperConfig.voice) {
@@ -211,6 +229,10 @@ function echoBrowserSpeak(text) {
 
   applyVoiceSettings(message);
 
+  if (!currentVoice) {
+    window.echoSpeechNotice?.("Для этого языка нет локального голоса устройства. Выберите запись фразы или настройте локальный синтез.");
+    return;
+  }
   speechSynthesis.speak(message);
 }
 
@@ -1554,7 +1576,7 @@ function populateEchoVoices() {
   }
   const code = String(echoSettings.language || "ru-RU").toLowerCase().split("-")[0];
   const voices = speechSynthesis.getVoices().filter(voice =>
-    voice.lang.toLowerCase().split("-")[0] === code
+    voice.localService && voice.lang.toLowerCase().split("-")[0] === code
   ).sort((a,b) => a.name.localeCompare(b.name));
   voices.forEach(voice => {
     const option = document.createElement("option");
@@ -3428,7 +3450,7 @@ echoHistoryPanel.innerHTML = `
   <div class="echo-history-header">
     <div>
       <h2>🕘 История фраз</h2>
-      <p>Недавно произнесённые фразы</p>
+      <p>Недавно выбранные сообщения</p>
     </div>
 
     <button
@@ -4625,12 +4647,13 @@ echoCategoryList.addEventListener("dblclick", event => {
       <button type="button" id="echoPiperRefresh">Обновить голоса</button>
       <button type="button" id="echoPiperPreview">▶ Послушать</button>
     </div>
-    <small id="echoPiperStatus" aria-live="polite">Без сервера используется обычный голос устройства.</small>`;
+    <small id="echoPiperStatus" aria-live="polite">Piper работает на этом устройстве. Голос устройства выбирается отдельно.</small>`;
   const target = document.querySelector(".voice-settings-panel") || document.querySelector("main") || document.body;
   target.appendChild(panel);
   const enabled = panel.querySelector("#echoPiperEnabled");
   const url = panel.querySelector("#echoPiperUrl");
   const voice = panel.querySelector("#echoPiperVoice");
+  if (echoPiperConfig.voice) voice.add(new Option(echoPiperConfig.voice, echoPiperConfig.voice, true, true));
   const status = panel.querySelector("#echoPiperStatus");
   enabled.checked = !!echoPiperConfig.enabled;
   url.value = echoPiperConfig.url;
@@ -4649,7 +4672,7 @@ echoCategoryList.addEventListener("dblclick", event => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
       let response;
-      try { response = await fetch(echoPiperConfig.url.replace(/\/$/, "") + "/api/voices", { signal: controller.signal }); }
+      try { response = await fetch(echoPiperURL() + "/api/voices", { signal: controller.signal }); }
       finally { clearTimeout(timeout); }
       if (!response.ok) throw new Error("HTTP " + response.status);
       const voices = await response.json();
@@ -4658,7 +4681,7 @@ echoCategoryList.addEventListener("dblclick", event => {
       voice.value = echoPiperConfig.voice;
       if (!voice.value) { echoPiperConfig.voice = ""; echoPiperSave(); }
       status.textContent = voices.length ? `Найдено моделей: ${voices.length}` : "Модели не найдены. Добавь .onnx и .onnx.json в piper_models.";
-    } catch (error) { status.textContent = "Нет соединения с Piper Bridge. См. README_PIPER.md"; }
+    } catch (error) { status.textContent = "Нет соединения с локальным Piper Bridge. См. README.md"; }
   });
   panel.querySelector("#echoPiperPreview").addEventListener("click", () => {
     save();

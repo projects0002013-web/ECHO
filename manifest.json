@@ -3,8 +3,8 @@
   "short_name": "ECHO",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f3f8f6",
-  "theme_color": "#078b70",
+  "background_color": "#f4f8f7",
+  "theme_color": "#078568",
   "lang": "ru",
   "icons": [
     {
@@ -17,5 +17,8 @@
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "id": "./",
+  "scope": "./",
+  "description": "Локальный коммуникатор: понятные карточки, фразы и персональный голос."
 }
