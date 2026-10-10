@@ -44,3 +44,6 @@
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* The supplied monochrome ECHO branding keeps its white background in both themes. */
+.logo-icon.echo-brand-icon { object-fit: contain; background: #fff; border-radius: 50%; box-shadow: none; }
