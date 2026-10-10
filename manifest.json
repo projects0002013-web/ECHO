@@ -1,5 +1,5 @@
 {
-  "name": "ECHO — твой голос",
+  "name": "ECHO — эхо твоих слов",
   "short_name": "ECHO",
   "start_url": "./index.html",
   "display": "standalone",

@@ -1,6 +1,6 @@
-const CACHE_NAME = "echo-v5-local-voice";
+const CACHE_NAME = "echo-v6-brand-cover";
 const ASSETS = ["./index.html", "./style.css", "./script.js", "./features.css", "./features.js",
-  "./recorder-worklet.js", "./manifest.json", "./icon-192.png", "./icon-512.png",
+  "./recorder-worklet.js", "./manifest.json", "./icon-192.png", "./icon-512.png", "./cover.png",
   "./fonts/nunito-cyrillic-wght-normal.woff2", "./fonts/nunito-cyrillic-ext-wght-normal.woff2",
   "./fonts/nunito-latin-wght-normal.woff2", "./fonts/nunito-latin-ext-wght-normal.woff2",
   "./fonts/nunito-vietnamese-wght-normal.woff2"];
