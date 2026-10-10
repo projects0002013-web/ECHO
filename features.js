@@ -380,7 +380,15 @@
   };
 
   // One final navigation pass avoids the conflicting listeners in earlier panels.
+  let activeSection = "phrases";
+  function updateNavigation(section) {
+    const map = new Map([[ $("phrasesTab"), "phrases" ], [ $("favoritesTab"), "favorites" ], [ $("settingsTab"), "settings" ],
+      [echoHistoryNav, "history"], [echoQuickNav, "quick"], [echoSOSNav, "sos"]]);
+    for (const [button, value] of map) { button.classList.toggle("active", value === section); button.setAttribute("aria-current", value === section ? "page" : "false"); }
+    document.querySelector(".add-button").classList.remove("active");
+  }
   function route(section) {
+    activeSection = section;
     if (recorder && section !== "settings") {
       finishRecording(false).then(() => voiceMessage("Запись отменена при выходе из настроек. Микрофон выключен."));
     }
@@ -392,9 +400,8 @@
     document.querySelector(".welcome").hidden = !cards;
     document.querySelector(".custom-section").hidden = !cards;
     composer.hidden = !cards;
-    const map = new Map([[ $("phrasesTab"), "phrases" ], [ $("favoritesTab"), "favorites" ], [ $("settingsTab"), "settings" ],
-      [echoHistoryNav, "history"], [echoQuickNav, "quick"], [echoSOSNav, "sos"]]);
-    for (const [button, value] of map) { button.classList.toggle("active", value === section); button.setAttribute("aria-current", value === section ? "page" : "false"); }
+    updateNavigation(section);
+    window.scrollTo({top: 0, behavior: "instant"});
   }
   $("phrasesTab").addEventListener("click", () => route("phrases"));
   $("favoritesTab").addEventListener("click", () => route("favorites"));
@@ -409,7 +416,7 @@
   modal.setAttribute("role", "dialog"); modal.setAttribute("aria-modal", "true"); modal.setAttribute("aria-label", "Карточка фразы");
   new MutationObserver(() => {
     if (modal.classList.contains("open")) lastFocus = document.activeElement;
-    else lastFocus?.focus();
+    else { updateNavigation(activeSection); lastFocus?.focus(); }
   }).observe(modal, { attributes: true, attributeFilter: ["class"] });
   modal.addEventListener("keydown", event => {
     if (event.key !== "Tab") return;

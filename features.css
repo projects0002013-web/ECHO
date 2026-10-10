@@ -47,3 +47,97 @@
 
 /* The supplied monochrome ECHO branding keeps its white background in both themes. */
 .logo-icon.echo-brand-icon { object-fit: contain; background: #fff; border-radius: 50%; box-shadow: none; }
+
+/* Match settings text to the active light/dark surface. */
+.card-size-panel h3, .theme-settings-panel h3, .voice-settings-panel > h3,
+.language-panel h3, .vibration-settings-panel h3, .echo-local-panel h3 { color: var(--text); }
+.voice-settings-panel label, .voice-settings-panel .voice-value { color: var(--text); }
+.voice-settings-panel p, .vibration-settings-panel p { color: var(--muted); }
+.voice-settings-panel .echo-piper-panel label { color: #f1fff6; }
+.voice-settings-panel .echo-piper-panel p { color: #b7d5c4; }
+
+/* Handset layout: keep every action visible while giving more space to phrases. */
+@media (max-width: 600px) {
+  html { scroll-padding-bottom: calc(132px + env(safe-area-inset-bottom)); }
+  .app {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-bottom: calc(140px + env(safe-area-inset-bottom));
+  }
+  .header { min-height: 72px; padding: 10px 0; gap: 12px; }
+  .logo { gap: 10px; min-width: 0; }
+  .logo-icon { width: 44px; height: 44px; }
+  .logo h1 { font-size: 24px; line-height: 1.15; }
+  .logo p { font-size: 12px; }
+  .settings-btn { width: 44px; height: 44px; flex-shrink: 0; }
+  .welcome { margin: 12px 0 20px; }
+  .welcome h2 { font-size: clamp(25px, 6.7vw, 30px); line-height: 1.2; margin: 8px 0 10px; }
+  .welcome .description { font-size: 14px; line-height: 1.55; margin: 0; }
+  .echo-search-panel { padding: 12px; margin-bottom: 14px; border-radius: 18px; }
+  .echo-search-box { min-height: 48px; padding: 0 12px; gap: 8px; }
+  input:not([type="range"]):not([type="checkbox"]), select, textarea { font-size: 16px !important; }
+  .echo-category-panel { margin-bottom: 16px; }
+  .echo-category-list { scroll-padding-inline: 4px; scrollbar-width: none; padding-bottom: 4px; }
+  .echo-category-list::-webkit-scrollbar { display: none; }
+  .echo-category-button { min-height: 44px; padding: 10px 13px; flex-shrink: 0; }
+  .phrase-grid, .cards-small .phrase-grid, .cards-medium .phrase-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .phrase-card, .cards-small .phrase-card, .cards-medium .phrase-card {
+    min-height: 202px !important; padding: 16px 12px 68px !important; border-radius: 20px;
+  }
+  .phrase-icon { width: 46px; height: 46px; font-size: 27px; margin-bottom: 14px !important; }
+  .phrase-name { font-size: 18px; line-height: 1.25; }
+  .phrase-text { font-size: 13px; }
+  .cards-large .phrase-grid { grid-template-columns: 1fr; }
+  .cards-large .phrase-card { min-height: 216px !important; padding: 20px 18px 72px !important; }
+  .cards-large .phrase-icon { width: 56px; height: 56px; font-size: 32px; }
+  .cards-large .phrase-name { font-size: 22px; }
+  .phrase-card.custom-card { min-height: 268px !important; padding-bottom: 124px !important; }
+  .bottom-nav {
+    bottom: 0; width: 100%; max-width: 600px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    padding: 6px max(6px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) !important;
+    gap: 2px !important; border-radius: 22px 22px 0 0;
+    box-shadow: 0 -5px 24px rgba(11, 57, 44, .08);
+  }
+  .bottom-nav .nav-item { min-height: 48px; padding: 4px 1px !important; border-radius: 12px; }
+  .bottom-nav .nav-item > span:first-child { font-size: 20px !important; line-height: 1 !important; }
+  .bottom-nav .nav-item small { font-size: 10px !important; line-height: 1.2 !important; white-space: nowrap; }
+  .bottom-nav .add-button > span:first-child { width: 32px; height: 28px; border-radius: 10px; }
+  .card-size-panel, .theme-settings-panel, .voice-settings-panel, .language-panel, .vibration-settings-panel {
+    padding: 16px !important; margin: 12px 0 !important; border-radius: 20px !important;
+  }
+  .card-size-panel button, .theme-settings-panel button, .language-panel button, .vibration-settings-panel button { min-height: 44px; }
+  .voice-settings-panel .echo-local-panel { padding: 16px; margin: 0 0 22px; box-shadow: none; }
+  .echo-local-panel { padding: 16px; }
+  .echo-local-panel h3 { font-size: 18px; line-height: 1.35; }
+  .echo-local-panel p { font-size: 14px; }
+  .echo-local-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .echo-local-actions button { width: 100%; margin: 0; padding: 11px 8px; overflow-wrap: anywhere; }
+  #echoSampleDelete { grid-column: 1 / -1; }
+  .echo-local-panel input[type="file"] { padding: 10px; font-size: 14px !important; }
+  .echo-local-panel input[type="file"]::file-selector-button { max-width: 100%; margin-right: 6px; }
+  .echo-piper-actions { display: grid; grid-template-columns: 1fr; }
+  .echo-piper-actions button { min-width: 0; width: 100%; margin: 0; }
+  .modal { padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .modal-box { width: 100%; max-height: 88dvh; padding: 20px 16px; border-radius: 22px; }
+  .modal-header h2 { font-size: 23px; }
+  .emoji-list { gap: 8px; }
+  .emoji-option { min-width: 44px; min-height: 44px; }
+  .echo-sos-panel { padding: 20px 16px !important; }
+  .echo-sos-panel button, .echo-sos-panel a[href^="tel:"] { width: 100%; margin: 6px 0; }
+}
+@media (max-width: 360px) {
+  .app { padding-left: 10px; padding-right: 10px; }
+  .phrase-grid { gap: 10px; }
+  .phrase-name { font-size: 17px; }
+  .phrase-card .sound-icon { width: 30px; height: 30px; font-size: 16px; top: 12px; right: 10px; }
+}
+@media (max-height: 500px) and (orientation: landscape) and (max-width: 950px) {
+  .bottom-nav { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; min-height: 60px; bottom: 0; }
+  .bottom-nav .nav-item { min-height: 44px; }
+  .app { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  .modal-box { max-height: 92dvh; }
+}
+@media (hover: none) {
+  .bottom-nav .nav-item:not(.active):hover { background: transparent; color: var(--muted); transform: none; }
+}
