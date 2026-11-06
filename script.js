@@ -370,9 +370,28 @@ function saveCustomPhrases(phrases) {
       "echoCustomPhrases",
       JSON.stringify(phrases)
     );
+    return true;
   } catch (error) {
     console.warn("ECHO: ошибка сохранения карточек", error);
+    return false;
   }
+}
+
+// Surface save errors in the editor, rather than hiding them in the console.
+const echoSaveError = document.createElement("p");
+echoSaveError.id = "echoSaveError";
+echoSaveError.setAttribute("role", "alert");
+echoSaveError.style.color = "var(--danger, #b42318)";
+echoSaveError.hidden = true;
+savePhraseButton?.before(echoSaveError);
+
+function echoShowSaveError() {
+  echoSaveError.textContent = "Не удалось сохранить карточку. Проверьте свободное место и настройки браузера. Окно осталось открытым, чтобы вы не потеряли текст.";
+  echoSaveError.hidden = false;
+}
+function echoClearSaveError() {
+  echoSaveError.hidden = true;
+  echoSaveError.textContent = "";
 }
 
 // Защита текста при вставке в HTML
@@ -626,6 +645,7 @@ loadCustomPhrases();
 
 savePhraseButton?.addEventListener("click", () => {
   if (!nameInput || !phraseInput) return;
+  echoClearSaveError();
 
   const name = nameInput.value.trim();
   const text = phraseInput.value.trim();
@@ -656,7 +676,10 @@ savePhraseButton?.addEventListener("click", () => {
         text
       };
 
-      saveCustomPhrases(phrases);
+      if (!saveCustomPhrases(phrases)) {
+        echoShowSaveError();
+        return;
+      }
       refreshCustomCards();
     }
   } else {
@@ -673,7 +696,10 @@ savePhraseButton?.addEventListener("click", () => {
     };
 
     phrases.push(newPhrase);
-    saveCustomPhrases(phrases);
+    if (!saveCustomPhrases(phrases)) {
+      echoShowSaveError();
+      return;
+    }
     createPhraseCard(newPhrase);
   }
 
@@ -808,7 +834,15 @@ function finishDelete() {
     phrase => String(phrase.id) !== id
   );
 
-  saveCustomPhrases(phrases);
+  if (!saveCustomPhrases(phrases)) {
+    // Restore the card instead of silently losing an unsaved deletion.
+    if (deletion.nextCard?.parentNode === phraseGrid) {
+      phraseGrid.insertBefore(deletion.card, deletion.nextCard);
+    } else {
+      phraseGrid?.appendChild(deletion.card);
+    }
+    alert("Не удалось сохранить удаление карточки. Карточка восстановлена.");
+  }
 
   deletion.undoBox.remove();
   pendingDelete = null;
