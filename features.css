@@ -141,3 +141,17 @@
 @media (hover: none) {
   .bottom-nav .nav-item:not(.active):hover { background: transparent; color: var(--muted); transform: none; }
 }
+
+/* Native speech and management buttons have separate focus targets. */
+.card-speak { display:flex; flex-direction:column; align-items:flex-start; width:100%; border:0; padding:0; background:transparent; color:inherit; font:inherit; text-align:left; cursor:pointer; }
+.card-speak:focus-visible, .echo-order-actions button:focus-visible { outline:3px solid var(--primary); outline-offset:3px; }
+.echo-order-actions { display:flex; gap:6px; width:100%; margin-top:12px; }
+.echo-order-actions button { flex:1; min-height:44px; padding:6px; border:1px solid var(--border); border-radius:10px; background:var(--surface2); color:var(--text); font:inherit; cursor:pointer; }
+.echo-card-image { width:90px; height:90px; object-fit:contain; border-radius:12px; }
+.echo-image-fields { margin:12px 0; }
+.echo-image-fields input { max-width:100%; }
+#echoImagePreview { display:block; width:120px; height:100px; object-fit:contain; margin:8px 0; }
+#echoImagePreview[hidden] { display:none; }
+#echoRemoveImage { min-height:44px; border:1px solid var(--border); border-radius:10px; background:var(--surface2); color:var(--text); }
+#echoImageError { color:var(--danger); }
+.echo-order-actions button { min-width:0; white-space:nowrap; font-size:0.82rem; }
