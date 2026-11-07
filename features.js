@@ -119,7 +119,9 @@
     message("Создаю фразу вашим голосом на этом устройстве… Первый запуск может занять несколько минут.");
     controller = new AbortController();
     const signal = controller.signal;
-    const timeout = setTimeout(() => { if (job === speechJob) controller?.abort(); }, 240000);
+    // Card presses should not wait minutes for optional AI. Studio exports can take longer.
+    const maxWaitMs = autoplay ? 8000 : 240000;
+    const timeout = setTimeout(() => { if (job === speechJob) controller?.abort(); }, maxWaitMs);
     try {
       let blob;
       if (nativeReady) {
@@ -177,8 +179,10 @@
         try {
           return await personal(text, job);
         } catch (error) {
-          if (job !== speechJob || error.name === "AbortError") return;
-          message("Персональный ИИ недоступен · произношу голосом Android");
+          if (job !== speechJob) return;
+          message(error.name === "AbortError"
+            ? "ИИ не ответил за 8 секунд · произношу голосом Android"
+            : "Персональный ИИ недоступен · произношу голосом Android");
         }
       } else message("Записи этой фразы нет · произношу голосом Android");
       if (job === speechJob) echoBrowserSpeak(text);
