@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 MODEL_FILES = ("ve.pt", "s3gen.pt", "t3_mtl23ls_v2.safetensors",
                "grapheme_mtl_merged_expanded_v1.json")
 LANGUAGES = ("ru", "en")  # Product languages with a personal-voice UI.
-PUBLIC_FILES = {"accessibility.js", "backup.js", "index.html", "script.js", "style.css", "features.js", "features.css",
+PUBLIC_FILES = {"i18n.js", "accessibility.js", "backup.js", "index.html", "script.js", "style.css", "features.js", "features.css",
                 "recorder-worklet.js", "sw.js", "manifest.json", "icon-192.png", "icon-512.png", "cover.png"}
 MAX_REQUEST = 8 * 1024 * 1024
 
@@ -156,7 +156,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def public_path(self):
         path = urlparse(self.path).path.lstrip("/") or "index.html"
-        return path in PUBLIC_FILES or (path.startswith("fonts/") and
+        return path in {"locales/catalog.json", "locales/manifest-ru.json", "locales/manifest-kk.json", "locales/manifest-en.json", "locales/manifest-be.json"} or path in PUBLIC_FILES or (path.startswith("fonts/") and
                Path(path).name.endswith(".woff2") and len(Path(path).parts) == 2)
 
     def do_GET(self):

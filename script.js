@@ -1772,12 +1772,7 @@ echoVoiceVolume.addEventListener("input", () => {
 // 9. ПРОВЕРКА ГОЛОСА
 // ==========================================
 
-const echoVoiceTestPhrases = {
-  ru: "Привет! Я ECHO. Это мой голос.",
-  kk: "Сәлем! Мен ECHO. Бұл менің дауысым.",
-  en: "Hello! I'm ECHO. This is my voice.",
-  be: "Прывітанне! Я ECHO. Гэта мой голас."
-};
+const echoVoiceTestPhrases = Object.fromEntries(["ru","kk","en","be"].map(lang => [lang, echoI18n.t("Привет! Я ECHO. Это мой голос.", {}, lang)]));
 
 document.getElementById("echoTestVoice")
   ?.addEventListener("click", () => {
@@ -1834,32 +1829,7 @@ sizeFavoritesTab?.addEventListener(
  // 1. ПЕРЕВОДЫ СТАНДАРТНЫХ ФРАЗ
  // ==========================================
 
- const echoPhraseTranslations = {
-   ru: [
-     "Я хочу пить",
-     "Я хочу есть",
-     "Мне нужна помощь",
-     "Я хочу домой",
-     "Да",
-     "Нет"
-   ],
-   kk: [
-     "Мен су ішкім келеді",
-     "Мен тамақ жегім келеді",
-     "Маған көмек керек",
-     "Мен үйге қайтқым келеді",
-     "Иә",
-     "Жоқ"
-   ],
-   en: [
-     "I want some water",
-     "I want to eat",
-     "I need help",
-     "I want to go home",
-     "Yes",
-     "No"
-   ]
- };
+ const echoPhraseTranslations = window.echoI18n.presets;
 
  // Сохраняем исходные стандартные карточки.
  // Пользовательские карточки не изменяем.
@@ -3616,7 +3586,7 @@ function formatEchoHistoryTime(timestamp) {
   const locale =
     echoCurrentLanguage === "kk" ? "kk-KZ" :
     echoCurrentLanguage === "en" ? "en-US" :
-    "ru-RU";
+    echoCurrentLanguage === "be" ? "be-BY" : "ru-RU";
 
   return date.toLocaleString(locale, {
     day: "2-digit",
@@ -4252,32 +4222,7 @@ console.log("ECHO: быстрые фразы подключены 📌");
 
 // 1. ТЕКСТЫ НА ТРЁХ ЯЗЫКАХ
 
-const echoSOSLanguages = {
-  ru: {
-    title: "Экстренная помощь",
-    message: "Помогите! Мне срочно нужна помощь!",
-    speak: "🔊 Позвать на помощь",
-    call: "📞 Позвонить 112",
-    stop: "■ Остановить",
-    note: "Если есть непосредственная опасность, обратитесь за помощью к окружающим или в экстренные службы."
-  },
-  kk: {
-    title: "Шұғыл көмек",
-    message: "Көмектесіңіздер! Маған шұғыл көмек керек!",
-    speak: "🔊 Көмек шақыру",
-    call: "📞 112 нөміріне қоңырау",
-    stop: "■ Тоқтату",
-    note: "Қауіп төнсе, айналадағы адамдардан немесе төтенше қызметтен көмек сұраңыз."
-  },
-  en: {
-    title: "Emergency help",
-    message: "Help! I need urgent assistance!",
-    speak: "🔊 Call for help",
-    call: "📞 Call 112",
-    stop: "■ Stop speaking",
-    note: "If you are in immediate danger, ask people nearby or emergency services for help."
-  }
-};
+const echoSOSLanguages = window.echoI18n.sos;
 
 // 2. СОЗДАЁМ КНОПКУ SOS
 
@@ -4508,25 +4453,11 @@ echoLanguages.be = {
 
 // 2. ПЕРЕВОД СТАНДАРТНЫХ ФРАЗ
 
-echoPhraseTranslations.be = [
-  "Я хачу піць",
-  "Я хачу есці",
-  "Мне патрэбна дапамога",
-  "Мне балюча",
-  "Так",
-  "Не"
-];
+
 
 // 3. ПЕРЕВОД SOS
 
-echoSOSLanguages.be = {
-  title: "Экстраная дапамога",
-  message: "Дапамажыце! Мне тэрмінова патрэбна дапамога!",
-  speak: "🔊 Паклікаць на дапамогу",
-  call: "📞 Патэлефанаваць 112",
-  stop: "■ Спыніць",
-  note: "Калі вам пагражае небяспека, звярніцеся па дапамогу да людзей побач або ў экстраныя службы."
-};
+
 
 // 4. ДОБАВЛЯЕМ КНОПКУ ВЫБОРА ЯЗЫКА
 
@@ -4578,12 +4509,7 @@ const echoOriginalApplyLanguage = applyEchoLanguage;
 applyEchoLanguage = function(language) {
   const result = echoOriginalApplyLanguage(language);
 
-  const placeholders = {
-    ru: "Найти фразу...",
-    kk: "Сөйлемді іздеу...",
-    en: "Search phrases...",
-    be: "Знайсці фразу..."
-  };
+  const placeholders = Object.fromEntries(["ru","kk","en","be"].map(lang=>[lang,echoI18n.t("Найти фразу...",{},lang)]));
 
   if (echoSearchInput) {
     echoSearchInput.placeholder =
