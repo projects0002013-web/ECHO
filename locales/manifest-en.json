@@ -1,0 +1,24 @@
+{
+  "name": "ECHO — echo of your words",
+  "short_name": "ECHO",
+  "start_url": "../index.html",
+  "display": "standalone",
+  "background_color": "#f4f8f7",
+  "theme_color": "#078568",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "../icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "../icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "id": "../",
+  "scope": "../",
+  "description": "Local communicator: clear cards, phrases and a personal voice."
+}

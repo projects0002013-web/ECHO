@@ -42,7 +42,7 @@
   function errorText(error) {
     if (error.name === "NotAllowedError") return "Разрешите доступ к микрофону в настройках браузера.";
     if (error.name === "NotFoundError") return "Микрофон не найден. Можно загрузить аудиофайл.";
-    return error.message || "Не удалось выполнить действие.";
+    return window.echoI18n.error(error);
   }
   function stop() {
     speechJob++;
@@ -179,12 +179,7 @@
     <label for="echoSentence">Ваше сообщение</label><textarea id="echoSentence" rows="2" maxlength="300" placeholder="Я хочу…"></textarea>
     <div class="echo-local-actions"><button type="button" id="echoSentenceSpeak">🔊 Произнести</button><button type="button" id="echoSentenceUndo">⌫ Убрать слово</button><button type="button" id="echoSentenceClear">Очистить</button><button type="button" id="echoSentenceSave">＋ В карточки</button></div>`;
   document.querySelector(".custom-section").after(composer);
-  const words = {
-    ru: ["Я", "хочу", "мне нужно", "пить", "есть", "домой", "отдохнуть", "помощь", "пожалуйста", "спасибо", "да", "нет"],
-    en: ["I", "want", "I need", "water", "food", "to go home", "to rest", "help", "please", "thank you", "yes", "no"],
-    kk: ["Мен", "маған", "керек", "су", "тамақ", "үйге", "демалу", "көмек", "өтінемін", "рақмет", "иә", "жоқ"],
-    be: ["Я", "хачу", "мне трэба", "піць", "есці", "дадому", "адпачыць", "дапамога", "калі ласка", "дзякуй", "так", "не"]
-  };
+  const words = window.echoI18n.words;
   function renderWords() {
     $("echoWordChoices").replaceChildren();
     for (const word of words[echoCurrentLanguage] || words.ru) {
@@ -211,7 +206,7 @@
       recordOperation++; if (recorder) finishRecording(false); if (draft) discardDraft();
       voiceMessage("Запись отменена при смене языка. Начните новую запись на выбранном языке.");
     }
-    stop(); oldLanguage(language); renderWords(); updateTargets();
+    stop(); message("Озвучка остановлена"); oldLanguage(language); renderWords(); updateTargets(); renderEchoHistory();
   };
   renderWords();
   const oldFavorites = updateFavorites;
@@ -404,7 +399,10 @@
     $("echoRecordingsList").replaceChildren();
     for (const entry of entries.filter(e => e.key !== "sample")) {
       const row = document.createElement("div"); row.className = "echo-recording-row";
-      const label = document.createElement("span"); label.textContent = `${entry.text} · ${entry.language} · ${Number(entry.duration || 0).toFixed(1)} с`;
+      const label = document.createElement("span");
+      const personal = document.createElement("span"); personal.dataset.noI18n = ""; personal.textContent = `${entry.text} · ${entry.language} · `;
+      const duration = document.createElement("span"); duration.textContent = `${Number(entry.duration || 0).toFixed(1)} с`;
+      label.append(personal, duration);
       const preview = document.createElement("button"); preview.type = "button"; preview.textContent = "▶"; preview.setAttribute("aria-label", `Послушать: ${entry.text}`);
       preview.onclick = () => { stop(); play(entry.blob, speechJob).catch(e => voiceMessage(errorText(e))); };
       const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Удалить";

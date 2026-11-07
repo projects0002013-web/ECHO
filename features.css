@@ -224,3 +224,6 @@ button[aria-pressed="true"] { text-decoration:underline; }
 body,button,a,input,select,textarea,.bottom-nav,.phrase-card,.echo-local-panel { transition:none !important; }
 .bottom-nav { padding-left:max(5px,env(safe-area-inset-left)) !important; padding-right:max(5px,env(safe-area-inset-right)) !important; }
 .echo-action-dock { padding-left:max(12px,env(safe-area-inset-left)); padding-right:max(12px,env(safe-area-inset-right)); }
+
+.bottom-nav .nav-item,.echo-action-dock button { overflow-wrap:anywhere; }
+html[lang="kk"] .bottom-nav .nav-item small,html[lang="be"] .bottom-nav .nav-item small { font-size:12px !important; }
