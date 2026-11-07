@@ -100,7 +100,7 @@
     const nativeAvailable = nativeVoice && typeof nativeVoice.status === "function" && typeof nativeVoice.synthesize === "function";
     const nativeStatus = nativeAvailable ? await nativeVoice.status() : null;
     const nativeReady = nativeStatus && nativeStatus.ready === true && nativeStatus.platform && ["android", "ios"].includes(nativeStatus.platform);
-    if (nativeAvailable && !nativeReady) throw new Error("Мобильная модель не готова. Установите совместимую модель в нативном приложении ECHO.");
+    if (nativeAvailable && !nativeReady) throw new Error("В этой версии Android ECHO персональный ИИ-движок ещё не установлен. Запись своего голоса работает, но новые фразы этим голосом пока не синтезируются.");
     if (nativeReady ? languageNotSupported(nativeStatus, echoCurrentLanguage) : !["ru", "en"].includes(echoCurrentLanguage))
       throw new Error("Выбранный язык не поддерживается установленным голосовым движком. Используйте записи или голос устройства.");
     const reference = sample, language = echoCurrentLanguage, epoch = audioEpoch;
@@ -243,7 +243,7 @@
       recordOperation++; if (recorder) finishRecording(false); if (draft) discardDraft();
       voiceMessage("Запись отменена при смене языка. Начните новую запись на выбранном языке.");
     }
-    if (typeof cancelStudio === "function") { cancelStudio(); clearStudioResult(); studioStatus("Сохраните образец, затем введите новый текст."); }
+    if (typeof cancelStudio === "function") { cancelStudio(); clearStudioResult(); studioStatus("Записать образец можно сейчас. Синтез нового текста требует установленной модели."); }
     stop(); message("Озвучка остановлена"); oldLanguage(language); renderWords(); updateTargets(); renderEchoHistory();
   };
   renderWords();
@@ -253,9 +253,9 @@
   const panel = document.createElement("section");
   panel.id = "echoLocalVoicePanel"; panel.className = "echo-local-panel";
   panel.innerHTML = `<h3 id="echoStudioTitle" tabindex="-1">Мой голос</h3><button type="button" id="echoOpenStudio">Открыть студию голоса</button><button type="button" id="echoStudioBack" hidden>Назад к фразам</button>
-    <p>Записи хранятся в этом браузере. Персональный голос создаёт новые фразы по вашему образцу на локальном компьютере — аудио не отправляется в облако.</p>
+    <p>Записи хранятся на этом устройстве. Запись и воспроизведение своего голоса доступны без ИИ. Новые фразы своим голосом требуют установленной локальной модели.</p>
     <label for="echoSpeechMode">Как произносить сообщения</label><select id="echoSpeechMode"><option value="device">Голос устройства / Piper</option><option value="recordings">Записи фраз · иначе голос устройства</option><option value="personal">Мой персональный голос · локальный ИИ</option></select>
-    <p>Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. Новая генерация ИИ требует локального компьютера; на телефоне доступны записи и голоса устройства.</p>
+    <p>Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. В Android APK запись работает; персональный ИИ-синтез пока не включён. Для новых фраз используйте голос устройства.</p>
     <label for="echoRecordTarget">Что записать</label><select id="echoRecordTarget"><option value="sample">Образец моего голоса · 6–30 секунд</option><option value="phrase">Озвучку одной фразы · до 30 секунд</option></select>
     <div id="echoPhraseRecordingFields" hidden><label for="echoRecordText">Текст записываемой фразы</label><input id="echoRecordText" list="echoRecordPhrases" maxlength="300" placeholder="Я хочу пить"><datalist id="echoRecordPhrases"></datalist></div>
     <p id="echoRecordHint">Спокойно прочитайте: «Привет! Это мой голос. Я хочу свободно общаться, говорить о своих желаниях, просить о помощи и благодарить близких. Сегодня хороший день».</p>
@@ -266,7 +266,7 @@
     <div class="echo-local-actions"><button type="button" id="echoDraftPlay">▶ Прослушать перед сохранением</button><button type="button" id="echoDraftSave">Сохранить запись</button><button type="button" id="echoDraftDiscard">Не сохранять</button></div></div>
     <span id="echoRecordTimer" role="timer">00:00</span><p id="echoLocalVoiceStatus" role="status" aria-live="polite">Образец голоса пока не записан.</p>
     <div class="echo-local-actions"><button type="button" id="echoEngineCheck">Проверить локальный ИИ</button><button type="button" id="echoSampleDelete">Удалить образец и созданные фразы</button></div>
-    <p class="echo-local-note">Образец позволяет приблизить тембр, но сходство не гарантируется. Создание новой фразы требует локальной модели; уже созданные фразы и записи работают офлайн. Русский и английский поддерживаются; казахский и белорусский используют голос устройства.</p>
+    <p class="echo-local-note">Образец голоса не создаёт ИИ-голос автоматически. Для синтеза новых фраз своим голосом нужна совместимая модель; поддержка русского языка персональным ИИ на Android пока не подтверждена. Записанные фразы работают отдельно.</p>
     <section class="echo-studio-compose" aria-labelledby="echoStudioComposeTitle">
       <h4 id="echoStudioComposeTitle">Новая фраза моим голосом</h4>
       <label for="echoStudioText">Текст для ИИ-синтеза</label><textarea id="echoStudioText" rows="3" maxlength="300" placeholder="Введите новый текст"></textarea>
@@ -275,7 +275,7 @@
       <p id="echoStudioStatus" role="status" aria-live="polite">Сохраните образец, затем введите новый текст.</p>
       <div id="echoStudioResult" hidden><p id="echoStudioResultText" data-no-i18n></p><div class="echo-local-actions"><button type="button" id="echoStudioPlay">Прослушать результат</button><button type="button" id="echoStudioDelete">Удалить результат</button></div></div>
       <button type="button" id="echoStudioUse">Использовать для карточек</button>
-      <details id="echoStudioSetup"><summary>Установка локального ИИ</summary><p>На своём компьютере выполните команды в папке ECHO. Установка скачивает модель; синтез работает локально. Откройте http://127.0.0.1:8000.</p><pre><code>bash scripts/setup.sh --voice
+      <details id="echoStudioSetup"><summary>Статус локального ИИ</summary><p>В Android APK пока нет модели клонирования голоса. Разрешение микрофона не устанавливает её. Записи работают отдельно. Для компьютерной версии ECHO существует локальный сервер: http://127.0.0.1:8000.</p><pre><code>bash scripts/setup.sh --voice
 .voice-venv/bin/python echo_server.py</code></pre><p>Новые фразы ИИ доступны на русском и английском. Для других языков используйте записи или голос устройства.</p></details>
     </section>
     <h4>Записанные фразы</h4><div id="echoRecordingsList"></div>`;
@@ -553,7 +553,7 @@
         const state = await window.echoNativeVoice.status();
         if (state && state.ready === true && ["android", "ios"].includes(state.platform))
           return voiceMessage("Нативная голосовая модель готова на этом устройстве. Поддерживаемые языки: " + (Array.isArray(state.languages) ? state.languages.join(", ") : "не указаны") + ".");
-        return voiceMessage("Мобильная модель не установлена или не готова. Записи и голос устройства работают независимо.");
+        return voiceMessage("В этой версии APK нет персонального ИИ-движка. Записывайте собственные фразы или используйте голос устройства. Для синтеза потребуется новая версия ECHO с проверенной моделью.");
       } catch (error) { return voiceMessage("Нативный голосовой движок недоступен: " + errorText(error)); }
     }
     if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
