@@ -40,6 +40,7 @@
   }
   window.echoNativeVoice = Object.freeze({
     status: () => request("status"),
+    deviceCapabilities: () => request("deviceCapabilities"),
     deviceTtsStatus: () => request("deviceTtsStatus"),
     speakDevice: (text, language) => request("deviceSpeak", { text, language }),
     stopDevice: () => request("deviceStop"),
