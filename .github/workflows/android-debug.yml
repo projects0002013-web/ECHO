@@ -16,6 +16,8 @@ on:
     paths:
       - 'mobile/**'
       - 'mobile-voice.js'
+      - 'features.js'
+      - 'script.js'
       - 'index.html'
       - '.github/workflows/android-debug.yml'
   workflow_dispatch:
