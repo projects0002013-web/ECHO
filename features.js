@@ -40,7 +40,7 @@
   window.echoSpeechNotice = message;
   function voiceMessage(text) { $("echoLocalVoiceStatus").textContent = text; }
   function errorText(error) {
-    if (error.name === "NotAllowedError") return "Разрешите доступ к микрофону в настройках браузера.";
+    if (error.name === "NotAllowedError") return "Разрешите ECHO использовать микрофон в настройках Android или браузера.";
     if (error.name === "NotFoundError") return "Микрофон не найден. Можно загрузить аудиофайл.";
     return window.echoI18n.error(error);
   }
@@ -83,9 +83,26 @@
     const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
     return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
   }
+  function languageNotSupported(status, language) {
+    return !Array.isArray(status.languages) || !status.languages.includes(language);
+  }
+  function wavBlobFromBase64(value) {
+    // A native bridge must return an actual WAV, not arbitrary file content or a URL.
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(value) || value.length > 48 * 1024 * 1024)
+      throw new Error("Некорректные данные от мобильного голосового движка.");
+    const binary = atob(value), bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return new Blob([bytes], { type: "audio/wav" });
+  }
   async function personal(text, job, { autoplay = true, fresh = false } = {}) {
     if (!sample) throw new Error("Сначала запишите образец своего голоса в настройках.");
-    if (!["ru", "en"].includes(echoCurrentLanguage)) throw new Error("Персональный голос доступен для русского и английского. Для этого языка выберите голос устройства.");
+    const nativeVoice = window.echoNativeVoice;
+    const nativeAvailable = nativeVoice && typeof nativeVoice.status === "function" && typeof nativeVoice.synthesize === "function";
+    const nativeStatus = nativeAvailable ? await nativeVoice.status() : null;
+    const nativeReady = nativeStatus && nativeStatus.ready === true && nativeStatus.platform && ["android", "ios"].includes(nativeStatus.platform);
+    if (nativeAvailable && !nativeReady) throw new Error("Мобильная модель не готова. Установите совместимую модель в нативном приложении ECHO.");
+    if (nativeReady ? languageNotSupported(nativeStatus, echoCurrentLanguage) : !["ru", "en"].includes(echoCurrentLanguage))
+      throw new Error("Выбранный язык не поддерживается установленным голосовым движком. Используйте записи или голос устройства.");
     const reference = sample, language = echoCurrentLanguage, epoch = audioEpoch;
     const current = () => job === speechJob && epoch === audioEpoch;
     const key = `${reference.id}:${language}:${normalized(text)}`;
@@ -96,27 +113,38 @@
       if (autoplay) await play(saved.blob, job);
       return { blob: saved.blob, language, sampleId: reference.id };
     }
-    if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
-      throw new Error("Откройте ECHO на localhost на своём компьютере для локального ИИ. Образец не будет отправлен на сайт.");
+    if (!nativeReady && !["localhost", "127.0.0.1"].includes(location.hostname)) {
+      throw new Error("На этом сайте нет локального мобильного ИИ. Откройте ECHO в нативном приложении с установленной моделью; образец не будет отправлен на сайт.");
     }
     message("Создаю фразу вашим голосом на этом устройстве… Первый запуск может занять несколько минут.");
     controller = new AbortController();
     const signal = controller.signal;
     const timeout = setTimeout(() => { if (job === speechJob) controller?.abort(); }, 240000);
     try {
-      const response = await fetch("/api/voice/synthesize", {
-        method: "POST", headers: { "Content-Type": "application/json" }, signal,
-        body: JSON.stringify({ text, language, reference: await base64(reference.blob) })
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || "Локальный сервер недоступен. Запустите ECHO по инструкции.");
+      let blob;
+      if (nativeReady) {
+        // Native shell must enforce trusted local app origin, explicit consent, and never use network.
+        const result = await nativeVoice.synthesize({
+          text, language, referenceWavBase64: await base64(reference.blob), signal
+        });
+        if (result instanceof Blob) blob = result;
+        else if (result && typeof result.wavBase64 === "string") blob = wavBlobFromBase64(result.wavBase64);
+        else throw new Error("Мобильный движок не вернул WAV.");
+      } else {
+        const response = await fetch("/api/voice/synthesize", {
+          method: "POST", headers: { "Content-Type": "application/json" }, signal,
+          body: JSON.stringify({ text, language, reference: await base64(reference.blob) })
+        });
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Локальный сервер недоступен. Запустите ECHO по инструкции.");
+        }
+        blob = await response.blob();
       }
-      const blob = await response.blob();
       if (job !== speechJob) return;
-      if (!autoplay) {
+      {
         const header = new TextDecoder('ascii').decode(await blob.slice(0, 12).arrayBuffer());
-        if (blob.size <= 44 || !header.startsWith('RIFF') || header.slice(8) !== 'WAVE') throw new Error("Локальный ИИ вернул некорректный WAV. Проверьте сервер.");
+        if (blob.size <= 44 || !header.startsWith('RIFF') || header.slice(8) !== 'WAVE') throw new Error("Голосовой движок вернул некорректный WAV.");
       }
       // Keep at most 50 generated phrases on this device.
       const cached = (await db("cache", "getAll")).sort((a, b) => a.time - b.time);
@@ -408,24 +436,52 @@
     const state = { target, text, chunks: [], frames: 0, finishing: false, language: echoCurrentLanguage, epoch: audioEpoch }; recorder = state;
     voiceMessage("Ожидаю разрешение на микрофон…");
     try {
+      // Native Android asks for app permission before WebView requests microphone access.
+      if (typeof window.echoNativeVoice?.requestMicrophonePermission === "function") {
+        const permission = await window.echoNativeVoice.requestMicrophonePermission();
+        if (!permission || permission.granted !== true) throw new Error("Не удалось получить разрешение на микрофон в Android.");
+      }
+      if (recorder !== state) return;
       state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }, video: false });
       if (recorder !== state) { state.stream.getTracks().forEach(t => t.stop()); return; }
       state.context = new AudioContext();
-      await state.context.audioWorklet.addModule("./recorder-worklet.js");
-      if (recorder !== state) return;
       await state.context.resume();
       if (recorder !== state) return;
       state.rate = state.context.sampleRate;
       state.source = state.context.createMediaStreamSource(state.stream);
-      state.node = new AudioWorkletNode(state.context, "echo-recorder");
       state.silent = state.context.createGain(); state.silent.gain.value = 0;
-      state.node.port.onmessage = event => {
-        if (state.finishing) return;
+      const collect = data => {
+        if (state.finishing || recorder !== state) return;
         const remaining = Math.max(0, Math.floor(state.rate * 30) - state.frames);
-        const chunk = event.data.subarray(0, remaining);
+        if (remaining <= 0) return;
+        const chunk = data.subarray(0, remaining);
         if (chunk.length) { state.chunks.push(chunk); state.frames += chunk.length; }
         if (state.frames >= Math.floor(state.rate * 30)) finishRecording();
       };
+      // Android System WebView versions differ: use AudioWorklet when available,
+      // otherwise capture the same PCM samples via the older ScriptProcessor API.
+      if (state.context.audioWorklet && typeof AudioWorkletNode === "function") {
+        try {
+          await state.context.audioWorklet.addModule("./recorder-worklet.js");
+          if (recorder !== state) return;
+          state.node = new AudioWorkletNode(state.context, "echo-recorder");
+          state.node.port.onmessage = event => collect(event.data);
+        } catch (error) {
+          // The source stream remains private; fallback does not upload audio.
+          console.warn("ECHO: AudioWorklet unavailable, using local PCM fallback", error.name);
+        }
+      }
+      if (!state.node) {
+        if (typeof state.context.createScriptProcessor !== "function")
+          throw new Error("Эта версия Android WebView не поддерживает запись PCM. Обновите системный WebView.");
+        state.node = state.context.createScriptProcessor(2048, 1, 1);
+        state.node.onaudioprocess = event => {
+          const input = event.inputBuffer.getChannelData(0);
+          collect(new Float32Array(input));
+          event.outputBuffer.getChannelData(0).fill(0);
+        };
+      }
+      if (recorder !== state) return;
       state.source.connect(state.node).connect(state.silent).connect(state.context.destination);
       const started = Date.now(); $("echoRecordTimer").textContent = "00:00";
       voiceMessage("Запись идёт. Говорите спокойно и без фоновой музыки.");
@@ -491,6 +547,15 @@
     } catch (error) { voiceMessage(errorText(error)); }
   };
   async function checkEngine() {
+    if (window.echoNativeVoice && typeof window.echoNativeVoice.status === "function") {
+      voiceMessage("Проверяю голосовую модель на телефоне…");
+      try {
+        const state = await window.echoNativeVoice.status();
+        if (state && state.ready === true && ["android", "ios"].includes(state.platform))
+          return voiceMessage("Нативная голосовая модель готова на этом устройстве. Поддерживаемые языки: " + (Array.isArray(state.languages) ? state.languages.join(", ") : "не указаны") + ".");
+        return voiceMessage("Мобильная модель не установлена или не готова. Записи и голос устройства работают независимо.");
+      } catch (error) { return voiceMessage("Нативный голосовой движок недоступен: " + errorText(error)); }
+    }
     if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
       return voiceMessage("Локальный ИИ запускается на localhost на вашем компьютере. На этом сайте доступны записи и голос устройства; образец никуда не отправляется.");
     }
