@@ -15,7 +15,7 @@ def main():
         page.on('pageerror', lambda e: errors.append(str(e)))
         accept_dialog = lambda d: d.accept()
         page.on('dialog', accept_dialog)
-        page.goto(URL)
+        page.goto(URL);page.wait_for_selector("#echoDataPanel",state="attached")
         page.wait_for_function('navigator.serviceWorker.controller !== null')
         def create(name, image=None):
             page.locator('.add-button').click()
@@ -36,7 +36,7 @@ def main():
         page.locator('.custom-card').nth(1).get_by_role('button',name='Вверх: Вторая',exact=True).focus()
         page.keyboard.press('Enter')
         assert names() == ['Вторая','Старая']
-        page.reload(); assert names() == ['Вторая','Старая']
+        page.reload();page.wait_for_selector("#echoDataPanel",state="attached"); assert names() == ['Вторая','Старая']
         checks.append('create, keyboard order and reload')
         page.locator('.custom-card').first.locator('.edit-card').click()
         page.locator('#newPhraseName').fill('Изменена')
@@ -54,8 +54,8 @@ def main():
         stored = page.evaluate('async () => (await echoImageStore("getAll")).map(i => ({size:i.blob.size,type:i.blob.type}))')
         assert len(stored) == 3 and all(i['size'] <= 1048576 for i in stored)
         assert 'base64' not in page.evaluate('localStorage.getItem("echoCustomPhrases")')
-        page.reload(); expect(page.locator('.echo-card-image')).to_have_count(3)
-        context.set_offline(True); page.reload(); expect(page.locator('.echo-card-image')).to_have_count(3)
+        page.reload();page.wait_for_selector("#echoDataPanel",state="attached"); expect(page.locator('.echo-card-image')).to_have_count(3)
+        context.set_offline(True); page.reload();page.wait_for_selector("#echoDataPanel",state="attached"); expect(page.locator('.echo-card-image')).to_have_count(3)
         context.set_offline(False)
         checks.append('JPEG/PNG/WebP resize, IndexedDB, reload and offline images')
         page.locator('.custom-card').last.locator('.edit-card').click()
@@ -112,12 +112,12 @@ def main():
         page.remove_listener('dialog', choose_category); page.on('dialog', accept_dialog)
         page.locator(f'[data-category="{category_id}"]').first.click()
         expect(page.locator('.custom-card:visible')).to_have_count(1)
-        page.reload()
+        page.reload();page.wait_for_selector("#echoDataPanel",state="attached")
         page.locator(f'[data-category="{category_id}"]').first.click()
         expect(page.locator('.custom-card:visible')).to_have_count(1)
         page.locator('[data-category="all"]').first.click()
         page.locator('.custom-card').first.locator('.echo-pin-button').click()
-        page.reload()
+        page.reload();page.wait_for_selector("#echoDataPanel",state="attached")
         assert page.evaluate('JSON.parse(localStorage.getItem("echoPinnedPhrases")).length') == 1
         checks.append('custom categories, card assignment and quick phrases survive reload')
         # An IndexedDB write failure cannot commit card metadata.
@@ -152,12 +152,12 @@ def main():
         checks.append('quota error keeps editor text and restores failed deletion')
         count = page.locator('.custom-card').count()
         page.locator('.custom-card').last.locator('.delete-card').click()
-        page.reload()
+        page.reload();page.wait_for_selector("#echoDataPanel",state="attached")
         expect(page.locator('.custom-card')).to_have_count(count - 1)
         checks.append('leaving during undo countdown persists deletion')
 
         # Corrupt metadata is preserved, including when the user attempts to add a card.
-        page.evaluate('localStorage.setItem("echoCustomPhrases", "broken json")'); page.reload()
+        page.evaluate('localStorage.setItem("echoCustomPhrases", "broken json")'); page.reload();page.wait_for_selector("#echoDataPanel",state="attached")
         page.locator('.add-button').click(); page.locator('#newPhraseName').fill('Новая'); page.locator('#newPhraseText').fill('Текст')
         page.locator('#savePhrase').click(); expect(page.locator('#echoSaveError')).to_be_visible()
         assert page.evaluate('localStorage.getItem("echoCustomPhrases")') == 'broken json'

@@ -105,7 +105,10 @@ class LocalHTTP(unittest.TestCase):
     def test_app_is_served(self):
         status, headers, body = self.request("/")
         self.assertEqual(status, 200)
-        self.assertIn(b"features.js", body)
+        self.assertIn(b"backup.js", body)
+        boot_status, _, boot = self.request("/backup.js")
+        self.assertEqual(boot_status, 200)
+        self.assertIn(b"features.js", boot)
         self.assertEqual(headers["X-Content-Type-Options"], "nosniff")
 
     def test_private_and_source_files_are_not_served(self):

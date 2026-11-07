@@ -495,6 +495,7 @@
     const settings = section === "settings", cards = section === "phrases" || section === "favorites";
     [sizePanel, themePanel, voicePanel, languagePanel, vibrationPanel].forEach(p => { p.hidden = !settings; });
     privacy.hidden = !settings;
+    const dataPanel = document.getElementById("echoDataPanel"); if (dataPanel) dataPanel.hidden = !settings;
     phraseGrid.hidden = !cards; echoSearchPanel.hidden = !cards; echoCategoryPanel.hidden = !cards;
     echoHistoryPanel.hidden = section !== "history"; echoQuickPanel.hidden = section !== "quick"; echoSOSPanel.hidden = section !== "sos";
     document.querySelector(".welcome").hidden = !cards;
@@ -534,5 +535,6 @@
   });
   // Stop microphone tracks and pending playback when the tab leaves the foreground.
   document.addEventListener("visibilitychange", () => { if (document.hidden) { stop(); if (recorder) finishRecording(false).then(() => voiceMessage("Запись отменена при выходе из приложения. Запишите заново.")); } });
+  window.echoBackupQuiesce = async () => { recordOperation++; if (recorder) await finishRecording(false); discardDraft(); stop(); };
   window.addEventListener("pagehide", () => { stop(); recorder?.stream?.getTracks().forEach(t => t.stop()); });
 })();

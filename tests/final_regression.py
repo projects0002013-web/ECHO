@@ -22,7 +22,7 @@ class FinalVerification(unittest.TestCase):
         self.errors = []
         self.page.on('pageerror', lambda e: self.errors.append(str(e)))
         self.page.on('dialog', lambda d: d.accept())
-        self.page.goto(URL)
+        self.page.goto(URL);self.page.wait_for_selector("#echoDataPanel",state="attached")
 
     def tearDown(self):
         self.context.close()
@@ -48,7 +48,7 @@ class FinalVerification(unittest.TestCase):
         self.assertIsNone(speech.get_attribute('onfocus'))
         speech.focus()
         self.assertIsNone(self.page.evaluate('window.echoInjected'))
-        self.page.reload()
+        self.page.reload();self.page.wait_for_selector("#echoDataPanel",state="attached")
         expect(self.page.locator('.custom-card .phrase-text')).to_have_text(text)
 
     def test_latest_image_decode_keeps_save_disabled(self):
@@ -88,7 +88,7 @@ class FinalVerification(unittest.TestCase):
     def test_corrupt_category_items_do_not_break_app_or_overwrite_data(self):
         p=self.page
         p.evaluate('localStorage.setItem("echoUserCategories", "[null]")')
-        p.reload()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached")
         expect(p.locator('#echoSentence')).to_be_visible()
         self.assertEqual(self.errors, [])
         p.locator('.echo-add-category').click()
@@ -101,7 +101,7 @@ class FinalVerification(unittest.TestCase):
         p=self.page
         legacy=[{'id':i,'name':f'Карточка {i}','text':f'Текст {i}','emoji':'💧','legacyField':'сохранить'} for i in range(4)]
         p.evaluate('(cards) => localStorage.setItem("echoCustomPhrases",JSON.stringify(cards))',legacy)
-        p.reload()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached")
         for name in ['Первое изменение','Второе изменение']:
             p.locator('.custom-card').last.locator('.edit-card').click()
             p.locator('#newPhraseName').fill(name);p.locator('#savePhrase').click()
@@ -111,7 +111,7 @@ class FinalVerification(unittest.TestCase):
         cards=p.evaluate('getCustomPhrases()')
         self.assertEqual([c['id'] for c in cards],[2,3])
         self.assertTrue(all(c['legacyField']=='сохранить' for c in cards))
-        p.reload()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached")
         expect(p.locator('.custom-card')).to_have_count(2)
         self.assertEqual(p.evaluate('getCustomPhrases()'),cards)
 
@@ -121,7 +121,7 @@ class FinalVerification(unittest.TestCase):
         p.evaluate('(raw) => localStorage.setItem("echoFavorites", raw)',raw)
         p.add_init_script("""const set=Storage.prototype.setItem; Storage.prototype.setItem=function(k,v) {
             if(k==='echoFavorites') throw new DOMException('full','QuotaExceededError'); return set.call(this,k,v); };""")
-        p.reload()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached")
         expect(p.locator('#echoSentence')).to_be_visible()
         self.assertEqual(p.evaluate('localStorage.getItem("echoFavorites")'),raw)
         self.assertEqual(self.errors,[])
@@ -137,7 +137,7 @@ class FinalVerification(unittest.TestCase):
         remove.focus();p.keyboard.press('Enter')
         expect(p.locator('.echo-user-category')).to_have_count(0)
         expect(p.locator('.custom-card')).to_have_count(1)
-        p.reload();expect(p.locator('.custom-card')).to_have_count(1)
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached");expect(p.locator('.custom-card')).to_have_count(1)
 
     def test_editor_returns_keyboard_focus_after_cancel_and_save(self):
         p=self.page
@@ -197,20 +197,20 @@ class FinalVerification(unittest.TestCase):
             localStorage.setItem('echoCardCategories',JSON.stringify({a:'user-legacy',c:'user-legacy'}));
             localStorage.setItem('echoFavorites',JSON.stringify(['custom:a','custom:c']));
         }""",cards)
-        p.reload()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached")
         p.locator('.echo-user-category').click()
         visible=p.locator('.custom-card:visible')
         expect(visible).to_have_count(2)
         visible.last.locator('.echo-order-actions button').first.click()
         self.assertEqual(visible.evaluate_all('cards=>cards.map(c=>c.dataset.id)'),['c','a'])
-        p.reload();p.locator('[data-category="all"]').first.click()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached");p.locator('[data-category="all"]').first.click()
         p.locator('#echoSearchInput').fill('Общее')
         expect(visible).to_have_count(2)
         visible.last.locator('.echo-order-actions button').first.click()
         self.assertEqual(visible.evaluate_all('cards=>cards.map(c=>c.dataset.id)'),['a','c'])
         p.locator('#echoSearchInput').fill('');p.locator('#favoritesTab').click()
         visible.last.locator('.echo-order-actions button').first.click()
-        p.reload();p.locator('#favoritesTab').click()
+        p.reload();p.wait_for_selector("#echoDataPanel",state="attached");p.locator('#favoritesTab').click()
         self.assertEqual(visible.evaluate_all('cards=>cards.map(c=>c.dataset.id)'),['c','a'])
         self.assertEqual([c['id'] for c in p.evaluate('getCustomPhrases()')],['c','a','b','d'])
         self.assertEqual(p.evaluate('JSON.parse(localStorage.getItem("echoCardCategories"))'),{'a':'user-legacy','c':'user-legacy'})
