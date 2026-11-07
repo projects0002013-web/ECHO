@@ -96,13 +96,8 @@
   }
   async function personal(text, job, { autoplay = true, fresh = false } = {}) {
     if (!sample) throw new Error("Сначала запишите образец своего голоса в настройках.");
-    const nativeVoice = window.echoNativeVoice;
-    const nativeAvailable = nativeVoice && typeof nativeVoice.status === "function" && typeof nativeVoice.synthesize === "function";
-    const nativeStatus = nativeAvailable ? await nativeVoice.status() : null;
-    const nativeReady = nativeStatus && nativeStatus.ready === true && nativeStatus.platform && ["android", "ios"].includes(nativeStatus.platform);
-    if (nativeAvailable && !nativeReady) throw new Error("Мобильная модель не готова. Установите совместимую модель в нативном приложении ECHO.");
-    if (nativeReady ? languageNotSupported(nativeStatus, echoCurrentLanguage) : !["ru", "en"].includes(echoCurrentLanguage))
-      throw new Error("Выбранный язык не поддерживается установленным голосовым движком. Используйте записи или голос устройства.");
+    // Playback of an already generated phrase must not depend on the AI engine
+    // still being installed or loaded. Check private cache before model status.
     const reference = sample, language = echoCurrentLanguage, epoch = audioEpoch;
     const current = () => job === speechJob && epoch === audioEpoch;
     const key = `${reference.id}:${language}:${normalized(text)}`;
@@ -113,6 +108,14 @@
       if (autoplay) await play(saved.blob, job);
       return { blob: saved.blob, language, sampleId: reference.id };
     }
+    const nativeVoice = window.echoNativeVoice;
+    const nativeAvailable = nativeVoice && typeof nativeVoice.status === "function" && typeof nativeVoice.synthesize === "function";
+    const nativeStatus = nativeAvailable ? await nativeVoice.status() : null;
+    if (!current()) return;
+    const nativeReady = nativeStatus && nativeStatus.ready === true && nativeStatus.platform && ["android", "ios"].includes(nativeStatus.platform);
+    if (nativeAvailable && !nativeReady) throw new Error("Персональный ИИ-движок не установлен. Готовые записи и системный голос Android доступны.");
+    if (nativeReady ? languageNotSupported(nativeStatus, language) : !["ru", "en"].includes(language))
+      throw new Error("Выбранный язык не поддерживается голосовым движком. Используйте записи или голос устройства.");
     if (!nativeReady && !["localhost", "127.0.0.1"].includes(location.hostname)) {
       throw new Error("На этом сайте нет локального мобильного ИИ. Откройте ECHO в нативном приложении с установленной моделью; образец не будет отправлен на сайт.");
     }
