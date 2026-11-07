@@ -265,7 +265,7 @@
     <label><input type="checkbox" id="echoVoiceConsent"> Это мой голос или у меня есть разрешение владельца на создание персонального голоса.</label>
     <div class="echo-local-actions"><button type="button" id="echoDraftPlay">▶ Прослушать перед сохранением</button><button type="button" id="echoDraftSave">Сохранить запись</button><button type="button" id="echoDraftDiscard">Не сохранять</button></div></div>
     <span id="echoRecordTimer" role="timer">00:00</span><p id="echoLocalVoiceStatus" role="status" aria-live="polite">Образец голоса пока не записан.</p>
-    <div class="echo-local-actions"><button type="button" id="echoEngineCheck">Проверить локальный ИИ</button><button type="button" id="echoSampleDelete">Удалить образец и созданные фразы</button></div>
+    <div class="echo-local-actions"><button type="button" id="echoEngineCheck">Проверить ИИ и память телефона</button><button type="button" id="echoSampleDelete">Удалить образец и созданные фразы</button></div>
     <p class="echo-local-note">Образец позволяет приблизить тембр, но сходство не гарантируется. Создание новой фразы требует локальной модели; уже созданные фразы и записи работают офлайн. Русский и английский поддерживаются; казахский и белорусский используют голос устройства.</p>
     <section class="echo-studio-compose" aria-labelledby="echoStudioComposeTitle">
       <h4 id="echoStudioComposeTitle">Новая фраза моим голосом</h4>
@@ -553,7 +553,19 @@
         const state = await window.echoNativeVoice.status();
         if (state && state.ready === true && ["android", "ios"].includes(state.platform))
           return voiceMessage("Нативная голосовая модель готова на этом устройстве. Поддерживаемые языки: " + (Array.isArray(state.languages) ? state.languages.join(", ") : "не указаны") + ".");
-        return voiceMessage("Мобильная модель не установлена или не готова. Записи и голос устройства работают независимо.");
+        let details = "";
+        if (state?.platform === "android" && typeof window.echoNativeVoice.deviceCapabilities === "function") {
+          try {
+            const caps = await window.echoNativeVoice.deviceCapabilities();
+            if (Number.isFinite(caps.ramTotalMiB) && Number.isFinite(caps.ramAvailableMiB)) {
+              const gib = mib => (mib / 1024).toFixed(1);
+              details = " ОЗУ телефона: " + gib(caps.ramTotalMiB) + " ГБ, свободно сейчас: " + gib(caps.ramAvailableMiB) + " ГБ. " +
+                (caps.is64BitRuntime ? "64-битная среда." : "32-битная среда.") +
+                " Это диагностика, а не подтверждение совместимости с ИИ.";
+            }
+          } catch (_) { details = " Проверка памяти пока недоступна в этой версии Android."; }
+        }
+        return voiceMessage("Персональная ИИ-модель пока не установлена. Записи и голос Android работают независимо." + details);
       } catch (error) { return voiceMessage("Нативный голосовой движок недоступен: " + errorText(error)); }
     }
     if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
