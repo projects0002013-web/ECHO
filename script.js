@@ -110,10 +110,11 @@ if (!Object.hasOwn(echoSettings.voiceNames, echoCurrentLanguage)) echoSettings.v
 // Browser voices remain local: no text is sent to a remote speech provider.
 let currentVoice = null;
 let echoBrowserJob = 0, echoBrowserUtterance = null, echoBrowserTimer = null;
+function echoSpeechProvider(){return window.echoAndroidSpeech || window.speechSynthesis;}
 function echoDeviceVoices() {
-  if (!("speechSynthesis" in window)) return [];
+  if (!echoSpeechProvider()) return [];
   const code = String(echoSettings.language || "ru-RU").toLowerCase().split("-")[0];
-  return speechSynthesis.getVoices().filter(voice => voice.localService &&
+  return echoSpeechProvider().getVoices().filter(voice => voice.localService &&
     String(voice.lang).toLowerCase().split("-")[0] === code);
 }
 function loadVoices() {
@@ -122,16 +123,17 @@ function loadVoices() {
     voices.find(voice => voice.lang.toLowerCase() === echoSettings.language.toLowerCase()) || voices[0] || null;
 }
 function echoBrowserStop() {
+  window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:false}}));
   ++echoBrowserJob;
   clearTimeout(echoBrowserTimer); echoBrowserTimer = null;
   if (echoBrowserUtterance) {
     echoBrowserUtterance.onstart = echoBrowserUtterance.onend = echoBrowserUtterance.onerror = null;
     echoBrowserUtterance = null;
   }
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  echoSpeechProvider()?.cancel();
 }
 loadVoices();
-if ("speechSynthesis" in window) speechSynthesis.addEventListener("voiceschanged", loadVoices);
+echoSpeechProvider()?.addEventListener("voiceschanged", loadVoices);
 function applyVoiceSettings(message) {
   message.lang = echoSettings.language;
   message.rate = Number(echoSettings.rate ?? 0.9);
@@ -164,6 +166,7 @@ function echoPiperURL() {
   return url.origin;
 }
 function echoPiperStop() {
+  window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:false}}));
   ++echoPiperRequest;
   echoPiperController?.abort(); echoPiperController = null;
   if (echoPiperAudio) { echoPiperAudio.pause(); echoPiperAudio.src = ""; echoPiperAudio = null; }
@@ -197,6 +200,7 @@ async function echoPiperSpeak(text) {
     audio.onended = () => complete("Готово");
     audio.onerror = () => complete("Не удалось воспроизвести Piper. Выберите голос устройства или запись.");
     await audio.play();
+    if(requestId===echoPiperRequest)window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:true}}));
     if (requestId === echoPiperRequest) window.echoSpeechNotice?.("Произношу · Piper");
   } catch (error) {
     if (requestId === echoPiperRequest) {
@@ -214,7 +218,7 @@ function speak(text) {
   window.echoStopSpeech?.();
   if (window.echoLocalSpeech?.(text.trim())) return;
   echoPiperStop();
-  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  echoSpeechProvider()?.cancel();
   if (echoPiperConfig.enabled && echoPiperConfig.voice) {
     echoPiperSpeak(text.trim());
   } else {
@@ -224,11 +228,11 @@ function speak(text) {
 function echoBrowserSpeak(text) {
   if (typeof text !== "string" || !text.trim()) return;
   echoBrowserStop();
-  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+  if (!echoSpeechProvider() || (!window.echoAndroidSpeech && !("SpeechSynthesisUtterance" in window))) {
     window.echoSpeechNotice?.("На этом устройстве системная озвучка недоступна. Выберите сохранённые записи.");
     window.echoOfferVoiceFallback?.(); return;
   }
-  const message = new SpeechSynthesisUtterance(text.trim());
+  const message = window.echoAndroidSpeech ? {text:text.trim()} : new SpeechSynthesisUtterance(text.trim());
   applyVoiceSettings(message);
   if (!currentVoice) {
     window.echoSpeechNotice?.("Нет локального голоса этого языка. Дождитесь загрузки голосов и нажмите снова либо выберите сохранённую запись.");
@@ -238,6 +242,7 @@ function echoBrowserSpeak(text) {
   echoBrowserUtterance = message; // Retain until completion (also required by some mobile engines).
   const finish = status => {
     if (job !== echoBrowserJob) return;
+    window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:false}}));
     clearTimeout(echoBrowserTimer); echoBrowserTimer = null; echoBrowserUtterance = null;
     ++echoBrowserJob; message.onstart = message.onend = message.onerror = null;
     window.echoSpeechNotice?.(status);
@@ -249,6 +254,7 @@ function echoBrowserSpeak(text) {
   };
   message.onstart = () => {
     if (job !== echoBrowserJob) return;
+    window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:true}}));
     clearTimeout(echoBrowserTimer);
     echoBrowserTimer = setTimeout(watchdog, 120000);
     window.echoSpeechNotice?.("Произношу · голос устройства");
@@ -263,7 +269,7 @@ function echoBrowserSpeak(text) {
   };
   window.echoSpeechNotice?.("Запускаю голос устройства…");
   echoBrowserTimer = setTimeout(watchdog, 15000);
-  try { speechSynthesis.speak(message); }
+  try { echoSpeechProvider().speak(message); }
   catch (_) { finish("Не удалось запустить голос. Нажмите фразу ещё раз или выберите запись."); window.echoOfferVoiceFallback?.(); }
 }
 
@@ -1693,7 +1699,7 @@ function populateEchoVoices() {
   const missing = echoSettings.voiceName && !voices.some(v => v.name === echoSettings.voiceName);
   if (missing) echoVoiceSelect.add(new Option(`${echoSettings.voiceName} — сейчас недоступен`, echoSettings.voiceName));
   echoVoiceSelect.value = echoSettings.voiceName || "";
-  echoVoiceSelect.disabled = !("speechSynthesis" in window);
+  echoVoiceSelect.disabled = !echoSpeechProvider();
   document.getElementById("echoVoiceAvailability").textContent = !voices.length
     ? "Нет локальных голосов этого языка. Установите голос в настройках устройства или выберите сохранённые записи. Список обновится автоматически; повторите нажатие после загрузки."
     : missing ? "Выбранный голос сейчас недоступен; используется другой локальный голос того же языка. Ваш выбор сохранён."
@@ -1714,8 +1720,8 @@ populateEchoVoices();
 
 // Голоса могут загрузиться позже
 
-if ("speechSynthesis" in window) {
-  speechSynthesis.addEventListener(
+if (echoSpeechProvider()) {
+  echoSpeechProvider().addEventListener(
     "voiceschanged",
     populateEchoVoices
   );
@@ -4346,8 +4352,8 @@ document.getElementById("echoSOSSpeak")
 
 document.getElementById("echoSOSStop")
   .addEventListener("click", () => {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
+    if (echoSpeechProvider()) {
+      echoSpeechProvider().cancel();
     }
   });
 
@@ -4526,9 +4532,9 @@ applyEchoLanguage = function(language) {
 // если он установлен в браузере или системе.
 
 function echoCheckBelarusianVoice() {
-  if (!("speechSynthesis" in window)) return false;
+  if (!echoSpeechProvider()) return false;
 
-  return window.speechSynthesis.getVoices().some(
+  return echoSpeechProvider().getVoices().some(
     voice => voice.lang.toLowerCase().startsWith("be")
   );
 }

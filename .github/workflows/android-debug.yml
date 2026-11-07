@@ -1,22 +1,27 @@
-name: Android debug shell
+name: Android Executive Light APK
 on:
   push:
-    branches: [main]
+    branches: [main, feature/echo-executive-light-offline-voice]
     paths:
       - 'mobile/**'
-      - 'mobile-voice.js'
+      - '*.js'
+      - '*.css'
+      - '*.png'
       - 'index.html'
-      - 'script.js'
-      - 'features.js'
-      - 'i18n.js'
-      - 'style.css'
-      - 'features.css'
+      - 'manifest.json'
+      - 'locales/**'
+      - 'fonts/**'
       - '.github/workflows/android-debug.yml'
   pull_request:
     paths:
       - 'mobile/**'
-      - 'mobile-voice.js'
+      - '*.js'
+      - '*.css'
+      - '*.png'
       - 'index.html'
+      - 'manifest.json'
+      - 'locales/**'
+      - 'fonts/**'
       - '.github/workflows/android-debug.yml'
   workflow_dispatch:
 jobs:
@@ -34,8 +39,7 @@ jobs:
         with:
           gradle-version: '8.10.2'
       - name: Package offline assets
-        shell: pwsh
-        run: ./mobile/package-web.ps1
+        run: python3 mobile/package-web.py
       - name: Install Android SDK 35
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
@@ -45,9 +49,11 @@ jobs:
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
       - name: Build debug APK
         run: gradle -p mobile/android --no-daemon assembleDebug
+      - name: Verify packaged Executive Light assets
+        run: python3 mobile/check-apk.py mobile/android/app/build/outputs/apk/debug/app-debug.apk
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: echo-android-shell-debug
+          name: echo-executive-light-debug
           path: mobile/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error

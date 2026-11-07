@@ -104,20 +104,20 @@ class VoiceBrowser(unittest.TestCase):
   p.reload();p.wait_for_selector("#echoDataPanel",state="attached");self.settings();expect(p.locator('#echoSpeechMode')).to_have_value('recordings');self.assertEqual(p.evaluate('testSpeech.calls.length'),0)
  def test_microphone_permission_denial_does_not_save_or_stay_busy(self):
   p=self.page;self.settings();p.evaluate('() => {navigator.mediaDevices.getUserMedia=()=>Promise.reject(new DOMException("denied","NotAllowedError"));}')
-  p.locator('#echoRecordStart').click();expect(p.locator('#echoLocalVoiceStatus')).to_contain_text('Разрешите доступ')
+  p.locator('#echoRecordStart').click();expect(p.locator('#echoLocalVoiceStatus')).to_contain_text('Разрешите ECHO использовать микрофон')
   expect(p.locator('#echoRecordStart')).to_be_enabled();expect(p.locator('#echoRecordStop')).to_be_disabled();self.assertEqual(self.db_records(),[])
  def test_late_microphone_permission_is_stopped_after_leaving_settings(self):
   p=self.page;self.settings();p.evaluate('''() => {window.trackStopped=false; navigator.mediaDevices.getUserMedia=()=>new Promise(r=>window.allowMic=()=>r({getTracks:()=>[{stop(){trackStopped=true;}}]}));}''')
   p.locator('#echoRecordStart').click();p.locator('#phrasesTab').click();p.evaluate('() => allowMic()');p.wait_for_function('trackStopped')
   self.settings();expect(p.locator('#echoRecordStop')).to_be_disabled();self.assertEqual(self.db_records(),[])
  def test_worklet_loading_cannot_restart_canceled_recording(self):
-  p=self.page;self.settings();p.evaluate('''() => {window.micClosed=false;window.resumed=false;
+  p=self.page;self.settings();p.evaluate('''() => {window.micClosed=false;window.resumed=false;window.contextClosed=false;
     navigator.mediaDevices.getUserMedia=async()=>({getTracks:()=>[{stop(){micClosed=true;}}]});
     window.AudioContext=class {constructor(){this.audioWorklet={addModule:()=>new Promise(r=>window.finishWorklet=r)};}
-      async close(){} async resume(){resumed=true;} };
+      createMediaStreamSource(){return {connect(){},disconnect(){}};} createGain(){return {gain:{value:0},connect(){},disconnect(){}};} async close(){contextClosed=true;} async resume(){resumed=true;} };
   }''')
   p.locator('#echoRecordStart').click();p.wait_for_function('typeof finishWorklet==="function"');p.locator('#phrasesTab').click();p.evaluate('() => finishWorklet()')
-  p.wait_for_timeout(50);self.assertFalse(p.evaluate('resumed'));self.assertTrue(p.evaluate('micClosed'))
+  p.wait_for_timeout(50);self.assertTrue(p.evaluate('contextClosed'));self.assertTrue(p.evaluate('micClosed'));self.assertEqual(self.db_records(),[])
  def test_indexeddb_write_failure_keeps_preview_and_old_data(self):
   p=self.page;self.settings();self.stage()
   p.evaluate('''() => {const old=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(...args){if(this.name==='audio')throw new DOMException('full','QuotaExceededError');return old.apply(this,args);};}''')

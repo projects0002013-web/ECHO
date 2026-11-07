@@ -45,6 +45,7 @@
     return window.echoI18n.error(error);
   }
   function stop() {
+    window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:false}}));
     speechJob++;
     preparedAudio = null;
     if ($("echoResumeAudio")) $("echoResumeAudio").hidden = true;
@@ -65,7 +66,7 @@
     const playing = audio;
     playing.onended = () => { if (playing === audio) { stop(); message("Готово"); } };
     playing.onerror = () => { if (playing === audio) { stop(); message("Не удалось воспроизвести запись."); } };
-    try { await playing.play(); }
+    try { await playing.play(); if(job===speechJob)window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:true}})); }
     catch (error) {
       if (job !== speechJob) return;
       if (playing === audio) { playing.pause(); playing.src = ""; audio = null; if (audioURL) URL.revokeObjectURL(audioURL); audioURL = null; }

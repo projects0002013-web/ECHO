@@ -1,6 +1,6 @@
 # ECHO Native — Android & iPhone (starter shells)
 
-**This is source code, not a finished APK/IPA.** As of this commit: the mobile UI shell and two-way status bridge exist, but the PocketTTS native inference implementation is **not installed**. Status always reports `ready:false`, so ECHO will not claim to clone the user's voice offline. Current audio recordings and UI are unaffected.
+**Android debug APK builds are supported; this is not a tested production APK/IPA.** As of this commit: the mobile UI shell and two-way status bridge exist, but the PocketTTS native inference implementation is **not installed**. Status always reports `ready:false`, so ECHO will not claim to clone the user's voice offline. Current audio recordings and UI are unaffected.
 
 ## Windows: Android
 
@@ -28,3 +28,10 @@ No model weights, private voice samples, or user data are committed to GitHub. D
 ## Tooling verification
 
 The JavaScript adapter was syntax-checked. Native Android/iOS builds, permissions, model inference and on-device offline operation are **not verified**.
+
+
+## Executive Light build
+
+Use `python3 mobile/package-web.py` (PowerShell helper remains supported). The APK includes executive-light.css, executive.js, offline-voice.js, mobile-voice.js and all original runtime assets. Verify with `python3 mobile/check-apk.py PATH.apk`. Actions builds feature/echo-executive-light-offline-voice and main, checks the actual APK asset hashes and uploads `echo-executive-light-debug`.
+
+The Android shell now implements local Android TextToSpeech, file chooser, chunked backup export through the system document picker, system text scaling, visual insets, rotation preservation and native Back handling. Local CPU Pocket inference is still a separate experimental prototype in native/; it is not wired into the APK. Physical Android audio/permissions/SAF/TalkBack/upgrade behavior and iPhone still require manual validation. Keep the existing package/origin and signing identity when upgrading; never clear user data as a workaround.

@@ -16,7 +16,7 @@ class Executive(unittest.TestCase):
  def studio(self):self.q.locator('#echoVoiceStudioNav').click()
  def test_default_palette_professional_icons_and_personal_symbols_preserved(self):
   q=self.q
-  self.assertEqual(q.evaluate('getComputedStyle(document.body).backgroundColor'),'rgb(248, 250, 248)');self.assertEqual(q.evaluate('getComputedStyle(document.body).color'),'rgb(31, 41, 55)');self.assertEqual(q.evaluate("getComputedStyle(document.body).getPropertyValue('--primary').trim()"),'#166534')
+  self.assertEqual(q.evaluate('getComputedStyle(document.body).backgroundColor'),'rgb(248, 250, 248)');self.assertEqual(q.evaluate('getComputedStyle(document.body).color'),'rgb(23, 35, 27)');self.assertEqual(q.evaluate("getComputedStyle(document.body).getPropertyValue('--primary').trim()"),'#166534')
   self.assertEqual(q.locator('.phrase-card:not(.custom-card) .phrase-icon svg').count(),6)
   q.evaluate("localStorage.setItem('echoCustomPhrases',JSON.stringify([{id:'mine',name:'Моя',text:'Личное',emoji:'💧'}]))");q.reload();self.ready();expect(q.locator('.custom-card .phrase-icon')).to_have_text('💧');self.assertEqual(q.locator('.custom-card .phrase-icon svg').count(),0)
   q.screenshot(path='.test-output/executive-home.png',full_page=True)

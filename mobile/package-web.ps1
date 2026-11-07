@@ -3,7 +3,7 @@
 $ErrorActionPreference = "Stop"
 $root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $files = @(
-  "index.html","style.css","features.css","script.js","features.js","i18n.js",
+  "index.html","executive-light.css","style.css","features.css","executive.js","offline-voice.js","script.js","features.js","i18n.js",
   "accessibility.js","backup.js","recorder-worklet.js","mobile-voice.js",
   "sw.js","manifest.json","icon-192.png","icon-512.png","cover.png"
 )
