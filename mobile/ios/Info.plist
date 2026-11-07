@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key><string>ECHO</string>
+    <key>NSMicrophoneUsageDescription</key><string>ECHO использует микрофон только для записи ваших фраз и собственного образца голоса на устройстве.</string>
+</dict>
+</plist>
