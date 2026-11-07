@@ -125,7 +125,7 @@
       if (nativeReady) {
         // Native shell must enforce trusted local app origin, explicit consent, and never use network.
         const result = await nativeVoice.synthesize({
-          text, language, referenceWavBase64: await base64(reference.blob), signal
+          text, language, referenceWavBase64: await base64(reference.blob), referenceText: reference.transcript || "", signal
         });
         if (result instanceof Blob) blob = result;
         else if (result && typeof result.wavBase64 === "string") blob = wavBlobFromBase64(result.wavBase64);
@@ -259,6 +259,7 @@
     <label for="echoRecordTarget">Что записать</label><select id="echoRecordTarget"><option value="sample">Образец моего голоса · 6–30 секунд</option><option value="phrase">Озвучку одной фразы · до 30 секунд</option></select>
     <div id="echoPhraseRecordingFields" hidden><label for="echoRecordText">Текст записываемой фразы</label><input id="echoRecordText" list="echoRecordPhrases" maxlength="300" placeholder="Я хочу пить"><datalist id="echoRecordPhrases"></datalist></div>
     <p id="echoRecordHint">Спокойно прочитайте: «Привет! Это мой голос. Я хочу свободно общаться, говорить о своих желаниях, просить о помощи и благодарить близких. Сегодня хороший день».</p>
+    <label id="echoSampleTranscriptLabel" for="echoSampleTranscript">Точный текст образца (важно для будущей ИИ-модели)</label><textarea id="echoSampleTranscript" rows="3" maxlength="500">Привет! Это мой голос. Я хочу свободно общаться, говорить о своих желаниях, просить о помощи и благодарить близких. Сегодня хороший день</textarea>
     <div class="echo-local-actions"><button type="button" id="echoRecordStart">● Записать голос</button><button type="button" id="echoRecordStop" disabled>■ Завершить</button><button type="button" id="echoSamplePlay" disabled>▶ Мой образец</button></div>
     <label for="echoAudioImport">Или загрузите запись с этого устройства</label><input id="echoAudioImport" type="file" accept="audio/*">
     <div id="echoAudioDraft" hidden><p>Прослушайте запись перед сохранением. Пока она находится только в памяти.</p>
@@ -338,9 +339,12 @@
     const texts = new Set([...document.querySelectorAll(".phrase-card")].map(c => c.dataset.text));
     for (const text of texts) { const option = document.createElement("option"); option.value = text; $("echoRecordPhrases").appendChild(option); }
   }
+  $("echoSampleTranscript").addEventListener("input", () => { $("echoSampleTranscript").dataset.userEdited = "1"; });
   $("echoRecordTarget").onchange = () => {
     $("echoPhraseRecordingFields").hidden = $("echoRecordTarget").value !== "phrase";
     $("echoRecordHint").hidden = $("echoRecordTarget").value !== "sample";
+    $("echoSampleTranscript").hidden = $("echoRecordTarget").value !== "sample";
+    $("echoSampleTranscriptLabel").hidden = $("echoRecordTarget").value !== "sample";
   };
   updateTargets();
   new MutationObserver(updateTargets).observe(phraseGrid, { childList: true });
@@ -356,7 +360,7 @@
     return new Blob([buffer], { type: "audio/wav" });
   }
   function recordingUI(busy) {
-    for (const id of ["echoRecordStart", "echoRecordTarget", "echoRecordText", "echoAudioImport", "echoSampleDelete", "echoSpeechMode"]) $(id).disabled = busy;
+    for (const id of ["echoRecordStart", "echoRecordTarget", "echoRecordText", "echoSampleTranscript", "echoAudioImport", "echoSampleDelete", "echoSpeechMode"]) $(id).disabled = busy;
     $("echoRecordStop").disabled = !busy;
     if (!busy) $("echoSampleDelete").disabled = !sample;
   }
@@ -367,8 +371,9 @@
     const rms = Math.sqrt(samples.reduce((sum, v) => sum + v * v, 0) / samples.length);
     if (rms < 0.002) throw new Error("Запись слишком тихая. Поднесите микрофон ближе и повторите.");
     const blob = encodeWav(samples, rate);
+    const transcript = target === "sample" ? normalized($("echoSampleTranscript").value).slice(0, 500) : "";
     const entry = { key: target === "sample" ? "sample" : phraseKey(text, language), blob, duration,
-      text, language, id: await hash(blob), time: Date.now() };
+      text, transcript, language, id: await hash(blob), time: Date.now() };
     if (epoch !== audioEpoch || operation !== recordOperation) throw new Error("Сохранение отменено: голосовые данные были удалены.");
     stop(); draft = { entry, epoch };
     $("echoAudioDraft").hidden = false;
@@ -431,6 +436,7 @@
   $("echoRecordStart").onclick = async () => {
     const target = $("echoRecordTarget").value, text = normalized($("echoRecordText").value);
     if (target === "phrase" && !text) { voiceMessage("Сначала введите текст записываемой фразы."); return $("echoRecordText").focus(); }
+    if (target === "sample" && !$("echoSampleTranscript").value.trim()) { voiceMessage("Введите точный текст образца. Модель должна знать произнесённые слова."); return $("echoSampleTranscript").focus(); }
     if (!navigator.mediaDevices?.getUserMedia) return voiceMessage("Запись доступна в приложении на localhost или по HTTPS. Можно загрузить аудиофайл.");
     discardDraft(); recordOperation++; recordingUI(true);
     const state = { target, text, chunks: [], frames: 0, finishing: false, language: echoCurrentLanguage, epoch: audioEpoch }; recorder = state;
@@ -520,6 +526,8 @@
   };
   async function renderRecordings() {
     const entries = await db("audio", "getAll"); sample = entries.find(e => e.key === "sample") || null;
+    // Previously recorded samples may have no transcript; leave the edit box usable.
+    if (sample?.transcript && !$("echoSampleTranscript").dataset.userEdited) $("echoSampleTranscript").value = sample.transcript;
     $("echoSamplePlay").disabled = !sample; $("echoSampleDelete").disabled = !sample;
     $("echoRecordingsList").replaceChildren();
     for (const entry of entries.filter(e => e.key !== "sample")) {
