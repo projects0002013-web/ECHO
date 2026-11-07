@@ -2,6 +2,8 @@ package org.echo.aac;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -114,6 +116,33 @@ public final class MainActivity extends Activity {
                 String type = request.optString("type", "");
                 if (id.isEmpty() || id.length() > 40) return;
                 if ("cancel".equals(type)) return;
+                if ("deviceCapabilities".equals(type)) {
+                    runOnUiThread(() -> {
+                        JSONObject answer = new JSONObject();
+                        try {
+                            ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+                            if (manager == null) throw new IllegalStateException("Memory service unavailable");
+                            ActivityManager.MemoryInfo memory = new ActivityManager.MemoryInfo();
+                            manager.getMemoryInfo(memory);
+                            answer.put("platform", "android");
+                            answer.put("androidApi", Build.VERSION.SDK_INT);
+                            answer.put("ramTotalMiB", memory.totalMem / (1024L * 1024L));
+                            answer.put("ramAvailableMiB", memory.availMem / (1024L * 1024L));
+                            answer.put("ramLow", memory.lowMemory);
+                            answer.put("is64BitRuntime", android.os.Process.is64Bit());
+                            answer.put("inferenceInstalled", false);
+                            answer.put("model", "none");
+                            // Memory alone cannot establish whether a model runs.
+                            answer.put("modelCompatible", false);
+                        } catch (Exception e) {
+                            answer = new JSONObject();
+                            try { answer.put("error", "Не удалось получить сведения о памяти Android."); }
+                            catch (Exception ignored) {}
+                        }
+                        reply(id, answer);
+                    });
+                    return;
+                }
                 if ("microphonePermission".equals(type)) {
                     runOnUiThread(() -> {
                         try {
