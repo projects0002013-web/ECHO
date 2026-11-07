@@ -40,6 +40,7 @@
   }
   window.echoNativeVoice = Object.freeze({
     status: () => request("status"),
+    requestMicrophonePermission: () => request("microphonePermission"),
     synthesize: ({ text, language, referenceWavBase64, signal }) => {
       if (typeof text !== "string" || text.length === 0 || text.length > 300)
         return Promise.reject(new Error("Некорректный текст."));
