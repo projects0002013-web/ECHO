@@ -6,7 +6,7 @@
   const phraseKey = (text, language = echoCurrentLanguage) => `phrase:${language}:${normalized(text)}`;
   let dbPromise, sample = null, recorder = null, audio = null, audioURL = null;
   let speechJob = 0, controller = null, mode = "device", lastFocus;
-  let audioEpoch = 0;
+  let audioEpoch = 0, draft = null, recordOperation = 0, preparedAudio = null;
   try { mode = localStorage.getItem("echoSpeechMode") || "device"; } catch (_) {}
   if (!["device", "recordings", "personal"].includes(mode)) mode = "device";
 
@@ -17,14 +17,18 @@
         request.result.createObjectStore("audio", { keyPath: "key" });
         request.result.createObjectStore("cache", { keyPath: "key" });
       };
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error("Не удалось открыть локальное хранилище."));
-      request.onblocked = () => reject(new Error("Закройте другие вкладки ECHO и повторите."));
+      request.onsuccess = () => {
+        request.result.onversionchange = () => { request.result.close(); dbPromise = null; };
+        resolve(request.result);
+      };
+      request.onerror = () => { dbPromise = null; reject(new Error("Не удалось открыть локальное хранилище.")); };
+      request.onblocked = () => { dbPromise = null; reject(new Error("Закройте другие вкладки ECHO и повторите.")); };
     });
     return dbPromise;
   }
-  async function db(store, action, value) {
+  async function db(store, action, value, current = () => true) {
     const connection = await database();
+    if (!current()) throw new DOMException("Операция отменена", "AbortError");
     return new Promise((resolve, reject) => {
       const tx = connection.transaction(store, action === "get" || action === "getAll" ? "readonly" : "readwrite");
       const request = tx.objectStore(store)[action](value);
@@ -42,11 +46,13 @@
   }
   function stop() {
     speechJob++;
+    preparedAudio = null;
+    if ($("echoResumeAudio")) $("echoResumeAudio").hidden = true;
     controller?.abort(); controller = null;
     if (audio) { audio.pause(); audio.src = ""; audio = null; }
     if (audioURL) { URL.revokeObjectURL(audioURL); audioURL = null; }
     echoPiperStop();
-    if ("speechSynthesis" in window) speechSynthesis.cancel();
+    echoBrowserStop();
   }
   window.echoStopSpeech = stop;
   async function play(blob, job) {
@@ -59,7 +65,13 @@
     const playing = audio;
     playing.onended = () => { if (playing === audio) { stop(); message("Готово"); } };
     playing.onerror = () => { if (playing === audio) { stop(); message("Не удалось воспроизвести запись."); } };
-    await playing.play();
+    try { await playing.play(); }
+    catch (error) {
+      if (job !== speechJob) return;
+      if (playing === audio) { playing.pause(); playing.src = ""; audio = null; if (audioURL) URL.revokeObjectURL(audioURL); audioURL = null; }
+      if (job === speechJob && error.name === "NotAllowedError") offerPreparedAudio(blob);
+      throw new Error(error.name === "NotAllowedError" ? "Браузер заблокировал звук. Нажмите кнопку прослушивания ещё раз." : "Не удалось воспроизвести запись.");
+    }
   }
   async function base64(blob) {
     const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -74,7 +86,9 @@
   async function personal(text, job) {
     if (!sample) throw new Error("Сначала запишите образец своего голоса в настройках.");
     if (!["ru", "en"].includes(echoCurrentLanguage)) throw new Error("Персональный голос доступен для русского и английского. Для этого языка выберите голос устройства.");
-    const key = `${sample.id}:${echoCurrentLanguage}:${normalized(text)}`;
+    const reference = sample, language = echoCurrentLanguage, epoch = audioEpoch;
+    const current = () => job === speechJob && epoch === audioEpoch;
+    const key = `${reference.id}:${language}:${normalized(text)}`;
     const saved = await db("cache", "get", key);
     if (job !== speechJob) return;
     if (saved) { message("Персональный голос · сохранённая фраза"); return play(saved.blob, job); }
@@ -88,7 +102,7 @@
     try {
       const response = await fetch("/api/voice/synthesize", {
         method: "POST", headers: { "Content-Type": "application/json" }, signal,
-        body: JSON.stringify({ text, language: echoCurrentLanguage, reference: await base64(sample.blob) })
+        body: JSON.stringify({ text, language, reference: await base64(reference.blob) })
       });
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
@@ -98,11 +112,13 @@
       if (job !== speechJob) return;
       // Keep at most 50 generated phrases on this device.
       const cached = (await db("cache", "getAll")).sort((a, b) => a.time - b.time);
-      for (const item of cached.slice(0, Math.max(0, cached.length - 49))) await db("cache", "delete", item.key);
-      try { await db("cache", "put", { key, blob, time: Date.now() }); }
-      catch (_) { message("Фраза готова, но для офлайн-сохранения не хватает места."); }
+      for (const item of cached.slice(0, Math.max(0, cached.length - 49))) await db("cache", "delete", item.key, current);
+      let cacheWarning = false;
+      try { await db("cache", "put", { key, blob, time: Date.now() }, current); }
+      catch (_) { if (!current()) return; cacheWarning = true; }
+      if (!current()) return;
       await play(blob, job);
-      if (job === speechJob) message("Произношу персональным голосом");
+      if (job === speechJob) message("Произношу персональным голосом" + (cacheWarning ? " · не сохранено офлайн: проверьте свободное место" : ""));
     } finally { clearTimeout(timeout); }
   }
   window.echoLocalSpeech = text => {
@@ -118,15 +134,39 @@
       echoBrowserSpeak(text);
     })().catch(error => {
       if (job !== speechJob) return;
-      message(error.name === "AbortError" ? "Время ожидания истекло. Повторите после загрузки модели." : errorText(error));
+      message((error.name === "AbortError" ? "Время ожидания истекло. Повторите после загрузки модели." : errorText(error)) + " Выберите голос устройства или сохранённые записи.");
+      offerFallback();
     });
     return true;
   };
 
+  function offerPreparedAudio(blob) { preparedAudio = blob; $("echoResumeAudio").hidden = false; }
+  window.echoOfferPreparedAudio = offerPreparedAudio;
+  function offerFallback() { $("echoVoiceFallback").hidden = false; }
+  window.echoOfferVoiceFallback = offerFallback;
+  function setMode(next) {
+    const previous = mode;
+    stop();
+    try { localStorage.setItem("echoSpeechMode", next); mode = next; }
+    catch (_) { mode = previous; voiceMessage("Режим не сохранён: хранилище браузера недоступно."); message("Режим не сохранён: проверьте свободное место."); }
+    $("echoSpeechMode").value = mode;
+    return mode === next;
+  }
   const controls = document.createElement("div");
   controls.className = "echo-speech-controls";
-  controls.innerHTML = `<button type="button" id="echoStopSpeech">■ Остановить голос</button><span id="echoSpeechStatus" role="status" aria-live="polite">Готово</span>`;
+  controls.innerHTML = `<button type="button" id="echoStopSpeech">■ Остановить голос</button><button type="button" id="echoResumeAudio" hidden>▶ Воспроизвести подготовленную запись</button><span id="echoSpeechStatus" role="status" aria-live="polite">Готово</span>
+    <div id="echoVoiceFallback" hidden><span>Можно выбрать другой источник и нажать фразу снова:</span>
+    <button type="button" id="echoUseDevice">Голос устройства</button><button type="button" id="echoUseRecordings">Сохранённые записи</button></div>`;
   document.querySelector(".custom-section").appendChild(controls);
+  $("echoResumeAudio").onclick = () => {
+    const blob = preparedAudio; if (!blob) return;
+    stop(); const job = speechJob;
+    play(blob, job).then(() => { if (job === speechJob) message("Произношу подготовленную запись"); }).catch(error => { if (job === speechJob) message(errorText(error)); });
+  };
+  $("echoUseDevice").onclick = () => {
+    if (setMode("device")) { echoPiperConfig.enabled = false; const saved = echoPiperSave(); $("echoPiperEnabled").checked = false; if (!saved) { message("Голос устройства выбран для этого сеанса; настройки Piper не сохранены."); return; } $("echoVoiceFallback").hidden = true; message("Выбран голос устройства. Нажмите фразу для воспроизведения."); }
+  };
+  $("echoUseRecordings").onclick = () => { if (setMode("recordings")) { $("echoVoiceFallback").hidden = true; message("Выбраны сохранённые записи. Нажмите фразу для воспроизведения."); } };
   $("echoStopSpeech").onclick = () => { stop(); message("Озвучка остановлена"); };
   $("echoSOSStop").addEventListener("click", () => { stop(); message("Озвучка остановлена"); });
 
@@ -166,7 +206,13 @@
     openAddModal(); $("newPhraseText").value = text; $("newPhraseName").value = text.slice(0, 40);
   };
   const oldLanguage = applyEchoLanguage;
-  applyEchoLanguage = language => { oldLanguage(language); renderWords(); updateTargets(); };
+  applyEchoLanguage = language => {
+    if (recorder || draft) {
+      recordOperation++; if (recorder) finishRecording(false); if (draft) discardDraft();
+      voiceMessage("Запись отменена при смене языка. Начните новую запись на выбранном языке.");
+    }
+    stop(); oldLanguage(language); renderWords(); updateTargets();
+  };
   renderWords();
   const oldFavorites = updateFavorites;
   updateFavorites = (...args) => { oldFavorites(...args); updateEchoCategories(); };
@@ -176,11 +222,15 @@
   panel.innerHTML = `<h3>🎙️ Мой голос и записи близких</h3>
     <p>Записи хранятся в этом браузере. Персональный голос создаёт новые фразы по вашему образцу на локальном компьютере — аудио не отправляется в облако.</p>
     <label for="echoSpeechMode">Как произносить сообщения</label><select id="echoSpeechMode"><option value="device">Голос устройства / Piper</option><option value="recordings">Записи фраз · иначе голос устройства</option><option value="personal">Мой персональный голос · локальный ИИ</option></select>
+    <p>Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. Новая генерация ИИ требует локального компьютера; на телефоне доступны записи и голоса устройства.</p>
     <label for="echoRecordTarget">Что записать</label><select id="echoRecordTarget"><option value="sample">Образец моего голоса · 6–30 секунд</option><option value="phrase">Озвучку одной фразы · до 30 секунд</option></select>
     <div id="echoPhraseRecordingFields" hidden><label for="echoRecordText">Текст записываемой фразы</label><input id="echoRecordText" list="echoRecordPhrases" maxlength="300" placeholder="Я хочу пить"><datalist id="echoRecordPhrases"></datalist></div>
     <p id="echoRecordHint">Спокойно прочитайте: «Привет! Это мой голос. Я хочу свободно общаться, говорить о своих желаниях, просить о помощи и благодарить близких. Сегодня хороший день».</p>
     <div class="echo-local-actions"><button type="button" id="echoRecordStart">● Записать голос</button><button type="button" id="echoRecordStop" disabled>■ Завершить</button><button type="button" id="echoSamplePlay" disabled>▶ Мой образец</button></div>
     <label for="echoAudioImport">Или загрузите запись с этого устройства</label><input id="echoAudioImport" type="file" accept="audio/*">
+    <div id="echoAudioDraft" hidden><p>Прослушайте запись перед сохранением. Пока она находится только в памяти.</p>
+    <label><input type="checkbox" id="echoVoiceConsent"> Это мой голос или у меня есть разрешение владельца на создание персонального голоса.</label>
+    <div class="echo-local-actions"><button type="button" id="echoDraftPlay">▶ Прослушать перед сохранением</button><button type="button" id="echoDraftSave">Сохранить запись</button><button type="button" id="echoDraftDiscard">Не сохранять</button></div></div>
     <span id="echoRecordTimer" role="timer">00:00</span><p id="echoLocalVoiceStatus" role="status" aria-live="polite">Образец голоса пока не записан.</p>
     <div class="echo-local-actions"><button type="button" id="echoEngineCheck">Проверить локальный ИИ</button><button type="button" id="echoSampleDelete">Удалить образец и созданные фразы</button></div>
     <p class="echo-local-note">Образец позволяет приблизить тембр, но сходство не гарантируется. Создание новой фразы требует локальной модели; уже созданные фразы и записи работают офлайн. Русский и английский поддерживаются; казахский и белорусский используют голос устройства.</p>
@@ -188,9 +238,8 @@
   voicePanel.prepend(panel);
   $("echoSpeechMode").value = mode;
   $("echoSpeechMode").onchange = () => {
-    stop(); mode = $("echoSpeechMode").value;
-    try { localStorage.setItem("echoSpeechMode", mode); } catch (_) { voiceMessage("Режим не сохранён: хранилище браузера недоступно."); }
-    if (mode === "personal") checkEngine();
+    const next = $("echoSpeechMode").value;
+    if (setMode(next)) { $("echoVoiceFallback").hidden = true; message("Источник голоса изменён. Нажмите фразу для воспроизведения."); if (mode === "personal") checkEngine(); }
   };
   function updateTargets() {
     $("echoRecordPhrases").replaceChildren();
@@ -217,57 +266,102 @@
   function recordingUI(busy) {
     for (const id of ["echoRecordStart", "echoRecordTarget", "echoRecordText", "echoAudioImport", "echoSampleDelete", "echoSpeechMode"]) $(id).disabled = busy;
     $("echoRecordStop").disabled = !busy;
+    if (!busy) $("echoSampleDelete").disabled = !sample;
   }
-  async function saveAudio(samples, rate, target, text, language, epoch) {
+  async function saveAudio(samples, rate, target, text, language, epoch, operation = recordOperation) {
     const duration = samples.length / rate;
+    if (!Number.isFinite(duration) || !Number.isFinite(rate) || rate <= 0) throw new Error("Запись ещё не началась. Повторите запись после разрешения микрофона.");
     if (duration < (target === "sample" ? 6 : 0.3) || duration > 30.1) throw new Error(target === "sample" ? "Запишите от 6 до 30 секунд речи." : "Запись должна длиться от 0,3 до 30 секунд.");
     const rms = Math.sqrt(samples.reduce((sum, v) => sum + v * v, 0) / samples.length);
     if (rms < 0.002) throw new Error("Запись слишком тихая. Поднесите микрофон ближе и повторите.");
     const blob = encodeWav(samples, rate);
     const entry = { key: target === "sample" ? "sample" : phraseKey(text, language), blob, duration,
       text, language, id: await hash(blob), time: Date.now() };
-    if (epoch !== audioEpoch) throw new Error("Сохранение отменено: голосовые данные были удалены.");
-    await db("audio", "put", entry);
-    if (target === "sample") { sample = entry; await db("cache", "clear"); }
-    voiceMessage(target === "sample" ? "Образец сохранён на этом устройстве. Выберите персональный голос и проверьте локальный ИИ." : "Запись фразы сохранена. Выберите режим «Записи фраз» для воспроизведения.");
-    await renderRecordings();
-    navigator.storage?.persist?.().catch(() => {});
+    if (epoch !== audioEpoch || operation !== recordOperation) throw new Error("Сохранение отменено: голосовые данные были удалены.");
+    stop(); draft = { entry, epoch };
+    $("echoAudioDraft").hidden = false;
+    $("echoVoiceConsent").checked = false;
+    $("echoVoiceConsent").parentElement.hidden = target !== "sample";
+    $("echoDraftSave").disabled = target === "sample";
+    voiceMessage("Запись готова. Прослушайте и нажмите «Сохранить запись».");
   }
+  function discardDraft() {
+    stop(); draft = null; $("echoAudioDraft").hidden = true;
+  }
+  $("echoVoiceConsent").onchange = () => { $("echoDraftSave").disabled = !draft || (draft.entry.key === "sample" && !$("echoVoiceConsent").checked); };
+  $("echoDraftPlay").onclick = () => { if (draft) { stop(); play(draft.entry.blob, speechJob).catch(e => voiceMessage(errorText(e))); } };
+  $("echoDraftDiscard").onclick = () => { discardDraft(); voiceMessage("Запись не сохранена. Прежние записи остаются на устройстве."); };
+  $("echoDraftSave").onclick = async () => {
+    const pending = draft; if (!pending || (pending.entry.key === "sample" && !$("echoVoiceConsent").checked)) return;
+    $("echoDraftSave").disabled = true;
+    $("echoDraftDiscard").disabled = $("echoDraftPlay").disabled = true;
+    recordingUI(true); $("echoRecordStop").disabled = true;
+    let cacheCleanupFailed = false;
+    const current = () => draft === pending && pending.epoch === audioEpoch;
+    try {
+      await db("audio", "put", pending.entry, current);
+      if (!current()) return;
+      // Cache keys include the sample hash, so replacing a sample never reuses its old voice.
+      if (pending.entry.key === "sample") {
+        sample = pending.entry;
+        try { await db("cache", "clear", undefined, current); }
+        catch (_) { cacheCleanupFailed = true; }
+      }
+      discardDraft(); await renderRecordings();
+      voiceMessage((pending.entry.key === "sample" ? "Образец сохранён на этом устройстве. Выберите персональный голос и проверьте локальный ИИ." : "Запись фразы сохранена. Выберите режим «Записи фраз» для воспроизведения.") + (cacheCleanupFailed ? " Старый кэш не очищен, но не будет использован для нового образца." : ""));
+      navigator.storage?.persist?.().catch(() => {});
+    } catch (error) { voiceMessage(errorText(error)); }
+    finally { recordingUI(false); $("echoDraftDiscard").disabled = $("echoDraftPlay").disabled = false; $("echoDraftSave").disabled = !draft || (draft.entry.key === "sample" && !$("echoVoiceConsent").checked); }
+  };
   async function finishRecording(save = true) {
     const state = recorder; if (!state || state.finishing) return;
     state.finishing = true; recorder = null;
     clearInterval(state.timer);
     state.source?.disconnect(); state.node?.disconnect(); state.silent?.disconnect();
     state.stream?.getTracks().forEach(t => t.stop());
-    await state.context?.close();
+    const operation = recordOperation;
+    if (!save) recordOperation++;
+    const closingOperation = recordOperation;
+    try { await state.context?.close(); } catch (_) { /* Tracks are already stopped. */ }
+    if (!save) { if (closingOperation === recordOperation && !recorder) recordingUI(false); return; }
+    if (operation !== recordOperation) return;
     recordingUI(false);
-    if (!save) return;
+    if (!Number.isFinite(state.rate)) { voiceMessage("Запись ещё не началась. Повторите после разрешения микрофона."); return; }
     try {
       const count = state.chunks.reduce((sum, c) => sum + c.length, 0);
       const merged = new Float32Array(Math.min(count, Math.floor(state.rate * 30)));
       let offset = 0;
       for (const chunk of state.chunks) { const part = chunk.subarray(0, merged.length - offset); merged.set(part, offset); offset += part.length; }
-      await saveAudio(merged, state.rate, state.target, state.text, state.language, state.epoch);
+      if (operation !== recordOperation) return;
+      await saveAudio(merged, state.rate, state.target, state.text, state.language, state.epoch, operation);
     } catch (error) { voiceMessage(errorText(error)); }
   }
   $("echoRecordStart").onclick = async () => {
     const target = $("echoRecordTarget").value, text = normalized($("echoRecordText").value);
     if (target === "phrase" && !text) { voiceMessage("Сначала введите текст записываемой фразы."); return $("echoRecordText").focus(); }
     if (!navigator.mediaDevices?.getUserMedia) return voiceMessage("Запись доступна в приложении на localhost или по HTTPS. Можно загрузить аудиофайл.");
-    stop(); recordingUI(true);
-    const state = { target, text, chunks: [], finishing: false, language: echoCurrentLanguage, epoch: audioEpoch }; recorder = state;
+    discardDraft(); recordOperation++; recordingUI(true);
+    const state = { target, text, chunks: [], frames: 0, finishing: false, language: echoCurrentLanguage, epoch: audioEpoch }; recorder = state;
     voiceMessage("Ожидаю разрешение на микрофон…");
     try {
       state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }, video: false });
       if (recorder !== state) { state.stream.getTracks().forEach(t => t.stop()); return; }
       state.context = new AudioContext();
       await state.context.audioWorklet.addModule("./recorder-worklet.js");
+      if (recorder !== state) return;
       await state.context.resume();
+      if (recorder !== state) return;
       state.rate = state.context.sampleRate;
       state.source = state.context.createMediaStreamSource(state.stream);
       state.node = new AudioWorkletNode(state.context, "echo-recorder");
       state.silent = state.context.createGain(); state.silent.gain.value = 0;
-      state.node.port.onmessage = event => { if (!state.finishing) state.chunks.push(event.data); };
+      state.node.port.onmessage = event => {
+        if (state.finishing) return;
+        const remaining = Math.max(0, Math.floor(state.rate * 30) - state.frames);
+        const chunk = event.data.subarray(0, remaining);
+        if (chunk.length) { state.chunks.push(chunk); state.frames += chunk.length; }
+        if (state.frames >= Math.floor(state.rate * 30)) finishRecording();
+      };
       state.source.connect(state.node).connect(state.silent).connect(state.context.destination);
       const started = Date.now(); $("echoRecordTimer").textContent = "00:00";
       voiceMessage("Запись идёт. Говорите спокойно и без фоновой музыки.");
@@ -276,13 +370,14 @@
         $("echoRecordTimer").textContent = `00:${String(seconds).padStart(2, "0")}`;
         if (seconds >= 30) finishRecording();
       }, 250);
-    } catch (error) { await finishRecording(false); voiceMessage(errorText(error)); }
+    } catch (error) { if (recorder === state) { await finishRecording(false); voiceMessage(errorText(error)); } }
   };
   $("echoRecordStop").onclick = () => finishRecording();
   $("echoAudioImport").onchange = async () => {
     const file = $("echoAudioImport").files[0]; if (!file) return;
     const target = $("echoRecordTarget").value, text = normalized($("echoRecordText").value);
-    const language = echoCurrentLanguage, epoch = audioEpoch;
+    const language = echoCurrentLanguage, epoch = audioEpoch, operation = ++recordOperation;
+    discardDraft();
     if (target === "phrase" && !text) { voiceMessage("Сначала укажите текст фразы."); $("echoAudioImport").value = ""; return; }
     if (file.size > 12 * 1024 * 1024) { voiceMessage("Выберите аудиофайл размером до 12 МБ."); $("echoAudioImport").value = ""; return; }
     recordingUI(true); $("echoRecordStop").disabled = true;
@@ -295,9 +390,13 @@
         const values = decoded.getChannelData(channel);
         for (let i = 0; i < mono.length; i++) mono[i] += values[i] / decoded.numberOfChannels;
       }
-      await saveAudio(mono, decoded.sampleRate, target, text, language, epoch);
-    } catch (error) { voiceMessage(errorText(error)); }
-    finally { await context?.close(); recordingUI(false); $("echoAudioImport").value = ""; }
+      if (operation !== recordOperation) return;
+      await saveAudio(mono, decoded.sampleRate, target, text, language, epoch, operation);
+    } catch (error) { if (operation === recordOperation) voiceMessage(errorText(error)); }
+    finally {
+      try { await context?.close(); } catch (_) {}
+      if (operation === recordOperation) { recordingUI(false); $("echoAudioImport").value = ""; }
+    }
   };
   async function renderRecordings() {
     const entries = await db("audio", "getAll"); sample = entries.find(e => e.key === "sample") || null;
@@ -305,7 +404,7 @@
     $("echoRecordingsList").replaceChildren();
     for (const entry of entries.filter(e => e.key !== "sample")) {
       const row = document.createElement("div"); row.className = "echo-recording-row";
-      const label = document.createElement("span"); label.textContent = `${entry.text} · ${entry.language} · ${entry.duration.toFixed(1)} с`;
+      const label = document.createElement("span"); label.textContent = `${entry.text} · ${entry.language} · ${Number(entry.duration || 0).toFixed(1)} с`;
       const preview = document.createElement("button"); preview.type = "button"; preview.textContent = "▶"; preview.setAttribute("aria-label", `Послушать: ${entry.text}`);
       preview.onclick = () => { stop(); play(entry.blob, speechJob).catch(e => voiceMessage(errorText(e))); };
       const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "Удалить";
@@ -318,7 +417,7 @@
   $("echoSampleDelete").onclick = async () => {
     if (!confirm("Удалить образец голоса и все созданные этим голосом фразы? Записи отдельных фраз сохранятся.")) return;
     try {
-      audioEpoch++;
+      audioEpoch++; recordOperation++; discardDraft();
       stop(); await db("audio", "delete", "sample"); await db("cache", "clear"); sample = null;
       mode = "device"; $("echoSpeechMode").value = mode; localStorage.setItem("echoSpeechMode", mode);
       await renderRecordings(); voiceMessage("Образец и созданные фразы удалены с этого устройства.");
@@ -335,7 +434,7 @@
       const status = await response.json();
       if (status.ready) voiceMessage("Локальная модель установлена. Выберите персональный голос; первый синтез загружает модель в память.");
       else voiceMessage(status.installed ? "Движок установлен, но нужны файлы модели. См. раздел «Персональный голос» в README." : "Для персонального голоса установите локальный движок и модель по README. Записи фраз уже работают без него.");
-    } catch (error) { voiceMessage(errorText(error)); }
+    } catch (error) { voiceMessage("Локальный ИИ недоступен. Выберите записи или голос устройства. " + errorText(error)); }
   }
   $("echoEngineCheck").onclick = checkEngine;
   renderRecordings().then(() => { if (sample) voiceMessage(`Образец сохранён · ${sample.duration.toFixed(1)} с. Данные остаются на этом устройстве.`); }).catch(e => voiceMessage(errorText(e)));
@@ -362,7 +461,7 @@
   };
   $("echoDeleteAllAudio").onclick = async () => {
     if (!confirm("Удалить все записи, образец голоса и созданные фразы с этого устройства? Карточки и настройки сохранятся.")) return;
-    try { audioEpoch++; await finishRecording(false); stop(); await db("audio", "clear"); await db("cache", "clear"); sample = null; mode = "device";
+    try { audioEpoch++; recordOperation++; discardDraft(); await finishRecording(false); stop(); await db("audio", "clear"); await db("cache", "clear"); sample = null; mode = "device";
       $("echoSpeechMode").value = mode; localStorage.setItem("echoSpeechMode", mode);
       await renderRecordings(); voiceMessage("Все голосовые данные удалены."); }
     catch (e) { voiceMessage(errorText(e)); }
@@ -392,6 +491,7 @@
     if (recorder && section !== "settings") {
       finishRecording(false).then(() => voiceMessage("Запись отменена при выходе из настроек. Микрофон выключен."));
     }
+    if (section !== "settings") { recordOperation++; if (draft) discardDraft(); if (!recorder) recordingUI(false); }
     const settings = section === "settings", cards = section === "phrases" || section === "favorites";
     [sizePanel, themePanel, voicePanel, languagePanel, vibrationPanel].forEach(p => { p.hidden = !settings; });
     privacy.hidden = !settings;
@@ -400,6 +500,7 @@
     document.querySelector(".welcome").hidden = !cards;
     document.querySelector(".custom-section").hidden = !cards;
     composer.hidden = !cards;
+    document.querySelector(".echo-speech-controls") && (settings ? panel : document.querySelector(".custom-section")).append(controls);
     updateNavigation(section);
     window.scrollTo({top: 0, behavior: "instant"});
   }
