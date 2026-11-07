@@ -147,7 +147,7 @@
 .card-speak:focus-visible, .echo-order-actions button:focus-visible { outline:3px solid var(--primary); outline-offset:3px; }
 .echo-order-actions { display:flex; gap:6px; width:100%; margin-top:12px; }
 .echo-order-actions button { flex:1; min-height:44px; padding:6px; border:1px solid var(--border); border-radius:10px; background:var(--surface2); color:var(--text); font:inherit; cursor:pointer; }
-.echo-card-image { width:90px; height:90px; object-fit:contain; border-radius:12px; }
+.echo-card-image { display:block; width:100%; height:100%; object-fit:contain; border-radius:12px; }
 .echo-image-fields { margin:12px 0; }
 .echo-image-fields input { max-width:100%; }
 #echoImagePreview { display:block; width:120px; height:100px; object-fit:contain; margin:8px 0; }
@@ -155,3 +155,10 @@
 #echoRemoveImage { min-height:44px; border:1px solid var(--border); border-radius:10px; background:var(--surface2); color:var(--text); }
 #echoImageError { color:var(--danger); }
 .echo-order-actions button { min-width:0; white-space:nowrap; font-size:0.82rem; }
+
+/* Error messages retain readable contrast in both existing themes. */
+#echoImageError, #echoSaveError { color:#b42318; }
+.dark-theme #echoImageError, .dark-theme #echoSaveError { color:#ffb4ab; }
+.echo-user-category-group { display:inline-flex; align-items:center; gap:4px; flex-shrink:0; }
+.echo-user-category-group > .echo-category-delete-btn { width:44px; min-height:44px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:#b42318; font:inherit; cursor:pointer; }
+.dark-theme .echo-user-category-group > .echo-category-delete-btn { color:#ffb4ab; }

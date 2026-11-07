@@ -132,7 +132,7 @@ def main():
         page.evaluate('() => {echoImageStore=window.originalImageStore;}')
         page.locator('#closeModal').click()
         checks.append('IndexedDB failure never reports a saved card')
-        for width in [320,390,768,1280]:
+        for width in [320,375,390,768,1280]:
             page.set_viewport_size({'width':width,'height':844})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), width
         page.set_viewport_size({'width':390,'height':844})
@@ -163,7 +163,7 @@ def main():
         assert page.evaluate('localStorage.getItem("echoCustomPhrases")') == 'broken json'
         checks.append('corrupt card data is never overwritten')
         page.locator('#closeModal').click()
-        for width in [320,390,768,1280]:
+        for width in [320,375,390,768,1280]:
             page.set_viewport_size({'width':width,'height':844})
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'), width
         assert errors == [], errors

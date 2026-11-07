@@ -415,8 +415,14 @@
   // Keyboard users can operate the existing dialog without losing their place.
   modal.setAttribute("role", "dialog"); modal.setAttribute("aria-modal", "true"); modal.setAttribute("aria-label", "Карточка фразы");
   new MutationObserver(() => {
-    if (modal.classList.contains("open")) lastFocus = document.activeElement;
-    else { updateNavigation(activeSection); lastFocus?.focus(); }
+    if (modal.classList.contains("open")) lastFocus = echoModalReturnFocus;
+    else {
+      updateNavigation(activeSection);
+      const cardId = lastFocus?.closest(".custom-card")?.dataset.id;
+      const target = lastFocus?.isConnected ? lastFocus : [...phraseGrid.querySelectorAll(".custom-card")]
+        .find(card => card.dataset.id === cardId)?.querySelector(".edit-card");
+      target?.focus();
+    }
   }).observe(modal, { attributes: true, attributeFilter: ["class"] });
   modal.addEventListener("keydown", event => {
     if (event.key !== "Tab") return;

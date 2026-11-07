@@ -93,6 +93,7 @@ node --check recorder-worklet.js
 # Отдельно запустите echo_server.py, затем:
 .venv/bin/python tests/browser_smoke.py
 .venv/bin/python tests/core_browser.py
+.venv/bin/python tests/final_regression.py
 ```
 
 Браузерные проверки используют установленный `/usr/bin/chromium` (другой путь задаётся `--chromium`). Они проверяют реальные действия, сохранение данных, запись AudioWorklet с тестовым микрофоном, офлайн-воспроизведение, удаление и размеры экранов 320–1280 пикселей. Проверка кэша в основной smoke-проверке использует подставной WAV-ответ и не доказывает работу нейросети.

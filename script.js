@@ -349,6 +349,8 @@ let selectedEmoji = "💧";
 let pendingDelete = null;
 let echoImageId = null, echoImageBlob = null, echoImageURL = null, echoImageEpoch = 0;
 let echoImageDB;
+let echoCardSaving = false;
+let echoModalReturnFocus = null;
 
 // ==========================================
 // СОХРАНЕНИЕ И ЗАГРУЗКА
@@ -382,12 +384,11 @@ function saveCustomPhrases(phrases) {
 const echoSaveError = document.createElement("p");
 echoSaveError.id = "echoSaveError";
 echoSaveError.setAttribute("role", "alert");
-echoSaveError.style.color = "var(--danger, #b42318)";
 echoSaveError.hidden = true;
 savePhraseButton?.before(echoSaveError);
 
-function echoShowSaveError() {
-  echoSaveError.textContent = "Не удалось сохранить карточку. Проверьте свободное место и настройки браузера. Окно осталось открытым, чтобы вы не потеряли текст.";
+function echoShowSaveError(message) {
+  echoSaveError.textContent = message || "Не удалось сохранить карточку. Проверьте свободное место и настройки браузера. Окно осталось открытым, чтобы вы не потеряли текст.";
   echoSaveError.hidden = false;
 }
 function echoClearSaveError() {
@@ -454,6 +455,7 @@ function resetAddForm() {
 function openAddModal() {
   if (!modal || savePhraseButton.disabled) return;
 
+  echoModalReturnFocus = document.activeElement;
   editingPhraseId = null;
   resetAddForm();
 
@@ -463,9 +465,7 @@ function openAddModal() {
 
   modal.classList.add("open");
 
-  setTimeout(() => {
-    nameInput?.focus();
-  }, 100);
+  nameInput?.focus();
 }
 
 function closeAddModal() {
@@ -505,7 +505,7 @@ function createPhraseCard(phrase) {
   button.dataset.id = String(phrase.id);
 
   button.innerHTML = `
-    <button type="button" class="card-speak" aria-label="${escapeHTML(phrase.text)}">
+    <button type="button" class="card-speak">
     <span class="phrase-icon">
       ${escapeHTML(phrase.emoji)}
     </span>
@@ -536,6 +536,8 @@ function createPhraseCard(phrase) {
       aria-label="Удалить карточку"
     >×</span>
   `;
+
+  button.querySelector(".card-speak").setAttribute("aria-label", phrase.text);
 
   // Озвучивание карточки
 
@@ -593,8 +595,9 @@ function createPhraseCard(phrase) {
 // ==========================================
 
 function openEditPhrase(phrase) {
-  if (!modal) return;
+  if (!modal || savePhraseButton.disabled) return;
 
+  echoModalReturnFocus = document.activeElement;
   echoResetImage(phrase.imageId);
   echoClearSaveError();
   editingPhraseId = phrase.id;
@@ -610,9 +613,7 @@ function openEditPhrase(phrase) {
 
   modal.classList.add("open");
 
-  setTimeout(() => {
-    nameInput?.focus();
-  }, 100);
+  nameInput?.focus();
 }
 
 // ==========================================
@@ -674,6 +675,7 @@ savePhraseButton?.addEventListener("click", async () => {
   const previous = phrases.find(p => String(p.id) === String(editingPhraseId));
   if (editingPhraseId !== null && !previous) { echoShowSaveError(); return; }
   let imageId = echoImageId;
+  echoCardSaving = true;
   savePhraseButton.disabled = true;
   try {
     if (echoImageBlob) {
@@ -681,11 +683,22 @@ savePhraseButton?.addEventListener("click", async () => {
       await echoImageStore("put", {id: imageId, blob: echoImageBlob});
     }
   } catch (error) {
+    echoCardSaving = false;
     savePhraseButton.disabled = false;
     echoShowSaveError(); return;
   }
+  echoCardSaving = false;
   savePhraseButton.disabled = false;
   const rollbackImage = () => { if (imageId && imageId !== echoImageId) echoImageStore("delete", imageId).catch(() => {}); };
+  // IndexedDB yields to other tabs. Re-read metadata before committing to avoid
+  // overwriting cards created or edited while the image was being written.
+  try {
+    phrases = echoReadCardsStrict();
+    if (editingPhraseId !== null && JSON.stringify(phrases.find(p => String(p.id) === String(editingPhraseId))) !== JSON.stringify(previous)) {
+      throw new Error("Карточка изменена в другой вкладке. Закройте окно и откройте карточку заново; введённый текст сохранён в форме.");
+    }
+  } catch (error) { rollbackImage(); echoShowSaveError(error.message); return; }
+
 
   if (editingPhraseId !== null) {
     const index = phrases.findIndex(
@@ -958,10 +971,7 @@ defaultFavoriteCards.forEach(card => {
 });
 
 if (favoritesMigrated) {
-  localStorage.setItem(
-    favoritesKey,
-    JSON.stringify(favorites)
-  );
+  saveFavorites();
 }
 
 // Определяем ID карточки
@@ -2859,34 +2869,33 @@ function echoReadJSON(key, fallback) {
   }
 }
 
-let echoUserCategories = echoReadJSON(
-  echoUserCategoriesKey, []
-);
-
-let echoCardCategories = echoReadJSON(
-  echoCardCategoriesKey, {}
-);
-
-if (!Array.isArray(echoUserCategories)) {
-  echoUserCategories = [];
-}
-
-if (
-  !echoCardCategories ||
-  typeof echoCardCategories !== "object" ||
-  Array.isArray(echoCardCategories)
-) {
-  echoCardCategories = {};
-}
-
-const echoCategorySnapshot = echoReadJSON("echoCategoryState", null);
-if (echoCategorySnapshot && Array.isArray(echoCategorySnapshot.categories) && echoCategorySnapshot.cards && typeof echoCategorySnapshot.cards === "object") {
-  echoUserCategories = echoCategorySnapshot.categories;
-  echoCardCategories = echoCategorySnapshot.cards;
+let echoUserCategories = [], echoCardCategories = {};
+let echoCategoryDataInvalid = false;
+try {
+  const raw = localStorage.getItem("echoCategoryState");
+  const state = raw !== null ? JSON.parse(raw) : {
+    categories: JSON.parse(localStorage.getItem(echoUserCategoriesKey) || "[]"),
+    cards: JSON.parse(localStorage.getItem(echoCardCategoriesKey) || "{}")
+  };
+  const ids = new Set();
+  if (!state || !Array.isArray(state.categories) || !state.cards || typeof state.cards !== "object" || Array.isArray(state.cards)) throw new Error("Некорректные категории");
+  for (const category of state.categories) {
+    if (!category || typeof category.id !== "string" || typeof category.name !== "string" ||
+        typeof category.icon !== "string" || ids.has(category.id)) throw new Error("Некорректная категория");
+    ids.add(category.id);
+  }
+  if (Object.values(state.cards).some(id => typeof id !== "string")) throw new Error("Некорректные связи категорий");
+  echoUserCategories = state.categories; echoCardCategories = state.cards;
+} catch (error) {
+  echoCategoryDataInvalid = true;
+  queueMicrotask(() => {
+    document.getElementById("echoCardStatus").textContent = "Не удалось прочитать категории. Сохранённые данные не изменены; карточки доступны в общем списке.";
+  });
 }
 let echoCategorySaved = JSON.stringify({categories: echoUserCategories, cards: echoCardCategories});
 function echoSaveUserCategories() {
   try {
+    if (echoCategoryDataInvalid) throw new Error("Повреждённые категории нельзя перезаписывать");
     const next = JSON.stringify({categories: echoUserCategories, cards: echoCardCategories});
     localStorage.setItem("echoCategoryState", next);
     echoCategorySaved = next;
@@ -2894,7 +2903,7 @@ function echoSaveUserCategories() {
   } catch (error) {
     const previous = JSON.parse(echoCategorySaved);
     echoUserCategories = previous.categories; echoCardCategories = previous.cards;
-    alert("Не удалось сохранить категории. Изменения отменены.");
+    alert(echoCategoryDataInvalid ? "Сохранённые категории повреждены. Данные не перезаписаны." : "Не удалось сохранить категории. Изменения отменены.");
     return false;
   }
 }
@@ -4668,17 +4677,21 @@ if (typeof voicePanel !== "undefined" && voicePanel) {
 // ==========================================
 const echoOriginalRenderUserCategories = echoRenderUserCategories;
 echoRenderUserCategories = function () {
+  echoCategoryList.querySelectorAll(".echo-user-category-group").forEach(group => group.remove());
   echoOriginalRenderUserCategories();
   echoCategoryList.querySelectorAll(".echo-user-category").forEach(button => {
     if (button.querySelector(".echo-category-delete-btn")) return;
-    const remove = document.createElement("span");
+    const group = document.createElement("div"); group.className = "echo-user-category-group";
+    button.replaceWith(group); group.append(button);
+    const remove = document.createElement("button"); remove.type = "button";
+    remove.dataset.categoryId = button.dataset.category;
     remove.className = "echo-category-delete-btn";
     remove.textContent = "✕";
     remove.title = "Удалить категорию";
     remove.setAttribute("role", "button");
     remove.setAttribute("tabindex", "0");
     remove.setAttribute("aria-label", "Удалить категорию");
-    button.appendChild(remove);
+    group.appendChild(remove);
   });
 };
 echoCategoryList.addEventListener("click", event => {
@@ -4687,7 +4700,7 @@ echoCategoryList.addEventListener("click", event => {
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
-  const id = remove.closest(".echo-user-category")?.dataset.category;
+  const id = remove.dataset.categoryId;
   const category = echoUserCategories.find(item => item.id === id);
   if (!category || !confirm(`Удалить категорию «${category.name}»? Карточки сохранятся.`)) return;
   echoUserCategories = echoUserCategories.filter(item => item.id !== id);
@@ -4819,7 +4832,9 @@ async function echoImageStore(action, value) {
   });
 }
 function echoResetImage(id = null) {
+  if (echoCardSaving) return;
   echoImageEpoch++;
+  savePhraseButton.disabled = false;
   echoImageId = id || null; echoImageBlob = null;
   if (echoImageURL) URL.revokeObjectURL(echoImageURL);
   echoImageURL = null;
@@ -4849,6 +4864,7 @@ function echoInitImages() {
   document.querySelector(".emoji-list").after(fields);
   document.getElementById("echoRemoveImage").onclick = () => echoResetImage();
   document.getElementById("echoCardImage").onchange = async event => {
+    if (echoCardSaving) return;
     const file = event.target.files[0]; if (!file) return;
     const epoch = ++echoImageEpoch;
     const errorLabel = document.getElementById("echoImageError"); errorLabel.textContent = "";
@@ -4872,7 +4888,7 @@ function echoInitImages() {
       if (!blob || blob.size > 1024 * 1024) throw new Error("Не удалось уменьшить изображение до 1 МБ.");
       if (epoch === echoImageEpoch) { echoImageBlob = blob; echoPreviewImage(blob); }
     } catch (error) { if (epoch === echoImageEpoch) errorLabel.textContent = error.message || "Не удалось прочитать изображение."; }
-    finally { bitmap?.close(); savePhraseButton.disabled = false; }
+    finally { bitmap?.close(); if (epoch === echoImageEpoch && !echoCardSaving) savePhraseButton.disabled = false; }
   };
 }
 function echoEnhanceCard(card, phrase) {
