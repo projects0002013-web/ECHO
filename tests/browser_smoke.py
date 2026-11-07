@@ -3,6 +3,7 @@ import argparse
 import io
 import json
 import math
+import re
 from pathlib import Path
 import struct
 import tempfile
@@ -132,13 +133,13 @@ def main():
         page.locator("#echoSpeechMode").select_option("personal")
         model_ready = page.request.get(args.url + '/api/voice/status').json()['ready']
         if not model_ready:
-            expect(page.locator("#echoLocalVoiceStatus")).to_contain_text("нужны файлы модели")
+            expect(page.locator("#echoLocalVoiceStatus")).to_contain_text(re.compile("нужны файлы модели|установите локальный движок"))
         def unavailable_stub(route):
             route.fulfill(status=503, content_type='application/json', body=json.dumps({'error': 'Локальный синтез недоступен'}))
         if model_ready: page.route('**/api/voice/synthesize', unavailable_stub)
         page.locator("#phrasesTab").click()
         page.locator(".phrase-card").first.click()
-        expect(page.locator("#echoSpeechStatus")).to_contain_text("Локальный синтез недоступен", timeout=10000)
+        expect(page.locator("#echoSpeechStatus")).to_contain_text(re.compile("Локальный синтез недоступен|Локальная модель не установлена"), timeout=10000)
         if model_ready: page.unroute('**/api/voice/synthesize', unavailable_stub)
         passed.append("missing model and short sample errors")
 

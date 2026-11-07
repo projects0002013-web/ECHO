@@ -347,6 +347,10 @@ const emojiButtons = document.querySelectorAll(".emoji-option");
 let editingPhraseId = null;
 let selectedEmoji = "💧";
 let pendingDelete = null;
+let echoImageId = null, echoImageBlob = null, echoImageURL = null, echoImageEpoch = 0;
+let echoImageDB;
+let echoCardSaving = false;
+let echoModalReturnFocus = null;
 
 // ==========================================
 // СОХРАНЕНИЕ И ЗАГРУЗКА
@@ -354,11 +358,9 @@ let pendingDelete = null;
 
 function getCustomPhrases() {
   try {
-    const saved = localStorage.getItem("echoCustomPhrases");
-    const parsed = saved ? JSON.parse(saved) : [];
-
-    return Array.isArray(parsed) ? parsed : [];
+    return echoReadCardsStrict();
   } catch (error) {
+    queueMicrotask(() => { const status = document.getElementById("echoCardStatus"); if (status) status.textContent = "Не удалось прочитать сохранённые карточки. Данные не изменены."; });
     console.warn("ECHO: ошибка загрузки карточек", error);
     return [];
   }
@@ -366,13 +368,32 @@ function getCustomPhrases() {
 
 function saveCustomPhrases(phrases) {
   try {
+    echoReadCardsStrict();
     localStorage.setItem(
       "echoCustomPhrases",
       JSON.stringify(phrases)
     );
+    return true;
   } catch (error) {
     console.warn("ECHO: ошибка сохранения карточек", error);
+    return false;
   }
+}
+
+// Surface save errors in the editor, rather than hiding them in the console.
+const echoSaveError = document.createElement("p");
+echoSaveError.id = "echoSaveError";
+echoSaveError.setAttribute("role", "alert");
+echoSaveError.hidden = true;
+savePhraseButton?.before(echoSaveError);
+
+function echoShowSaveError(message) {
+  echoSaveError.textContent = message || "Не удалось сохранить карточку. Проверьте свободное место и настройки браузера. Окно осталось открытым, чтобы вы не потеряли текст.";
+  echoSaveError.hidden = false;
+}
+function echoClearSaveError() {
+  echoSaveError.hidden = true;
+  echoSaveError.textContent = "";
 }
 
 // Защита текста при вставке в HTML
@@ -409,6 +430,8 @@ emojiButtons.forEach(button => {
 // ==========================================
 
 function resetAddForm() {
+  echoResetImage();
+  echoClearSaveError();
   if (nameInput) nameInput.value = "";
   if (phraseInput) phraseInput.value = "";
 
@@ -430,8 +453,9 @@ function resetAddForm() {
 // ==========================================
 
 function openAddModal() {
-  if (!modal) return;
+  if (!modal || savePhraseButton.disabled) return;
 
+  echoModalReturnFocus = document.activeElement;
   editingPhraseId = null;
   resetAddForm();
 
@@ -441,12 +465,11 @@ function openAddModal() {
 
   modal.classList.add("open");
 
-  setTimeout(() => {
-    nameInput?.focus();
-  }, 100);
+  nameInput?.focus();
 }
 
 function closeAddModal() {
+  if (savePhraseButton.disabled) return;
   modal?.classList.remove("open");
 }
 
@@ -476,14 +499,13 @@ document.addEventListener("keydown", event => {
 function createPhraseCard(phrase) {
   if (!phraseGrid) return;
 
-  const button = document.createElement("button");
-
-  button.type = "button";
+  const button = document.createElement("div");
   button.className = "phrase-card custom-card";
   button.dataset.text = phrase.text;
   button.dataset.id = String(phrase.id);
 
   button.innerHTML = `
+    <button type="button" class="card-speak">
     <span class="phrase-icon">
       ${escapeHTML(phrase.emoji)}
     </span>
@@ -496,7 +518,7 @@ function createPhraseCard(phrase) {
       ${escapeHTML(phrase.text)}
     </span>
 
-    <span class="sound-icon">🔊</span>
+    <span class="sound-icon">🔊</span></button>
 
     <span
       class="edit-card"
@@ -514,6 +536,8 @@ function createPhraseCard(phrase) {
       aria-label="Удалить карточку"
     >×</span>
   `;
+
+  button.querySelector(".card-speak").setAttribute("aria-label", phrase.text);
 
   // Озвучивание карточки
 
@@ -560,6 +584,7 @@ function createPhraseCard(phrase) {
     });
   });
 
+  echoEnhanceCard(button, phrase);
   phraseGrid.appendChild(button);
 
   return button;
@@ -570,8 +595,11 @@ function createPhraseCard(phrase) {
 // ==========================================
 
 function openEditPhrase(phrase) {
-  if (!modal) return;
+  if (!modal || savePhraseButton.disabled) return;
 
+  echoModalReturnFocus = document.activeElement;
+  echoResetImage(phrase.imageId);
+  echoClearSaveError();
   editingPhraseId = phrase.id;
 
   if (nameInput) nameInput.value = phrase.name;
@@ -585,9 +613,7 @@ function openEditPhrase(phrase) {
 
   modal.classList.add("open");
 
-  setTimeout(() => {
-    nameInput?.focus();
-  }, 100);
+  nameInput?.focus();
 }
 
 // ==========================================
@@ -598,7 +624,7 @@ function loadCustomPhrases() {
   const phrases = getCustomPhrases();
 
   phrases.forEach(phrase => {
-    createPhraseCard(phrase);
+    if (String(pendingDelete?.phrase.id) !== String(phrase.id)) createPhraseCard(phrase);
   });
 }
 
@@ -618,14 +644,16 @@ function refreshCustomCards() {
 
 // Загружаем сохранённые карточки
 
+echoInitImages();
 loadCustomPhrases();
 
 // ==========================================
 // ДОБАВЛЕНИЕ И СОХРАНЕНИЕ ИЗМЕНЕНИЙ
 // ==========================================
 
-savePhraseButton?.addEventListener("click", () => {
+savePhraseButton?.addEventListener("click", async () => {
   if (!nameInput || !phraseInput) return;
+  echoClearSaveError();
 
   const name = nameInput.value.trim();
   const text = phraseInput.value.trim();
@@ -640,7 +668,37 @@ savePhraseButton?.addEventListener("click", () => {
     return;
   }
 
-  const phrases = getCustomPhrases();
+  if (savePhraseButton.disabled) return;
+  if (pendingDelete) finishDelete();
+  let phrases;
+  try { phrases = echoReadCardsStrict(); } catch (error) { echoShowSaveError(); return; }
+  const previous = phrases.find(p => String(p.id) === String(editingPhraseId));
+  if (editingPhraseId !== null && !previous) { echoShowSaveError(); return; }
+  let imageId = echoImageId;
+  echoCardSaving = true;
+  savePhraseButton.disabled = true;
+  try {
+    if (echoImageBlob) {
+      imageId = crypto.randomUUID();
+      await echoImageStore("put", {id: imageId, blob: echoImageBlob});
+    }
+  } catch (error) {
+    echoCardSaving = false;
+    savePhraseButton.disabled = false;
+    echoShowSaveError(); return;
+  }
+  echoCardSaving = false;
+  savePhraseButton.disabled = false;
+  const rollbackImage = () => { if (imageId && imageId !== echoImageId) echoImageStore("delete", imageId).catch(() => {}); };
+  // IndexedDB yields to other tabs. Re-read metadata before committing to avoid
+  // overwriting cards created or edited while the image was being written.
+  try {
+    phrases = echoReadCardsStrict();
+    if (editingPhraseId !== null && JSON.stringify(phrases.find(p => String(p.id) === String(editingPhraseId))) !== JSON.stringify(previous)) {
+      throw new Error("Карточка изменена в другой вкладке. Закройте окно и откройте карточку заново; введённый текст сохранён в форме.");
+    }
+  } catch (error) { rollbackImage(); echoShowSaveError(error.message); return; }
+
 
   if (editingPhraseId !== null) {
     const index = phrases.findIndex(
@@ -652,11 +710,15 @@ savePhraseButton?.addEventListener("click", () => {
       phrases[index] = {
         ...phrases[index],
         emoji: selectedEmoji,
+        imageId,
         name,
         text
       };
 
-      saveCustomPhrases(phrases);
+      if (!saveCustomPhrases(phrases)) {
+        rollbackImage(); echoShowSaveError();
+        return;
+      }
       refreshCustomCards();
     }
   } else {
@@ -668,15 +730,20 @@ savePhraseButton?.addEventListener("click", () => {
           : String(Date.now()) + "-" +
             Math.random().toString(36).slice(2),
       emoji: selectedEmoji,
+      imageId,
       name,
       text
     };
 
     phrases.push(newPhrase);
-    saveCustomPhrases(phrases);
+    if (!saveCustomPhrases(phrases)) {
+      rollbackImage(); echoShowSaveError();
+      return;
+    }
     createPhraseCard(newPhrase);
   }
 
+  if (previous?.imageId && previous.imageId !== imageId) echoImageStore("delete", previous.imageId).catch(() => {});
   editingPhraseId = null;
 
   if (savePhraseButton) {
@@ -808,7 +875,17 @@ function finishDelete() {
     phrase => String(phrase.id) !== id
   );
 
-  saveCustomPhrases(phrases);
+  if (!saveCustomPhrases(phrases)) {
+    // Restore the card instead of silently losing an unsaved deletion.
+    if (deletion.nextCard?.parentNode === phraseGrid) {
+      phraseGrid.insertBefore(deletion.card, deletion.nextCard);
+    } else {
+      phraseGrid?.appendChild(deletion.card);
+    }
+    alert("Не удалось сохранить удаление карточки. Карточка восстановлена.");
+  } else if (deletion.phrase.imageId) {
+    echoImageStore("delete", deletion.phrase.imageId).catch(() => {});
+  }
 
   deletion.undoBox.remove();
   pendingDelete = null;
@@ -848,6 +925,19 @@ let favoritesMode = false;
 // Стабильный ID для стандартных карточек.
 // Он не меняется при переводе текста.
 
+document.querySelectorAll("button.phrase-card").forEach(speech => {
+  const group = document.createElement("div");
+  group.className = speech.className;
+  Object.assign(group.dataset, speech.dataset);
+  speech.replaceWith(group);
+  speech.className = "card-speak";
+  speech.removeAttribute("onclick");
+  speech.setAttribute("aria-label", group.dataset.text);
+  speech.onclick = () => speakPhrase(group);
+  group.append(speech);
+  group.onclick = event => { if (event.target === group) speakPhrase(group); };
+});
+
 const defaultFavoriteCards = [
   ...document.querySelectorAll(
     ".phrase-card:not(.custom-card)"
@@ -881,10 +971,7 @@ defaultFavoriteCards.forEach(card => {
 });
 
 if (favoritesMigrated) {
-  localStorage.setItem(
-    favoritesKey,
-    JSON.stringify(favorites)
-  );
+  saveFavorites();
 }
 
 // Определяем ID карточки
@@ -903,8 +990,10 @@ function saveFavorites() {
       favoritesKey,
       JSON.stringify(favorites)
     );
+    return true;
   } catch (error) {
-    console.warn("ECHO: избранное не сохранено");
+    alert("Не удалось сохранить избранное. Проверьте свободное место.");
+    return false;
   }
 }
 
@@ -919,7 +1008,8 @@ function addFavoriteStars() {
         return;
       }
 
-      const star = document.createElement("span");
+      const star = document.createElement("button");
+      star.type = "button";
 
       star.className = "favorite-star";
       star.setAttribute("role", "button");
@@ -998,6 +1088,7 @@ function updateFavorites() {
 // Переключаем избранное
 
 function toggleFavorite(card) {
+  const before = [...favorites];
   const id = getFavoriteId(card);
 
   if (favorites.includes(id)) {
@@ -1006,7 +1097,7 @@ function toggleFavorite(card) {
     favorites.push(id);
   }
 
-  saveFavorites();
+  if (!saveFavorites()) favorites = before;
   updateFavorites();
 }
 
@@ -1808,6 +1899,7 @@ sizeFavoritesTab?.addEventListener(
 
  function echoTranslateCard(card, text) {
    card.dataset.text = text;
+   card.querySelector(".card-speak")?.setAttribute("aria-label", text);
 
    const phraseName = card.querySelector(".phrase-name");
    const phraseText = card.querySelector(".phrase-text");
@@ -2777,38 +2869,42 @@ function echoReadJSON(key, fallback) {
   }
 }
 
-let echoUserCategories = echoReadJSON(
-  echoUserCategoriesKey, []
-);
-
-let echoCardCategories = echoReadJSON(
-  echoCardCategoriesKey, {}
-);
-
-if (!Array.isArray(echoUserCategories)) {
-  echoUserCategories = [];
+let echoUserCategories = [], echoCardCategories = {};
+let echoCategoryDataInvalid = false;
+try {
+  const raw = localStorage.getItem("echoCategoryState");
+  const state = raw !== null ? JSON.parse(raw) : {
+    categories: JSON.parse(localStorage.getItem(echoUserCategoriesKey) || "[]"),
+    cards: JSON.parse(localStorage.getItem(echoCardCategoriesKey) || "{}")
+  };
+  const ids = new Set();
+  if (!state || !Array.isArray(state.categories) || !state.cards || typeof state.cards !== "object" || Array.isArray(state.cards)) throw new Error("Некорректные категории");
+  for (const category of state.categories) {
+    if (!category || typeof category.id !== "string" || typeof category.name !== "string" ||
+        typeof category.icon !== "string" || ids.has(category.id)) throw new Error("Некорректная категория");
+    ids.add(category.id);
+  }
+  if (Object.values(state.cards).some(id => typeof id !== "string")) throw new Error("Некорректные связи категорий");
+  echoUserCategories = state.categories; echoCardCategories = state.cards;
+} catch (error) {
+  echoCategoryDataInvalid = true;
+  queueMicrotask(() => {
+    document.getElementById("echoCardStatus").textContent = "Не удалось прочитать категории. Сохранённые данные не изменены; карточки доступны в общем списке.";
+  });
 }
-
-if (
-  !echoCardCategories ||
-  typeof echoCardCategories !== "object" ||
-  Array.isArray(echoCardCategories)
-) {
-  echoCardCategories = {};
-}
-
+let echoCategorySaved = JSON.stringify({categories: echoUserCategories, cards: echoCardCategories});
 function echoSaveUserCategories() {
   try {
-    localStorage.setItem(
-      echoUserCategoriesKey,
-      JSON.stringify(echoUserCategories)
-    );
-    localStorage.setItem(
-      echoCardCategoriesKey,
-      JSON.stringify(echoCardCategories)
-    );
+    if (echoCategoryDataInvalid) throw new Error("Повреждённые категории нельзя перезаписывать");
+    const next = JSON.stringify({categories: echoUserCategories, cards: echoCardCategories});
+    localStorage.setItem("echoCategoryState", next);
+    echoCategorySaved = next;
+    return true;
   } catch (error) {
-    console.warn("ECHO: категории не сохранены", error);
+    const previous = JSON.parse(echoCategorySaved);
+    echoUserCategories = previous.categories; echoCardCategories = previous.cards;
+    alert(echoCategoryDataInvalid ? "Сохранённые категории повреждены. Данные не перезаписаны." : "Не удалось сохранить категории. Изменения отменены.");
+    return false;
   }
 }
 
@@ -3014,7 +3110,7 @@ function echoSaveCategoryFromModal() {
     });
   }
 
-  echoSaveUserCategories();
+  if (!echoSaveUserCategories()) return;
   echoRenderUserCategories();
   echoCloseCategoryModal();
 }
@@ -3106,7 +3202,8 @@ function echoAddMoveButtons() {
     .forEach(card => {
       if (card.querySelector(".echo-move-card")) return;
 
-      const move = document.createElement("span");
+      const move = document.createElement("button");
+      move.type = "button";
 
       move.className = "echo-move-card";
       move.textContent = "📂";
@@ -3166,7 +3263,7 @@ function echoMoveCard(card) {
     echoCardCategories[cardId] = categoryId;
   }
 
-  echoSaveUserCategories();
+  if (!echoSaveUserCategories()) return;
   echoAssignUserCardCategories();
   updateEchoCategories();
 }
@@ -3250,7 +3347,7 @@ function echoManageCategory(categoryId) {
       echoActiveCategory = "all";
     }
 
-    echoSaveUserCategories();
+    if (!echoSaveUserCategories()) return;
     echoRenderUserCategories();
     echoAssignUserCardCategories();
     updateEchoCategories();
@@ -3726,6 +3823,7 @@ function saveEchoPinned() {
       echoPinnedKey,
       JSON.stringify(echoPinnedPhrases)
     );
+    return true;
   } catch (error) {
     console.warn("ECHO: закрепления не сохранены", error);
   }
@@ -3764,7 +3862,8 @@ function addEchoPinButtons() {
     .forEach(card => {
       if (card.querySelector(".echo-pin-button")) return;
 
-      const pin = document.createElement("span");
+      const pin = document.createElement("button");
+      pin.type = "button";
 
       pin.className = "echo-pin-button";
       pin.setAttribute("role", "button");
@@ -3808,6 +3907,7 @@ function updateEchoPinButtons() {
 // ==========================================
 
 function toggleEchoPin(card) {
+  const before = [...echoPinnedPhrases];
   const id = getEchoPinId(card);
 
   if (echoPinnedPhrases.includes(id)) {
@@ -3818,7 +3918,7 @@ function toggleEchoPin(card) {
     echoPinnedPhrases.push(id);
   }
 
-  saveEchoPinned();
+  if (!saveEchoPinned()) echoPinnedPhrases = before;
   updateEchoPinButtons();
   renderEchoQuickPhrases();
 }
@@ -4577,17 +4677,21 @@ if (typeof voicePanel !== "undefined" && voicePanel) {
 // ==========================================
 const echoOriginalRenderUserCategories = echoRenderUserCategories;
 echoRenderUserCategories = function () {
+  echoCategoryList.querySelectorAll(".echo-user-category-group").forEach(group => group.remove());
   echoOriginalRenderUserCategories();
   echoCategoryList.querySelectorAll(".echo-user-category").forEach(button => {
     if (button.querySelector(".echo-category-delete-btn")) return;
-    const remove = document.createElement("span");
+    const group = document.createElement("div"); group.className = "echo-user-category-group";
+    button.replaceWith(group); group.append(button);
+    const remove = document.createElement("button"); remove.type = "button";
+    remove.dataset.categoryId = button.dataset.category;
     remove.className = "echo-category-delete-btn";
     remove.textContent = "✕";
     remove.title = "Удалить категорию";
     remove.setAttribute("role", "button");
     remove.setAttribute("tabindex", "0");
     remove.setAttribute("aria-label", "Удалить категорию");
-    button.appendChild(remove);
+    group.appendChild(remove);
   });
 };
 echoCategoryList.addEventListener("click", event => {
@@ -4596,7 +4700,7 @@ echoCategoryList.addEventListener("click", event => {
   event.preventDefault();
   event.stopPropagation();
   event.stopImmediatePropagation();
-  const id = remove.closest(".echo-user-category")?.dataset.category;
+  const id = remove.dataset.categoryId;
   const category = echoUserCategories.find(item => item.id === id);
   if (!category || !confirm(`Удалить категорию «${category.name}»? Карточки сохранятся.`)) return;
   echoUserCategories = echoUserCategories.filter(item => item.id !== id);
@@ -4604,7 +4708,7 @@ echoCategoryList.addEventListener("click", event => {
     if (echoCardCategories[cardId] === id) delete echoCardCategories[cardId];
   });
   if (echoActiveCategory === id) echoActiveCategory = "all";
-  echoSaveUserCategories();
+  if (!echoSaveUserCategories()) return;
   echoRenderUserCategories();
   echoAssignUserCardCategories();
   updateEchoCategories();
@@ -4693,3 +4797,147 @@ echoCategoryList.addEventListener("dblclick", event => {
     speak(echoCurrentLanguage === "kk" ? "Сәлем! Мен ECHO." : echoCurrentLanguage === "en" ? "Hello! I am ECHO." : "Привет! Я ECHO. Это мой голос.");
   });
 })();
+
+// Card metadata remains backward compatible; large binary images live only in IndexedDB.
+function echoReadCardsStrict() {
+  const raw = localStorage.getItem("echoCustomPhrases");
+  const cards = raw ? JSON.parse(raw) : [];
+  const ids = new Set();
+  if (!Array.isArray(cards)) throw new Error("Повреждены сохранённые карточки.");
+  for (const card of cards) {
+    if (!card || !["string", "number"].includes(typeof card.id) ||
+        typeof card.name !== "string" || typeof card.text !== "string" || ids.has(String(card.id))) {
+      throw new Error("Повреждены сохранённые карточки. Данные не перезаписаны.");
+    }
+    ids.add(String(card.id));
+  }
+  return cards;
+}
+async function echoImageStore(action, value) {
+  if (!echoImageDB) echoImageDB = new Promise((resolve, reject) => {
+    const request = indexedDB.open("echo-card-images", 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("images", {keyPath: "id"});
+    request.onsuccess = () => {
+      request.result.onversionchange = () => { request.result.close(); echoImageDB = null; };
+      resolve(request.result);
+    };
+    request.onerror = request.onblocked = () => { echoImageDB = null; reject(new Error("Хранилище изображений недоступно. Закройте другие вкладки и повторите.")); };
+  });
+  const db = await echoImageDB;
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction("images", action === "get" || action === "getAll" ? "readonly" : "readwrite");
+    const request = tx.objectStore("images")[action](value);
+    tx.oncomplete = () => resolve(request.result);
+    tx.onerror = tx.onabort = () => reject(new Error("Не удалось сохранить изображение. Проверьте свободное место."));
+  });
+}
+function echoResetImage(id = null) {
+  if (echoCardSaving) return;
+  echoImageEpoch++;
+  savePhraseButton.disabled = false;
+  echoImageId = id || null; echoImageBlob = null;
+  if (echoImageURL) URL.revokeObjectURL(echoImageURL);
+  echoImageURL = null;
+  const preview = document.getElementById("echoImagePreview");
+  if (!preview) return;
+  preview.hidden = true; preview.removeAttribute("src");
+  document.getElementById("echoCardImage").value = "";
+  document.getElementById("echoImageError").textContent = "";
+  const epoch = echoImageEpoch;
+  if (id) echoImageStore("get", id).then(record => {
+    if (record && epoch === echoImageEpoch) echoPreviewImage(record.blob);
+  }).catch(error => { if (epoch === echoImageEpoch) document.getElementById("echoImageError").textContent = error.message; });
+}
+function echoPreviewImage(blob) {
+  if (echoImageURL) URL.revokeObjectURL(echoImageURL);
+  echoImageURL = URL.createObjectURL(blob);
+  const preview = document.getElementById("echoImagePreview");
+  preview.src = echoImageURL; preview.hidden = false;
+}
+function echoInitImages() {
+  const fields = document.createElement("div"); fields.className = "echo-image-fields";
+  fields.innerHTML = `<label for="echoCardImage" class="field-label">Добавить или заменить изображение (JPEG, PNG, WebP, до 8 МБ)</label>
+    <input id="echoCardImage" type="file" accept="image/jpeg,image/png,image/webp">
+    <img id="echoImagePreview" alt="Предпросмотр изображения карточки" hidden>
+    <button id="echoRemoveImage" type="button">Удалить изображение · использовать emoji</button>
+    <p id="echoImageError" role="alert"></p>`;
+  document.querySelector(".emoji-list").after(fields);
+  document.getElementById("echoRemoveImage").onclick = () => echoResetImage();
+  document.getElementById("echoCardImage").onchange = async event => {
+    if (echoCardSaving) return;
+    const file = event.target.files[0]; if (!file) return;
+    const epoch = ++echoImageEpoch;
+    const errorLabel = document.getElementById("echoImageError"); errorLabel.textContent = "";
+    savePhraseButton.disabled = true;
+    let bitmap;
+    try {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("Выберите JPEG, PNG или WebP.");
+      if (file.size > 8 * 1024 * 1024) throw new Error("Изображение должно быть не больше 8 МБ.");
+      const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+      const png = [137,80,78,71,13,10,26,10].every((b,i) => header[i] === b);
+      const jpeg = header[0] === 255 && header[1] === 216 && header[2] === 255;
+      const webp = String.fromCharCode(...header.slice(0,4)) === "RIFF" && String.fromCharCode(...header.slice(8,12)) === "WEBP";
+      if (!({"image/png":png,"image/jpeg":jpeg,"image/webp":webp})[file.type]) throw new Error("Содержимое файла не соответствует JPEG, PNG или WebP.");
+      bitmap = await createImageBitmap(file);
+      if (bitmap.width * bitmap.height > 20000000) throw new Error("Изображение слишком большое: максимум 20 миллионов пикселей.");
+      const scale = Math.min(1, 640 / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale)); canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/webp", 0.82));
+      if (!blob || blob.size > 1024 * 1024) throw new Error("Не удалось уменьшить изображение до 1 МБ.");
+      if (epoch === echoImageEpoch) { echoImageBlob = blob; echoPreviewImage(blob); }
+    } catch (error) { if (epoch === echoImageEpoch) errorLabel.textContent = error.message || "Не удалось прочитать изображение."; }
+    finally { bitmap?.close(); if (epoch === echoImageEpoch && !echoCardSaving) savePhraseButton.disabled = false; }
+  };
+}
+function echoEnhanceCard(card, phrase) {
+  // Edit/delete controls are siblings of the speech button, never nested in it.
+  card.querySelectorAll(".edit-card,.delete-card").forEach(control => {
+    const button = document.createElement("button"); button.type = "button";
+    for (const attr of control.attributes) if (!["role", "tabindex"].includes(attr.name)) button.setAttribute(attr.name, attr.value);
+    button.textContent = control.textContent;
+    button.onclick = event => { event.stopPropagation(); button.classList.contains("edit-card") ? openEditPhrase(phrase) : requestDeletePhrase(phrase, card); };
+    control.replaceWith(button);
+  });
+  const actions = document.createElement("div"); actions.className = "echo-order-actions";
+  for (const [step, label] of [[-1, "Вверх"], [1, "Вниз"]]) {
+    const button = document.createElement("button"); button.type = "button";
+    button.textContent = (step === -1 ? "↑ " : "↓ ") + label;
+    button.setAttribute("aria-label", `${label}: ${phrase.name}`);
+    button.onclick = event => {
+      event.stopPropagation();
+      // Resolve pending deletion before reading the single persisted order.
+      if (pendingDelete) finishDelete();
+      let cards;
+      try { cards = echoReadCardsStrict(); } catch (_) { alert("Сохранённые карточки повреждены. Порядок не изменён."); return; }
+      const visible = [...phraseGrid.querySelectorAll(".custom-card")].filter(c => !c.hidden && !c.classList.contains("favorite-hidden") && !c.classList.contains("echo-category-hidden") && !c.classList.contains("echo-search-hidden"));
+      const next = visible[visible.indexOf(card) + step]; if (!next) return;
+      const from = cards.findIndex(p => String(p.id) === String(phrase.id));
+      const to = cards.findIndex(p => String(p.id) === next.dataset.id);
+      if (from < 0 || to < 0) return;
+      cards.splice(to, 0, cards.splice(from, 1)[0]);
+      if (!saveCustomPhrases(cards)) { alert("Не удалось сохранить порядок карточек."); return; }
+      // Move existing nodes, preserving all category/favorite handlers and focus.
+      if (step < 0) phraseGrid.insertBefore(card, next);
+      else phraseGrid.insertBefore(card, next.nextSibling);
+      document.getElementById("echoCardStatus").textContent = `Порядок изменён: ${phrase.name}`;
+      button.focus();
+    };
+    actions.append(button);
+  }
+  card.append(actions);
+  if (phrase.imageId) echoImageStore("get", phrase.imageId).then(record => {
+    if (!record || !card.isConnected) return;
+    const image = document.createElement("img"); image.alt = ""; image.className = "echo-card-image";
+    const url = URL.createObjectURL(record.blob);
+    image.onload = image.onerror = () => URL.revokeObjectURL(url);
+    image.src = url;
+    card.querySelector(".phrase-icon").replaceChildren(image);
+  }).catch(() => { /* Emoji is the offline/storage failure fallback. */ });
+}
+const echoCardStatus = document.createElement("p"); echoCardStatus.id = "echoCardStatus";
+echoCardStatus.setAttribute("role", "status"); phraseGrid.after(echoCardStatus);
+
+// Persist a pending deletion when leaving before the undo countdown expires.
+window.addEventListener("pagehide", () => { if (pendingDelete) finishDelete(); });
