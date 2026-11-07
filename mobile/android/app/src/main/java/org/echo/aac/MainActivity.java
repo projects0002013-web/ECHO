@@ -5,6 +5,9 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
+import java.util.Set;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebChromeClient;
@@ -25,11 +28,15 @@ public final class MainActivity extends Activity {
     private static final int MIC_PREFLIGHT_CODE = 402;
     private String pendingPreflightId;
     private WebView web;
+    private TextToSpeech offlineTts;
+    private volatile boolean offlineTtsReady = false;
     private PermissionRequest pendingMic;
     private WebViewAssetLoader assets;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        offlineTts = new TextToSpeech(getApplicationContext(),
+            status -> offlineTtsReady = status == TextToSpeech.SUCCESS);
         assets = new WebViewAssetLoader.Builder()
             .setDomain("appassets.androidplatform.net")
             .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -114,6 +121,54 @@ public final class MainActivity extends Activity {
                 String type = request.optString("type", "");
                 if (id.isEmpty() || id.length() > 40) return;
                 if ("cancel".equals(type)) return;
+                if ("deviceTtsStatus".equals(type) || "deviceSpeak".equals(type) || "deviceStop".equals(type)) {
+                    runOnUiThread(() -> {
+                        JSONObject answer = new JSONObject();
+                        try {
+                            if ("deviceStop".equals(type)) {
+                                if (offlineTts != null) offlineTts.stop();
+                                answer.put("stopped", true);
+                            } else if ("deviceTtsStatus".equals(type)) {
+                                answer.put("ready", offlineTtsReady && offlineTts != null);
+                                answer.put("kind", "system-offline-tts");
+                                answer.put("personalVoice", false);
+                            } else {
+                                String phrase = request.optString("text", "").trim();
+                                String lang = request.optString("language", "ru");
+                                if (phrase.isEmpty() || phrase.length() > 300 || !lang.matches("ru|en|kk|be")) {
+                                    answer.put("error", "Некорректная фраза или язык.");
+                                } else if (!offlineTtsReady || offlineTts == null) {
+                                    answer.put("error", "Озвучка Android ещё не готова.");
+                                } else {
+                                    Voice local = null;
+                                    Set<Voice> voices = offlineTts.getVoices();
+                                    if (voices != null) for (Voice candidate : voices) {
+                                        if (!candidate.isNetworkConnectionRequired() && candidate.getLocale() != null
+                                              && lang.equalsIgnoreCase(candidate.getLocale().getLanguage())) {
+                                            local = candidate;
+                                            break;
+                                        }
+                                    }
+                                    if (local == null) answer.put("error", "Нет установленного офлайн-голоса этого языка.");
+                                    else {
+                                        offlineTts.stop();
+                                        if (offlineTts.setVoice(local) != TextToSpeech.SUCCESS)
+                                            answer.put("error", "Невозможно выбрать офлайн-голос.");
+                                        else if (offlineTts.speak(phrase, TextToSpeech.QUEUE_FLUSH, null,
+                                                                 "echo-" + id) != TextToSpeech.SUCCESS)
+                                            answer.put("error", "Android не запустил озвучку.");
+                                        else { answer.put("queued", true); answer.put("personalVoice", false); }
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {
+                            try { answer.put("error", "Системная озвучка Android недоступна."); }
+                            catch (Exception ignoredAgain) {}
+                        }
+                        reply(id, answer);
+                    });
+                    return;
+                }
                 if ("microphonePermission".equals(type)) {
                     runOnUiThread(() -> {
                         try {
@@ -146,6 +201,7 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onDestroy() {
         if (pendingMic != null) { pendingMic.deny(); pendingMic = null; }
+        if (offlineTts != null) { offlineTts.stop(); offlineTts.shutdown(); offlineTts = null; }
         if (web != null) {
             web.removeJavascriptInterface("EchoAndroid");
             web.destroy();
