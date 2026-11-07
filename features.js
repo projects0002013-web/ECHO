@@ -67,6 +67,7 @@
     playing.onerror = () => { if (playing === audio) { stop(); message("Не удалось воспроизвести запись."); } };
     try { await playing.play(); }
     catch (error) {
+      if (job !== speechJob) return;
       if (playing === audio) { playing.pause(); playing.src = ""; audio = null; if (audioURL) URL.revokeObjectURL(audioURL); audioURL = null; }
       if (job === speechJob && error.name === "NotAllowedError") offerPreparedAudio(blob);
       throw new Error(error.name === "NotAllowedError" ? "Браузер заблокировал звук. Нажмите кнопку прослушивания ещё раз." : "Не удалось воспроизвести запись.");

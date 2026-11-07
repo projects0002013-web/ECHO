@@ -207,6 +207,12 @@ class VoiceBrowser(unittest.TestCase):
   p=self.page;self.settings();p.evaluate("""() => {window.closedTrack=false;navigator.mediaDevices.getUserMedia=()=>new Promise(r=>window.resolveMicrophone=()=>r({getTracks:()=>[{stop(){closedTrack=true;}}]}));}""")
   p.locator('#echoRecordStart').click();p.locator('[data-language="en"]').click()
   p.evaluate('() => resolveMicrophone()');p.wait_for_function('closedTrack');expect(p.locator('#echoRecordStop')).to_be_disabled();self.assertEqual(self.db_records(),[])
+ def test_canceled_preview_failure_cannot_replace_discard_message(self):
+  p=self.page;self.settings();self.stage()
+  p.evaluate("() => {HTMLMediaElement.prototype.play=()=>new Promise((resolve,reject)=>window.rejectPreview=()=>reject(new DOMException('cancelled','AbortError')));}")
+  p.locator('#echoDraftPlay').click();p.wait_for_function('typeof rejectPreview==="function"')
+  p.locator('#echoDraftDiscard').click();p.evaluate('() => rejectPreview()');p.wait_for_timeout(50)
+  expect(p.locator('#echoLocalVoiceStatus')).to_contain_text('Запись не сохранена')
  def test_voice_controls_keyboard_and_status_semantics(self):
   p=self.page;self.settings();p.locator('#echoVoiceSelect').focus();p.keyboard.press('ArrowDown');p.keyboard.press('Tab')
   self.assertEqual(p.locator('#echoSpeechStatus').get_attribute('role'),'status');self.assertEqual(p.locator('#echoSpeechStatus').get_attribute('aria-live'),'polite')
