@@ -1,7 +1,7 @@
 /* Local portable backups. No network calls. Recovery runs before application code. */
 (() => {
   'use strict';
-  const KEYS = ['echoCustomPhrases','echoFavorites','echoPinnedPhrases','echoUserCategories','echoCardCategories','echoCategoryState','echoSettings','echoLanguage','echoCardSize','echoTheme','echoVibration','echoSpeechMode','echoStoreHistory','echoPhraseHistory','echoPiperConfig'];
+  const KEYS = ['echoCustomPhrases','echoFavorites','echoPinnedPhrases','echoUserCategories','echoCardCategories','echoCategoryState','echoSettings','echoLanguage','echoCardSize','echoTheme','echoVibration','echoSpeechMode','echoStoreHistory','echoPhraseHistory','echoPiperConfig','echoSimpleMode'];
   const LIMIT = 100 * 1024 * 1024;
   const specs = {'echo-card-images':{images:'id'},'echo-local-voice':{audio:'key',cache:'key'},'echo-backup-journal':{state:'key'}};
   let busy=false, permitted=false, supported=false, claimed=false, halted=false;
@@ -56,7 +56,7 @@
     if(settings.language!==undefined&&!['ru-RU','kk-KZ','en-US','be-BY'].includes(settings.language))fail('Неизвестный язык.');
     if(settings.voiceName!==undefined&&!text(settings.voiceName,500))fail('Некорректный голос.');
     if(settings.voiceNames!==undefined&&(!record(settings.voiceNames)||Object.entries(settings.voiceNames).some(([k,v])=>!['ru','kk','en','be'].includes(k)||!text(v,500))))fail('Некорректные предпочтения.');
-    for(const [k,values]of Object.entries({echoLanguage:['ru','kk','en','be'],echoTheme:['light','dark','system'],echoCardSize:['small','medium','large'],echoVibration:['true','false'],echoSpeechMode:['device','recordings','personal'],echoStoreHistory:['true','false']}))if(local[k]!=null&&!values.includes(local[k]))fail('Неизвестное значение настройки.');
+    for(const [k,values]of Object.entries({echoLanguage:['ru','kk','en','be'],echoTheme:['light','dark','system','contrast'],echoCardSize:['small','medium','large'],echoSimpleMode:['true','false'],echoVibration:['true','false'],echoSpeechMode:['device','recordings','personal'],echoStoreHistory:['true','false']}))if(local[k]!=null&&!values.includes(local[k]))fail('Неизвестное значение настройки.');
     const history=json(local,'echoPhraseHistory',[]);if(!Array.isArray(history)||history.length>100||history.some(h=>!record(h)||!text(h.text)||!Number.isFinite(h.time)))fail('Повреждённая история.');
     const piper=json(local,'echoPiperConfig',{});if(!record(piper)||Object.keys(piper).some(k=>!['enabled','url','voice'].includes(k)))fail('Некорректный Piper.');
     if(piper.url){const u=new URL(piper.url);if(!['localhost','127.0.0.1'].includes(u.hostname)||!['http:','https:'].includes(u.protocol)||u.username||u.password)fail('Piper должен быть локальным.');}
@@ -113,7 +113,7 @@
     $('echoBackupApply').onclick=()=>{if(incoming&&confirm('Восстановить данные выбранным способом? Текущие данные могут быть заменены.'))progress(()=>restore(incoming,$('echoBackupMode').value));};
   }
   async function start(){try{localStorage.getItem('echoSettings');const test='__echo_backup_test__';localStorage.setItem(test,'1');localStorage.removeItem(test);const before=await journal();if(before){block(true);await apply(before);await journal(null);block(false);}
-    for(const file of ['script.js','features.js'])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=file;s.onload=resolve;s.onerror=()=>reject(new Error('Не удалось загрузить '+file));document.body.append(s);});ui();document.querySelector('.app').inert=false;}
+    for(const file of ['script.js','features.js','accessibility.js'])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=file;s.onload=resolve;s.onerror=()=>reject(new Error('Не удалось загрузить '+file));document.body.append(s);});ui();document.querySelector('.app').inert=false;}
     catch(e){block(true);fatal('ECHO не запущено: '+e.message+' Сохранённые данные и журнал не удалены.');}}
   window.echoBackup={exportFile,parseFile,restore};
   document.querySelector('.app').inert=true;

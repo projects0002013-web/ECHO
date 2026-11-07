@@ -172,3 +172,55 @@
 
 #echoDataPanel button { min-height:44px; padding:10px; border:1px solid var(--border); border-radius:12px; background:var(--surface2); color:var(--text); margin:6px 0; }
 #echoRecovery button { min-height:44px; }
+
+/* UI 2.0: calm surfaces, readable labels, measurable bottom safe space. */
+:root { --muted:#4b685e; --primary:#066e58; --primary2:#066e58; }
+body.dark-theme { --muted:#c4d8d2; --primary:#167d65; --primary2:#81f2cf; }
+body.contrast-theme { --bg:#000; --surface:#000; --surface2:#161616; --text:#fff; --muted:#fff; --primary:#ffdf00; --primary2:#ffdf00; --border:#fff; --danger:#ffb5be; color-scheme:dark; }
+body { background:var(--bg); color:var(--text); }
+.app { padding-bottom:calc(var(--echo-nav-height,140px) + var(--echo-dock-height,56px) + 32px) !important; }
+html { scroll-padding-bottom:calc(var(--echo-nav-height,140px) + var(--echo-dock-height,56px) + 24px); }
+button, input, select, textarea { font:inherit; }
+.voice-settings-panel button,.theme-settings-panel button,.language-panel button,.vibration-settings-panel button,.card-size-panel button { min-height:44px; }
+.bottom-nav { bottom:0 !important; border-top:2px solid var(--border); background:var(--surface) !important; }
+.bottom-nav .nav-item small { font-size:13px !important; line-height:1.35 !important; }
+.bottom-nav .nav-item { min-height:56px !important; }
+.bottom-nav .echo-sos-nav { border:2px solid var(--danger); border-radius:12px; }
+.echo-action-dock { position:fixed; z-index:90; left:50%; transform:translateX(-50%); bottom:var(--echo-nav-height,140px); width:min(100%,920px); display:flex; gap:10px; padding:8px 12px; background:var(--surface); border-top:1px solid var(--border); }
+.echo-action-dock button { flex:1; min-width:0; min-height:48px; border:2px solid var(--primary); background:var(--surface); color:var(--text); border-radius:12px; font-weight:800; }
+.echo-keyboard-open .bottom-nav,.echo-keyboard-open .echo-action-dock { display:none !important; }
+.echo-skip-link { position:fixed; top:8px; left:8px; z-index:10000; padding:12px; background:var(--surface); color:var(--text); transform:translateY(-200%); }
+.echo-skip-link:focus { transform:none; }
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible { outline:3px solid var(--primary2) !important; outline-offset:3px; }
+.phrase-card { box-shadow:0 4px 16px rgb(0 0 0 / 5%); }
+.phrase-card:hover { transform:none; }
+.simple-mode .phrase-grid { grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:20px !important; }
+.simple-mode .phrase-card { min-height:220px !important; padding:20px !important; }
+.simple-mode .phrase-name { font-size:24px !important; }
+.simple-mode .phrase-text { font-size:17px !important; }
+.simple-mode .phrase-card .favorite-star,.simple-mode .phrase-card .edit-card,.simple-mode .phrase-card .delete-card,.simple-mode .phrase-card .echo-move-card,.simple-mode .phrase-card .echo-pin-button,.simple-mode .echo-order-actions { display:none !important; }
+.simple-mode .bottom-nav { grid-template-columns:repeat(4,minmax(0,1fr)) !important; }
+.simple-mode .bottom-nav .echo-history-nav,.simple-mode .bottom-nav .echo-quick-nav,.simple-mode .bottom-nav .add-button { display:none !important; }
+.simple-mode[data-echo-section="settings"] .voice-settings-panel,.simple-mode[data-echo-section="settings"] .vibration-settings-panel,.simple-mode[data-echo-section="settings"] #echoDataPanel,.simple-mode[data-echo-section="settings"] .vibration-settings-panel + .echo-local-panel { display:none !important; }
+.contrast-theme .phrase-card,.contrast-theme .echo-local-panel,.contrast-theme .bottom-nav,.contrast-theme .echo-action-dock { border:2px solid #fff; box-shadow:none; }
+.contrast-theme button,.contrast-theme input,.contrast-theme select,.contrast-theme textarea,.contrast-theme .echo-piper-panel,.contrast-theme .echo-sos-panel { background:var(--surface2) !important; color:#fff !important; border-color:#fff !important; }
+.contrast-theme button[aria-pressed="true"],.contrast-theme .nav-item.active { background:#ffdf00 !important; color:#000 !important; border:3px double #000 !important; text-decoration:underline; }
+.contrast-theme p,.contrast-theme label,.contrast-theme small,.contrast-theme h3,.contrast-theme #echoSpeechStatus { color:#fff !important; }
+@media(max-width:600px) { .bottom-nav { grid-template-columns:repeat(4,minmax(0,1fr)) !important; } .simple-mode .phrase-grid { grid-template-columns:1fr !important; } }
+@media(max-height:500px) and (orientation:landscape) { .bottom-nav { grid-template-columns:repeat(7,minmax(0,1fr)) !important; } .simple-mode .bottom-nav { grid-template-columns:repeat(4,minmax(0,1fr)) !important; } }
+@media(prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; } }
+
+body.dark-theme { --primary:#81f2cf; }
+.dark-theme #echoSentenceSpeak,.dark-theme #echoRecordStart,.dark-theme .save-phrase { background:var(--primary); color:#071c15; }
+.bottom-nav .nav-item { opacity:1 !important; color:var(--text) !important; }
+.bottom-nav .nav-item > span,.bottom-nav .nav-item > small { opacity:1 !important; color:inherit !important; }
+.bottom-nav .nav-item > span:not(:first-child) { font-size:13px !important; }
+.bottom-nav .nav-item[aria-current="page"] { text-decoration:underline; border-bottom:3px solid var(--primary); }
+.contrast-theme .bottom-nav .nav-item.active { color:#000 !important; }
+.simple-mode[data-echo-section="settings"] .echo-privacy-panel { display:none !important; }
+button[aria-pressed="true"] { text-decoration:underline; }
+.dark-theme button[aria-pressed="true"] { background:var(--primary) !important; color:#071c15 !important; }
+.dark-theme button[aria-pressed="true"] > span { color:inherit !important; }
+body,button,a,input,select,textarea,.bottom-nav,.phrase-card,.echo-local-panel { transition:none !important; }
+.bottom-nav { padding-left:max(5px,env(safe-area-inset-left)) !important; padding-right:max(5px,env(safe-area-inset-right)) !important; }
+.echo-action-dock { padding-left:max(12px,env(safe-area-inset-left)); padding-right:max(12px,env(safe-area-inset-right)); }

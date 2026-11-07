@@ -1448,7 +1448,8 @@ if (sizePanel.isConnected) {
 // ==========================================
 
 function applyEchoTheme(theme) {
-  const selected = theme === "dark" ? "dark" : "light";
+  const selected = ["light", "dark", "contrast"].includes(theme) ? theme : "light";
+  document.body.classList.toggle("contrast-theme", selected === "contrast");
 
   document.body.classList.toggle(
     "dark-theme",

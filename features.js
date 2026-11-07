@@ -440,7 +440,7 @@
   renderRecordings().then(() => { if (sample) voiceMessage(`Образец сохранён · ${sample.duration.toFixed(1)} с. Данные остаются на этом устройстве.`); }).catch(e => voiceMessage(errorText(e)));
 
   const privacy = document.createElement("section");
-  privacy.className = "echo-local-panel";
+  privacy.className = "echo-local-panel echo-privacy-panel";
   privacy.innerHTML = `<h3>🔒 Данные и офлайн-работа</h3>
     <p>Карточки, настройки и записи остаются в браузере на этом устройстве. Сервер обрабатывает образец в памяти и временном файле, затем удаляет файл. Удаление данных браузера удалит и записи.</p>
     <label class="echo-history-choice"><input type="checkbox" id="echoStoreHistory"> Сохранять историю сообщений на этом устройстве</label>
@@ -488,6 +488,7 @@
   }
   function route(section) {
     activeSection = section;
+    document.body.dataset.echoSection = section;
     if (recorder && section !== "settings") {
       finishRecording(false).then(() => voiceMessage("Запись отменена при выходе из настроек. Микрофон выключен."));
     }

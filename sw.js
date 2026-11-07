@@ -1,5 +1,5 @@
-const CACHE_NAME = "echo-v11-backup";
-const ASSETS = ["./backup.js", "./index.html", "./style.css", "./script.js", "./features.css", "./features.js",
+const CACHE_NAME = "echo-v12-accessibility";
+const ASSETS = ["./accessibility.js", "./backup.js", "./index.html", "./style.css", "./script.js", "./features.css", "./features.js",
   "./recorder-worklet.js", "./manifest.json", "./icon-192.png", "./icon-512.png", "./cover.png",
   "./fonts/nunito-cyrillic-wght-normal.woff2", "./fonts/nunito-cyrillic-ext-wght-normal.woff2",
   "./fonts/nunito-latin-wght-normal.woff2", "./fonts/nunito-latin-ext-wght-normal.woff2",
