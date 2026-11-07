@@ -129,6 +129,7 @@ function echoBrowserStop() {
     echoBrowserUtterance = null;
   }
   if ("speechSynthesis" in window) speechSynthesis.cancel();
+  if (window.echoNativeVoice?.stopDevice) window.echoNativeVoice.stopDevice().catch(() => {});
 }
 loadVoices();
 if ("speechSynthesis" in window) speechSynthesis.addEventListener("voiceschanged", loadVoices);
@@ -221,9 +222,20 @@ function speak(text) {
     echoBrowserSpeak(text.trim());
   }
 }
-function echoBrowserSpeak(text) {
+function echoBrowserSpeak(text, skipNative = false) {
   if (typeof text !== "string" || !text.trim()) return;
   echoBrowserStop();
+  // Android native system TTS is ordinary speech, not personalized voice cloning.
+  if (!skipNative && window.echoNativeVoice?.speakDevice) {
+    const job = echoBrowserJob;
+    const language = String(echoSettings.language || "ru").split("-")[0].toLowerCase();
+    window.echoNativeVoice.speakDevice(text.trim(), language).then(() => {
+      if (job === echoBrowserJob) window.echoSpeechNotice?.("Озвучка через офлайн-голос Android");
+    }).catch(() => {
+      if (job === echoBrowserJob) echoBrowserSpeak(text, true);
+    });
+    return;
+  }
   if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
     window.echoSpeechNotice?.("На этом устройстве системная озвучка недоступна. Выберите сохранённые записи.");
     window.echoOfferVoiceFallback?.(); return;
