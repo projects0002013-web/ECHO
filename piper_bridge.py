@@ -57,7 +57,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(len(content)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get("Origin")
+        if origin and self.allowed_origin():
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Cache-Control", "no-store")
@@ -67,16 +70,38 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def allowed_origin(self):
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True
+        parsed = urlparse(origin)
+        return parsed.scheme in {"http", "https"} and parsed.hostname in {"localhost", "127.0.0.1"} and not parsed.username and not parsed.password
+
+    def allowed_request(self):
+        return self.headers.get("Host") in {f"localhost:{self.server.server_port}", f"127.0.0.1:{self.server.server_port}"} and self.allowed_origin()
+
+    def log_message(self, fmt, *args):
+        # Do not retain communication text or personal request details.
+        pass
+
     def do_OPTIONS(self):
+        if not self.allowed_request():
+            return self.respond(403, b"Open ECHO on localhost to use Piper", "text/plain")
         self.respond(204, b"", "text/plain")
 
     def do_GET(self):
+        if not self.allowed_request():
+            return self.respond(403, b"Invalid host or origin", "text/plain")
         if urlparse(self.path).path == "/api/voices":
             self.respond(200, json.dumps(voices(), ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8")
         else:
             self.respond(404, b"Not found", "text/plain")
 
     def do_POST(self):
+        if not self.allowed_request():
+            return self.respond(403, b"Invalid host or origin", "text/plain")
+        if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
+            return self.respond(415, b"Expected application/json", "text/plain")
         if urlparse(self.path).path != "/api/tts":
             return self.respond(404, b"Not found", "text/plain")
         try:
@@ -99,9 +124,8 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(200, audio, "audio/wav")
         except (ValueError, json.JSONDecodeError) as exc:
             self.respond(400, str(exc).encode("utf-8"), "text/plain; charset=utf-8")
-        except Exception as exc:
-            logging.exception("Piper synthesis failed")
-            self.respond(503, ("Piper unavailable: " + str(exc)).encode("utf-8"), "text/plain; charset=utf-8")
+        except Exception:
+            self.respond(503, b"Piper unavailable. Check local models and dependencies.", "text/plain; charset=utf-8")
 
 
 if __name__ == "__main__":
