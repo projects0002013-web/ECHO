@@ -16,6 +16,8 @@ on:
     paths:
       - 'mobile/**'
       - 'mobile-voice.js'
+      - 'features.js'
+      - 'script.js'
       - 'index.html'
       - '.github/workflows/android-debug.yml'
   workflow_dispatch:
@@ -36,6 +38,11 @@ jobs:
       - name: Package offline assets
         shell: pwsh
         run: ./mobile/package-web.ps1
+      - name: Verify packaged JavaScript syntax
+        run: |
+          for file in mobile/android/app/src/main/assets/www/{script,features,mobile-voice,i18n,accessibility,backup,recorder-worklet}.js; do
+            node --check "$file"
+          done
       - name: Install Android SDK 35
         run: |
           SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
