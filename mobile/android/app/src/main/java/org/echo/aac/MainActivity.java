@@ -2,6 +2,8 @@ package org.echo.aac;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -166,6 +168,30 @@ public final class MainActivity extends Activity {
                             catch (Exception ignoredAgain) {}
                         }
                         reply(id, answer);
+                    });
+                    return;
+                }
+                if ("deviceCapabilities".equals(type)) {
+                    runOnUiThread(() -> {
+                        JSONObject result = new JSONObject();
+                        try {
+                            ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+                            if (manager == null) throw new IllegalStateException("No memory service");
+                            ActivityManager.MemoryInfo info = new ActivityManager.MemoryInfo();
+                            manager.getMemoryInfo(info);
+                            result.put("platform", "android");
+                            result.put("androidApi", Build.VERSION.SDK_INT);
+                            result.put("ramTotalMiB", info.totalMem / (1024L * 1024L));
+                            result.put("ramAvailableMiB", info.availMem / (1024L * 1024L));
+                            result.put("ramLow", info.lowMemory);
+                            result.put("is64BitRuntime", android.os.Process.is64Bit());
+                            result.put("inferenceInstalled", false);
+                            result.put("modelCompatible", false);
+                        } catch (Exception error) {
+                            try { result.put("error", "Нет доступа к показателям оперативной памяти."); }
+                            catch (Exception ignored) {}
+                        }
+                        reply(id, result);
                     });
                     return;
                 }
