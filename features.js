@@ -83,7 +83,7 @@
     const digest = await crypto.subtle.digest("SHA-256", await blob.arrayBuffer());
     return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, "0")).join("");
   }
-  async function personal(text, job) {
+  async function personal(text, job, { autoplay = true, fresh = false } = {}) {
     if (!sample) throw new Error("Сначала запишите образец своего голоса в настройках.");
     if (!["ru", "en"].includes(echoCurrentLanguage)) throw new Error("Персональный голос доступен для русского и английского. Для этого языка выберите голос устройства.");
     const reference = sample, language = echoCurrentLanguage, epoch = audioEpoch;
@@ -91,7 +91,11 @@
     const key = `${reference.id}:${language}:${normalized(text)}`;
     const saved = await db("cache", "get", key);
     if (job !== speechJob) return;
-    if (saved) { message("Персональный голос · сохранённая фраза"); return play(saved.blob, job); }
+    if (saved && !fresh) {
+      message("Персональный голос · сохранённая фраза");
+      if (autoplay) await play(saved.blob, job);
+      return { blob: saved.blob, language, sampleId: reference.id };
+    }
     if (!["localhost", "127.0.0.1"].includes(location.hostname)) {
       throw new Error("Откройте ECHO на localhost на своём компьютере для локального ИИ. Образец не будет отправлен на сайт.");
     }
@@ -110,6 +114,10 @@
       }
       const blob = await response.blob();
       if (job !== speechJob) return;
+      if (!autoplay) {
+        const header = new TextDecoder('ascii').decode(await blob.slice(0, 12).arrayBuffer());
+        if (blob.size <= 44 || !header.startsWith('RIFF') || header.slice(8) !== 'WAVE') throw new Error("Локальный ИИ вернул некорректный WAV. Проверьте сервер.");
+      }
       // Keep at most 50 generated phrases on this device.
       const cached = (await db("cache", "getAll")).sort((a, b) => a.time - b.time);
       for (const item of cached.slice(0, Math.max(0, cached.length - 49))) await db("cache", "delete", item.key, current);
@@ -117,8 +125,9 @@
       try { await db("cache", "put", { key, blob, time: Date.now() }, current); }
       catch (_) { if (!current()) return; cacheWarning = true; }
       if (!current()) return;
-      await play(blob, job);
-      if (job === speechJob) message("Произношу персональным голосом" + (cacheWarning ? " · не сохранено офлайн: проверьте свободное место" : ""));
+      if (autoplay) await play(blob, job);
+      if (job === speechJob) message((autoplay ? "Произношу персональным голосом" : "Новый WAV создан локальным ИИ. Нажмите «Прослушать результат».") + (cacheWarning ? " · не сохранено офлайн: проверьте свободное место" : ""));
+      return { blob, language, sampleId: reference.id, cacheWarning };
     } finally { clearTimeout(timeout); }
   }
   window.echoLocalSpeech = text => {
@@ -206,6 +215,7 @@
       recordOperation++; if (recorder) finishRecording(false); if (draft) discardDraft();
       voiceMessage("Запись отменена при смене языка. Начните новую запись на выбранном языке.");
     }
+    if (typeof cancelStudio === "function") { cancelStudio(); clearStudioResult(); studioStatus("Сохраните образец, затем введите новый текст."); }
     stop(); message("Озвучка остановлена"); oldLanguage(language); renderWords(); updateTargets(); renderEchoHistory();
   };
   renderWords();
@@ -214,7 +224,7 @@
 
   const panel = document.createElement("section");
   panel.id = "echoLocalVoicePanel"; panel.className = "echo-local-panel";
-  panel.innerHTML = `<h3>🎙️ Мой голос и записи близких</h3>
+  panel.innerHTML = `<h3 id="echoStudioTitle" tabindex="-1">Мой голос</h3><button type="button" id="echoOpenStudio">Открыть студию голоса</button><button type="button" id="echoStudioBack" hidden>Назад к фразам</button>
     <p>Записи хранятся в этом браузере. Персональный голос создаёт новые фразы по вашему образцу на локальном компьютере — аудио не отправляется в облако.</p>
     <label for="echoSpeechMode">Как произносить сообщения</label><select id="echoSpeechMode"><option value="device">Голос устройства / Piper</option><option value="recordings">Записи фраз · иначе голос устройства</option><option value="personal">Мой персональный голос · локальный ИИ</option></select>
     <p>Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. Новая генерация ИИ требует локального компьютера; на телефоне доступны записи и голоса устройства.</p>
@@ -229,8 +239,67 @@
     <span id="echoRecordTimer" role="timer">00:00</span><p id="echoLocalVoiceStatus" role="status" aria-live="polite">Образец голоса пока не записан.</p>
     <div class="echo-local-actions"><button type="button" id="echoEngineCheck">Проверить локальный ИИ</button><button type="button" id="echoSampleDelete">Удалить образец и созданные фразы</button></div>
     <p class="echo-local-note">Образец позволяет приблизить тембр, но сходство не гарантируется. Создание новой фразы требует локальной модели; уже созданные фразы и записи работают офлайн. Русский и английский поддерживаются; казахский и белорусский используют голос устройства.</p>
+    <section class="echo-studio-compose" aria-labelledby="echoStudioComposeTitle">
+      <h4 id="echoStudioComposeTitle">Новая фраза моим голосом</h4>
+      <label for="echoStudioText">Текст для ИИ-синтеза</label><textarea id="echoStudioText" rows="3" maxlength="300" placeholder="Введите новый текст"></textarea>
+      <label class="echo-history-choice"><input type="checkbox" id="echoStudioConsent"> Я использую свой голос и разрешаю его локальный ИИ-синтез.</label>
+      <div class="echo-local-actions"><button type="button" id="echoStudioGenerate">Синтезировать</button><button type="button" id="echoStudioStop">Остановить</button></div>
+      <p id="echoStudioStatus" role="status" aria-live="polite">Сохраните образец, затем введите новый текст.</p>
+      <div id="echoStudioResult" hidden><p id="echoStudioResultText" data-no-i18n></p><div class="echo-local-actions"><button type="button" id="echoStudioPlay">Прослушать результат</button><button type="button" id="echoStudioDelete">Удалить результат</button></div></div>
+      <button type="button" id="echoStudioUse">Использовать для карточек</button>
+      <details id="echoStudioSetup"><summary>Установка локального ИИ</summary><p>На своём компьютере выполните команды в папке ECHO. Установка скачивает модель; синтез работает локально. Откройте http://127.0.0.1:8000.</p><pre><code>bash scripts/setup.sh --voice
+.voice-venv/bin/python echo_server.py</code></pre><p>Новые фразы ИИ доступны на русском и английском. Для других языков используйте записи или голос устройства.</p></details>
+    </section>
     <h4>Записанные фразы</h4><div id="echoRecordingsList"></div>`;
   voicePanel.prepend(panel);
+  const voiceEntry = document.createElement("button");
+  voiceEntry.type = "button"; voiceEntry.id = "echoVoiceStudioNav"; voiceEntry.className = "echo-voice-entry"; voiceEntry.textContent = "Мой голос";
+  document.querySelector(".header").insertBefore(voiceEntry, document.querySelector(".settings-btn"));
+  voiceEntry.onclick = $("echoOpenStudio").onclick = () => { route("voice"); $("echoStudioTitle").focus(); };
+  $("echoStudioBack").onclick = () => { route("phrases"); voiceEntry.focus(); };
+  let studioResult = null, studioOperation = 0;
+  const studioStatus = text => { $("echoStudioStatus").textContent = text; };
+  function clearStudioResult() { studioResult = null; $("echoStudioResult").hidden = true; }
+  function cancelStudio() { studioOperation++; stop(); $("echoStudioGenerate").disabled = false; $("echoStudioText").removeAttribute("aria-busy"); }
+  $("echoStudioStop").onclick = () => { cancelStudio(); studioStatus("Синтез и воспроизведение остановлены."); };
+  $("echoStudioGenerate").onclick = async () => {
+    if (recorder || draft) { studioStatus("Сначала завершите и сохраните запись образца."); return; }
+    const text = $("echoStudioText").value.trim();
+    if (!text) { studioStatus("Введите текст для синтеза."); $("echoStudioText").focus(); return; }
+    if (!$("echoStudioConsent").checked) { studioStatus("Подтвердите разрешение на использование своего голоса."); return; }
+    cancelStudio(); clearStudioResult(); const operation = studioOperation, job = speechJob;
+    $("echoStudioGenerate").disabled = true; $("echoStudioText").setAttribute("aria-busy", "true");
+    studioStatus("Создаю новый WAV локальным ИИ…");
+    try {
+      const result = await personal(text, job, { autoplay: false, fresh: true });
+      if (operation !== studioOperation || job !== speechJob || !result) return;
+      studioResult = { ...result, text }; $("echoStudioResultText").textContent = text;
+      $("echoStudioResult").hidden = false;
+      studioStatus("Новый WAV создан локальным ИИ. Нажмите «Прослушать результат»." + (result.cacheWarning ? " · не сохранено офлайн: проверьте свободное место" : ""));
+    } catch (error) {
+      if (operation !== studioOperation || job !== speechJob) return;
+      studioStatus(error.name === "AbortError" ? "Время ожидания истекло. Повторите после загрузки модели." : error instanceof TypeError ? "Не удалось связаться с локальным ИИ. Запустите сервер по инструкции ниже." : errorText(error));
+      $("echoStudioSetup").open = true;
+    } finally {
+      if (operation === studioOperation) { $("echoStudioGenerate").disabled = false; $("echoStudioText").removeAttribute("aria-busy"); if (job !== speechJob) studioStatus("Синтез и воспроизведение остановлены."); }
+    }
+  };
+  $("echoStudioPlay").onclick = async () => {
+    if (!studioResult) return;
+    stop(); const job = speechJob;
+    try { await play(studioResult.blob, job); if (job === speechJob) studioStatus("Проигрываю результат ИИ-синтеза."); }
+    catch (error) { if (job === speechJob) studioStatus(errorText(error)); }
+  };
+  $("echoStudioDelete").onclick = async () => {
+    const result = studioResult; if (!result) return;
+    cancelStudio();
+    try { await db("cache", "delete", `${result.sampleId}:${result.language}:${normalized(result.text)}`); clearStudioResult(); studioStatus("Результат удалён. Образец голоса сохранён."); }
+    catch (error) { studioStatus(errorText(error)); }
+  };
+  $("echoStudioUse").onclick = () => {
+    if (!sample) { studioStatus("Сначала запишите образец своего голоса в настройках."); return; }
+    if (setMode("personal")) { studioStatus("Персональный голос выбран для карточек."); message("Источник голоса изменён. Нажмите фразу для воспроизведения."); }
+  };
   $("echoSpeechMode").value = mode;
   $("echoSpeechMode").onchange = () => {
     const next = $("echoSpeechMode").value;
@@ -298,7 +367,7 @@
       if (!current()) return;
       // Cache keys include the sample hash, so replacing a sample never reuses its old voice.
       if (pending.entry.key === "sample") {
-        sample = pending.entry;
+        sample = pending.entry; clearStudioResult();
         try { await db("cache", "clear", undefined, current); }
         catch (_) { cacheCleanupFailed = true; }
       }
@@ -415,7 +484,7 @@
   $("echoSampleDelete").onclick = async () => {
     if (!confirm("Удалить образец голоса и все созданные этим голосом фразы? Записи отдельных фраз сохранятся.")) return;
     try {
-      audioEpoch++; recordOperation++; discardDraft();
+      cancelStudio(); clearStudioResult(); audioEpoch++; recordOperation++; discardDraft();
       stop(); await db("audio", "delete", "sample"); await db("cache", "clear"); sample = null;
       mode = "device"; $("echoSpeechMode").value = mode; localStorage.setItem("echoSpeechMode", mode);
       await renderRecordings(); voiceMessage("Образец и созданные фразы удалены с этого устройства.");
@@ -459,7 +528,7 @@
   };
   $("echoDeleteAllAudio").onclick = async () => {
     if (!confirm("Удалить все записи, образец голоса и созданные фразы с этого устройства? Карточки и настройки сохранятся.")) return;
-    try { audioEpoch++; recordOperation++; discardDraft(); await finishRecording(false); stop(); await db("audio", "clear"); await db("cache", "clear"); sample = null; mode = "device";
+    try { cancelStudio(); clearStudioResult(); audioEpoch++; recordOperation++; discardDraft(); await finishRecording(false); stop(); await db("audio", "clear"); await db("cache", "clear"); sample = null; mode = "device";
       $("echoSpeechMode").value = mode; localStorage.setItem("echoSpeechMode", mode);
       await renderRecordings(); voiceMessage("Все голосовые данные удалены."); }
     catch (e) { voiceMessage(errorText(e)); }
@@ -487,12 +556,18 @@
   function route(section) {
     activeSection = section;
     document.body.dataset.echoSection = section;
-    if (recorder && section !== "settings") {
+    const voiceScreen = section === "settings" || section === "voice";
+    if (!voiceScreen) cancelStudio();
+    if (recorder && !voiceScreen) {
       finishRecording(false).then(() => voiceMessage("Запись отменена при выходе из настроек. Микрофон выключен."));
     }
-    if (section !== "settings") { recordOperation++; if (draft) discardDraft(); if (!recorder) recordingUI(false); }
+    if (!voiceScreen) { recordOperation++; if (draft) discardDraft(); if (!recorder) recordingUI(false); }
     const settings = section === "settings", cards = section === "phrases" || section === "favorites";
     [sizePanel, themePanel, voicePanel, languagePanel, vibrationPanel].forEach(p => { p.hidden = !settings; });
+    if (section === "voice") { document.querySelector("main").prepend(panel); panel.hidden = false; }
+    else { voicePanel.prepend(panel); panel.hidden = false; }
+    $("echoStudioBack").hidden = section !== "voice"; $("echoOpenStudio").hidden = section === "voice";
+    voiceEntry.setAttribute("aria-current", section === "voice" ? "page" : "false");
     privacy.hidden = !settings;
     const dataPanel = document.getElementById("echoDataPanel"); if (dataPanel) dataPanel.hidden = !settings;
     phraseGrid.hidden = !cards; echoSearchPanel.hidden = !cards; echoCategoryPanel.hidden = !cards;
