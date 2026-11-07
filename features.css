@@ -162,3 +162,10 @@
 .echo-user-category-group { display:inline-flex; align-items:center; gap:4px; flex-shrink:0; }
 .echo-user-category-group > .echo-category-delete-btn { width:44px; min-height:44px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:#b42318; font:inherit; cursor:pointer; }
 .dark-theme .echo-user-category-group > .echo-category-delete-btn { color:#ffb4ab; }
+
+#echoVoiceConsent { width:22px; min-height:22px; height:22px; margin-right:8px; vertical-align:middle; }
+#echoAudioDraft { border:1px solid var(--border); border-radius:13px; padding:12px; margin-top:14px; }
+#echoVoiceFallback { flex-basis:100%; }
+#echoVoiceFallback span { display:block; margin-bottom:8px; }
+
+.voice-settings-panel .voice-test-button { min-height:44px; }

@@ -41,8 +41,11 @@ function saveSettings() {
       "echoSettings",
       JSON.stringify(echoSettings)
     );
+    return true;
   } catch (error) {
     console.warn("ECHO: настройки не сохранены", error);
+    window.echoSpeechNotice?.("Настройки голоса не сохранены: проверьте свободное место.");
+    return false;
   }
 }
 
@@ -68,7 +71,8 @@ const echoLanguages = {
   en: {
     label: "English",
     speech: "en-US"
-  }
+  },
+  be: { label: "Беларуская", speech: "be-BY" }
 };
 
 const echoLanguageKey = "echoLanguage";
@@ -95,54 +99,46 @@ try {
 
 echoSettings.language =
   echoLanguages[echoCurrentLanguage].speech;
+if (!echoSettings.voiceNames || typeof echoSettings.voiceNames !== "object" || Array.isArray(echoSettings.voiceNames)) echoSettings.voiceNames = {};
+if (!Object.hasOwn(echoSettings.voiceNames, echoCurrentLanguage)) echoSettings.voiceNames[echoCurrentLanguage] = String(echoSettings.voiceName || "");
+
 
 // ==========================================
 // 3. ЗАГРУЗКА ГОЛОСОВ
 // ==========================================
 
+// Browser voices remain local: no text is sent to a remote speech provider.
 let currentVoice = null;
-
+let echoBrowserJob = 0, echoBrowserUtterance = null, echoBrowserTimer = null;
+function echoDeviceVoices() {
+  if (!("speechSynthesis" in window)) return [];
+  const code = String(echoSettings.language || "ru-RU").toLowerCase().split("-")[0];
+  return speechSynthesis.getVoices().filter(voice => voice.localService &&
+    String(voice.lang).toLowerCase().split("-")[0] === code);
+}
 function loadVoices() {
-  currentVoice = null;
-  if (!("speechSynthesis" in window)) return;
-  const language = String(echoSettings.language || "ru-RU").toLowerCase();
-  const code = language.split("-")[0];
-  const voices = speechSynthesis.getVoices().filter(voice =>
-    voice.localService && voice.lang.toLowerCase().split("-")[0] === code
-  );
-  currentVoice = voices.find(voice =>
-    voice.name === echoSettings.voiceName
-  ) || voices.find(voice =>
-    voice.lang.toLowerCase() === language
-  ) || voices[0] || null;
+  const voices = echoDeviceVoices();
+  currentVoice = voices.find(voice => voice.name === echoSettings.voiceName) ||
+    voices.find(voice => voice.lang.toLowerCase() === echoSettings.language.toLowerCase()) || voices[0] || null;
 }
-
+function echoBrowserStop() {
+  ++echoBrowserJob;
+  clearTimeout(echoBrowserTimer); echoBrowserTimer = null;
+  if (echoBrowserUtterance) {
+    echoBrowserUtterance.onstart = echoBrowserUtterance.onend = echoBrowserUtterance.onerror = null;
+    echoBrowserUtterance = null;
+  }
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+}
 loadVoices();
-
-if ("speechSynthesis" in window) {
-  speechSynthesis.addEventListener(
-    "voiceschanged",
-    loadVoices
-  );
-}
-
-// ==========================================
-// 4. ПРИМЕНЕНИЕ НАСТРОЕК ГОЛОСА
-// ==========================================
-
+if ("speechSynthesis" in window) speechSynthesis.addEventListener("voiceschanged", loadVoices);
 function applyVoiceSettings(message) {
-  if (!message) return;
-
   message.lang = echoSettings.language;
   message.rate = Number(echoSettings.rate ?? 0.9);
   message.pitch = Number(echoSettings.pitch ?? 1);
   message.volume = Number(echoSettings.volume ?? 1);
-
   loadVoices();
-
-  if (currentVoice) {
-    message.voice = currentVoice;
-  }
+  if (currentVoice) message.voice = currentVoice;
 }
 
 // ==========================================
@@ -153,12 +149,12 @@ function applyVoiceSettings(message) {
 const echoPiperConfigKey = "echoPiperConfig";
 let echoPiperConfig = { enabled: false, url: "http://127.0.0.1:8765", voice: "" };
 try { Object.assign(echoPiperConfig, JSON.parse(localStorage.getItem(echoPiperConfigKey) || "{}")); } catch (_) {}
-let echoPiperAudio = null;
+let echoPiperAudio = null, echoPiperURLObject = null;
 let echoPiperController = null;
 let echoPiperRequest = 0;
 function echoPiperSave() {
-  try { localStorage.setItem(echoPiperConfigKey, JSON.stringify(echoPiperConfig)); }
-  catch (_) { window.echoSpeechNotice?.("Не удалось сохранить настройки Piper."); }
+  try { localStorage.setItem(echoPiperConfigKey, JSON.stringify(echoPiperConfig)); return true; }
+  catch (_) { window.echoSpeechNotice?.("Не удалось сохранить настройки Piper."); return false; }
 }
 function echoPiperURL() {
   const url = new URL(echoPiperConfig.url);
@@ -169,35 +165,47 @@ function echoPiperURL() {
 }
 function echoPiperStop() {
   ++echoPiperRequest;
-  if (echoPiperController) echoPiperController.abort();
-  echoPiperController = null;
+  echoPiperController?.abort(); echoPiperController = null;
   if (echoPiperAudio) { echoPiperAudio.pause(); echoPiperAudio.src = ""; echoPiperAudio = null; }
+  if (echoPiperURLObject) { URL.revokeObjectURL(echoPiperURLObject); echoPiperURLObject = null; }
 }
 async function echoPiperSpeak(text) {
-  const requestId = ++echoPiperRequest;
-  echoPiperController = new AbortController();
-  const timeout = setTimeout(() => echoPiperController?.abort(), 9000);
+  echoPiperStop();
+  const requestId = echoPiperRequest, controller = new AbortController();
+  echoPiperController = controller;
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  let prepared = null;
+  window.echoSpeechNotice?.("Ожидаю локальный Piper…");
   try {
     const response = await fetch(echoPiperURL() + "/api/tts", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, voice: echoPiperConfig.voice, language: echoCurrentLanguage }),
-      signal: echoPiperController.signal
+      body: JSON.stringify({ text, voice: echoPiperConfig.voice, language: echoCurrentLanguage }), signal: controller.signal
     });
     if (!response.ok) throw new Error("Piper HTTP " + response.status);
+    if (!response.headers.get("Content-Type")?.startsWith("audio/")) throw new Error("Piper вернул не аудиозапись");
     const blob = await response.blob();
     if (requestId !== echoPiperRequest) return;
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    echoPiperAudio = audio;
+    prepared = blob;
+    echoPiperURLObject = URL.createObjectURL(blob);
+    const audio = new Audio(echoPiperURLObject); echoPiperAudio = audio;
     audio.volume = Number(echoSettings.volume ?? 1);
     audio.playbackRate = Number(echoSettings.rate ?? 1);
-    audio.addEventListener("ended", () => URL.revokeObjectURL(url), { once: true });
-    audio.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
+    const complete = message => {
+      if (requestId !== echoPiperRequest) return;
+      echoPiperStop(); window.echoSpeechNotice?.(message);
+    };
+    audio.onended = () => complete("Готово");
+    audio.onerror = () => complete("Не удалось воспроизвести Piper. Выберите голос устройства или запись.");
     await audio.play();
+    if (requestId === echoPiperRequest) window.echoSpeechNotice?.("Произношу · Piper");
   } catch (error) {
     if (requestId === echoPiperRequest) {
-      console.error("Piper: ошибка озвучивания", error);
-      alert("Piper не смог озвучить текст: " + error.message);
+      echoPiperStop();
+      if (error.name === "NotAllowedError" && prepared) window.echoOfferPreparedAudio?.(prepared);
+      window.echoSpeechNotice?.(error.name === "NotAllowedError"
+        ? "Браузер заблокировал звук. Нажмите карточку ещё раз или выберите голос устройства."
+        : "Piper недоступен или время ожидания истекло. Выберите голос устройства или сохранённые записи.");
+      window.echoOfferVoiceFallback?.();
     }
   } finally { clearTimeout(timeout); }
 }
@@ -214,26 +222,49 @@ function speak(text) {
   }
 }
 function echoBrowserSpeak(text) {
-  if (!("speechSynthesis" in window)) {
-    alert("На этом устройстве озвучка не поддерживается.");
-    return;
+  if (typeof text !== "string" || !text.trim()) return;
+  echoBrowserStop();
+  if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+    window.echoSpeechNotice?.("На этом устройстве системная озвучка недоступна. Выберите сохранённые записи.");
+    window.echoOfferVoiceFallback?.(); return;
   }
-
-  if (typeof text !== "string" || !text.trim()) {
-    return;
-  }
-
-  speechSynthesis.cancel();
-
   const message = new SpeechSynthesisUtterance(text.trim());
-
   applyVoiceSettings(message);
-
   if (!currentVoice) {
-    window.echoSpeechNotice?.("Для этого языка нет локального голоса устройства. Выберите запись фразы или настройте локальный синтез.");
-    return;
+    window.echoSpeechNotice?.("Нет локального голоса этого языка. Дождитесь загрузки голосов и нажмите снова либо выберите сохранённую запись.");
+    window.echoOfferVoiceFallback?.(); return;
   }
-  speechSynthesis.speak(message);
+  const job = echoBrowserJob;
+  echoBrowserUtterance = message; // Retain until completion (also required by some mobile engines).
+  const finish = status => {
+    if (job !== echoBrowserJob) return;
+    clearTimeout(echoBrowserTimer); echoBrowserTimer = null; echoBrowserUtterance = null;
+    ++echoBrowserJob; message.onstart = message.onend = message.onerror = null;
+    window.echoSpeechNotice?.(status);
+  };
+  const watchdog = () => {
+    if (job !== echoBrowserJob) return;
+    echoBrowserStop(); window.echoSpeechNotice?.("Голос не ответил. Нажмите фразу ещё раз или выберите сохранённую запись.");
+    window.echoOfferVoiceFallback?.();
+  };
+  message.onstart = () => {
+    if (job !== echoBrowserJob) return;
+    clearTimeout(echoBrowserTimer);
+    echoBrowserTimer = setTimeout(watchdog, 120000);
+    window.echoSpeechNotice?.("Произношу · голос устройства");
+  };
+  message.onend = () => finish("Готово");
+  message.onerror = event => {
+    if (job !== echoBrowserJob) return;
+    const status = event.error === "not-allowed" ? "Браузер заблокировал звук. Нажмите карточку ещё раз."
+      : event.error === "canceled" || event.error === "interrupted" ? "Озвучка остановлена"
+      : "Не удалось произнести фразу голосом устройства. Выберите другой голос или сохранённую запись.";
+    finish(status); window.echoOfferVoiceFallback?.();
+  };
+  window.echoSpeechNotice?.("Запускаю голос устройства…");
+  echoBrowserTimer = setTimeout(watchdog, 15000);
+  try { speechSynthesis.speak(message); }
+  catch (_) { finish("Не удалось запустить голос. Нажмите фразу ещё раз или выберите запись."); window.echoOfferVoiceFallback?.(); }
 }
 
 // ==========================================
@@ -1533,7 +1564,7 @@ voicePanel.innerHTML = `
       class="voice-range"
       type="range"
       min="0.5"
-      max="1.5"
+      max="2"
       step="0.1"
       value="0.9"
     >
@@ -1582,11 +1613,12 @@ voicePanel.innerHTML = `
     class="voice-test-button"
     id="echoTestVoice"
   >
-    ▶️ Прослушать голос
+    ▶ Проверить голос
   </button>
 
+  <p id="echoVoiceAvailability" role="status" aria-live="polite"></p>
   <p class="voice-note">
-    Доступные голоса зависят от браузера
+    Системный TTS работает офлайн только при установленном локальном голосе выбранного языка. Доступные голоса зависят от браузера
     и операционной системы.
   </p>
 `;
@@ -1654,32 +1686,20 @@ function updateVoiceLabels() {
 // ==========================================
 
 function populateEchoVoices() {
-  if (!echoVoiceSelect) return;
   echoVoiceSelect.replaceChildren();
-  const fallback = document.createElement("option");
-  fallback.value = "";
-  fallback.textContent = "Автоматический голос";
-  echoVoiceSelect.appendChild(fallback);
-  if (!("speechSynthesis" in window)) {
-    fallback.textContent = "Озвучивание недоступно";
-    echoVoiceSelect.disabled = true;
-    return;
-  }
-  const code = String(echoSettings.language || "ru-RU").toLowerCase().split("-")[0];
-  const voices = speechSynthesis.getVoices().filter(voice =>
-    voice.localService && voice.lang.toLowerCase().split("-")[0] === code
-  ).sort((a,b) => a.name.localeCompare(b.name));
-  voices.forEach(voice => {
-    const option = document.createElement("option");
-    option.value = voice.name;
-    option.textContent = `${voice.name} (${voice.lang})` +
-      (voice.localService ? " — локальный" : " — сетевой");
-    echoVoiceSelect.appendChild(option);
-  });
-  echoVoiceSelect.value = voices.some(voice => voice.name === echoSettings.voiceName)
-    ? echoSettings.voiceName : "";
-  echoVoiceSelect.disabled = false;
-  if (!voices.length) fallback.textContent = "Нет доступных голосов этого языка";
+  const fallback = new Option("Автоматический локальный голос", "");
+  echoVoiceSelect.append(fallback);
+  const voices = echoDeviceVoices().sort((a,b) => a.name.localeCompare(b.name));
+  for (const voice of voices) echoVoiceSelect.add(new Option(`${voice.name} (${voice.lang}) — локальный`, voice.name));
+  const missing = echoSettings.voiceName && !voices.some(v => v.name === echoSettings.voiceName);
+  if (missing) echoVoiceSelect.add(new Option(`${echoSettings.voiceName} — сейчас недоступен`, echoSettings.voiceName));
+  echoVoiceSelect.value = echoSettings.voiceName || "";
+  echoVoiceSelect.disabled = !("speechSynthesis" in window);
+  document.getElementById("echoVoiceAvailability").textContent = !voices.length
+    ? "Нет локальных голосов этого языка. Установите голос в настройках устройства или выберите сохранённые записи. Список обновится автоматически; повторите нажатие после загрузки."
+    : missing ? "Выбранный голос сейчас недоступен; используется другой локальный голос того же языка. Ваш выбор сохранён."
+    : "Доступны локальные голоса выбранного языка. Текст не отправляется сетевому провайдеру.";
+  loadVoices();
 }
 
 // ==========================================
@@ -1709,9 +1729,14 @@ if ("speechSynthesis" in window) {
 // Выбор голоса
 
 echoVoiceSelect.addEventListener("change", () => {
+  window.echoStopSpeech?.();
+  const previous = echoSettings.voiceName;
   echoSettings.voiceName = echoVoiceSelect.value;
-
-  saveSettings();
+  echoSettings.voiceNames[echoCurrentLanguage] = echoSettings.voiceName;
+  if (!saveSettings()) {
+    echoSettings.voiceName = previous; echoSettings.voiceNames[echoCurrentLanguage] = previous;
+  }
+  populateEchoVoices();
   loadVoices();
 });
 
@@ -1749,7 +1774,8 @@ echoVoiceVolume.addEventListener("input", () => {
 const echoVoiceTestPhrases = {
   ru: "Привет! Я ECHO. Это мой голос.",
   kk: "Сәлем! Мен ECHO. Бұл менің дауысым.",
-  en: "Hello! I'm ECHO. This is my voice."
+  en: "Hello! I'm ECHO. This is my voice.",
+  be: "Прывітанне! Я ECHO. Гэта мой голас."
 };
 
 document.getElementById("echoTestVoice")
@@ -1971,7 +1997,7 @@ sizeFavoritesTab?.addEventListener(
 
    // Переводим стандартные карточки
 
-   const translations = echoPhraseTranslations[language];
+   const translations = echoPhraseTranslations[language] || echoPhraseTranslations.ru;
 
    echoDefaultCards.forEach((card, index) => {
      const text = translations[index] ||
@@ -2004,7 +2030,8 @@ sizeFavoritesTab?.addEventListener(
 
    // Сбрасываем голос прошлого языка
 
-   echoSettings.voiceName = "";
+   window.echoStopSpeech?.();
+   echoSettings.voiceName = String(echoSettings.voiceNames[language] || "");
 
    saveSettings();
 
@@ -4762,10 +4789,16 @@ echoCategoryList.addEventListener("dblclick", event => {
   enabled.checked = !!echoPiperConfig.enabled;
   url.value = echoPiperConfig.url;
   function save() {
+    window.echoStopSpeech?.();
+    const previous = { ...echoPiperConfig };
     echoPiperConfig.enabled = enabled.checked;
     echoPiperConfig.url = url.value.trim() || "http://127.0.0.1:8765";
     echoPiperConfig.voice = voice.value;
-    echoPiperSave();
+    if (!echoPiperSave()) {
+      Object.assign(echoPiperConfig, previous); enabled.checked = previous.enabled;
+      url.value = previous.url; voice.value = previous.voice;
+      status.textContent = "Настройки Piper не сохранены. Изменения отменены.";
+    }
   }
   enabled.addEventListener("change", save);
   url.addEventListener("change", save);
