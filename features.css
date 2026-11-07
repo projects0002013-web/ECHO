@@ -270,3 +270,147 @@ button:disabled { cursor:default; }
 }
 
 #echoStudioUse { width:100%; min-height:48px; font-weight:800; white-space:normal; overflow-wrap:anywhere; }
+
+
+/* Executive Light — approved visual system, 2026-11-07.
+   Scoped to the light theme so saved dark/high-contrast preferences remain intact. */
+body:not(.dark-theme):not(.contrast-theme) {
+  --bg:#F8FAF8;
+  --surface:#FFFFFF;
+  --surface2:#EFF5F0;
+  --text:#1F2937;
+  --muted:#4B615A;
+  --primary:#166534;
+  --primary2:#166534;
+  --border:#D8E3DC;
+  --radius:18px;
+  --shadow:0 3px 14px rgba(22,57,38,.055);
+  color-scheme:light;
+}
+body:not(.dark-theme):not(.contrast-theme) {
+  font-family:Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body:not(.dark-theme):not(.contrast-theme) .app {
+  max-width:900px;
+}
+body:not(.dark-theme):not(.contrast-theme) .header {
+  border-bottom:1px solid var(--border);
+  margin-bottom:16px;
+}
+body:not(.dark-theme):not(.contrast-theme) .logo h1 {
+  letter-spacing:-.055em;
+  font-weight:780;
+}
+body:not(.dark-theme):not(.contrast-theme) .logo p {
+  letter-spacing:.01em;
+}
+body:not(.dark-theme):not(.contrast-theme) .welcome {
+  background:#FFFFFF;
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:24px;
+  box-shadow:none;
+}
+body:not(.dark-theme):not(.contrast-theme) .welcome h2 {
+  font-weight:750;
+  letter-spacing:-.035em;
+}
+body:not(.dark-theme):not(.contrast-theme) .small-title {
+  letter-spacing:.085em;
+  font-weight:720;
+  color:#166534;
+}
+body:not(.dark-theme):not(.contrast-theme) .phrase-card {
+  background:#FFFFFF;
+  border:1px solid #D8E3DC;
+  border-radius:18px;
+  box-shadow:0 3px 14px rgba(22,57,38,.055);
+}
+body:not(.dark-theme):not(.contrast-theme) .phrase-card:focus-within,
+body:not(.dark-theme):not(.contrast-theme) .phrase-card.speaking {
+  border-color:#166534;
+  box-shadow:0 0 0 2px rgba(22,101,52,.12);
+}
+body:not(.dark-theme):not(.contrast-theme) .phrase-icon {
+  background:#EFF5F0;
+  border:1px solid #E1EAE4;
+  border-radius:14px;
+}
+body:not(.dark-theme):not(.contrast-theme) .phrase-name {
+  font-weight:750;
+  letter-spacing:-.02em;
+}
+body:not(.dark-theme):not(.contrast-theme) .settings-btn,
+body:not(.dark-theme):not(.contrast-theme) .echo-voice-entry,
+body:not(.dark-theme):not(.contrast-theme) .echo-local-panel,
+body:not(.dark-theme):not(.contrast-theme) .echo-search-panel,
+body:not(.dark-theme):not(.contrast-theme) .echo-composer {
+  background:#FFFFFF;
+  border-color:#D8E3DC;
+  box-shadow:none;
+}
+body:not(.dark-theme):not(.contrast-theme) .echo-voice-entry {
+  color:#166534;
+  font-weight:700;
+  border-radius:12px;
+}
+body:not(.dark-theme):not(.contrast-theme) .echo-search-box,
+body:not(.dark-theme):not(.contrast-theme) .echo-local-panel input,
+body:not(.dark-theme):not(.contrast-theme) .echo-local-panel textarea,
+body:not(.dark-theme):not(.contrast-theme) .echo-local-panel select {
+  background:#FFFFFF;
+  border-color:#C9D8CE;
+  color:#1F2937;
+}
+body:not(.dark-theme):not(.contrast-theme) .echo-category-button,
+body:not(.dark-theme):not(.contrast-theme) .echo-word-choices button {
+  border-radius:12px;
+}
+body:not(.dark-theme):not(.contrast-theme) .bottom-nav {
+  background:#FFFFFF !important;
+  border-top:1px solid #D8E3DC;
+  box-shadow:0 -3px 18px rgba(22,57,38,.055);
+}
+body:not(.dark-theme):not(.contrast-theme) .bottom-nav .nav-item.active {
+  color:#166534 !important;
+  background:#EFF5F0 !important;
+  border-radius:12px;
+}
+body:not(.dark-theme):not(.contrast-theme) .echo-action-dock {
+  background:#FFFFFF;
+  border-color:#D8E3DC;
+}
+body:not(.dark-theme):not(.contrast-theme) .echo-action-dock button {
+  border-color:#166534;
+  border-radius:12px;
+}
+body:not(.dark-theme):not(.contrast-theme) #echoLocalVoicePanel,
+body:not(.dark-theme):not(.contrast-theme) .echo-studio-compose {
+  background:#FFFFFF;
+  border-color:#D8E3DC;
+  border-radius:18px;
+}
+body:not(.dark-theme):not(.contrast-theme) #echoStudioResult {
+  background:#EFF5F0;
+  border-color:#166534;
+}
+body:not(.dark-theme):not(.contrast-theme) #echoSentenceSpeak,
+body:not(.dark-theme):not(.contrast-theme) #echoStudioGenerate,
+body:not(.dark-theme):not(.contrast-theme) #echoStudioPlay {
+  background:#166534;
+  color:#FFFFFF;
+}
+body:not(.dark-theme):not(.contrast-theme) button:focus-visible,
+body:not(.dark-theme):not(.contrast-theme) a:focus-visible,
+body:not(.dark-theme):not(.contrast-theme) input:focus-visible,
+body:not(.dark-theme):not(.contrast-theme) textarea:focus-visible {
+  outline:3px solid #166534 !important;
+  outline-offset:3px;
+}
+@media(max-width:600px) {
+  body:not(.dark-theme):not(.contrast-theme) .welcome { padding:20px 16px; border-radius:16px; }
+  body:not(.dark-theme):not(.contrast-theme) .phrase-card { border-radius:16px; }
+  body:not(.dark-theme):not(.contrast-theme) .header { margin-bottom:12px; }
+}
+/* End Executive Light */
