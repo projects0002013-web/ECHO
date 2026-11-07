@@ -113,7 +113,7 @@
     $('echoBackupApply').onclick=()=>{if(incoming&&confirm('Восстановить данные выбранным способом? Текущие данные могут быть заменены.'))progress(()=>restore(incoming,$('echoBackupMode').value));};
   }
   async function start(){try{localStorage.getItem('echoSettings');const test='__echo_backup_test__';localStorage.setItem(test,'1');localStorage.removeItem(test);const before=await journal();if(before){block(true);await apply(before);await journal(null);block(false);}
-    for(const file of ['script.js','features.js','accessibility.js'])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=file;s.onload=resolve;s.onerror=()=>reject(new Error('Не удалось загрузить '+file));document.body.append(s);});ui();document.querySelector('.app').inert=false;}
+    for(const file of ['script.js','features.js','accessibility.js','executive.js','offline-voice.js'])await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src=file;s.onload=resolve;s.onerror=()=>reject(new Error('Не удалось загрузить '+file));document.body.append(s);});ui();document.querySelector('.app').inert=false;}
     catch(e){block(true);fatal('ECHO не запущено: '+e.message+' Сохранённые данные и журнал не удалены.');}}
   window.echoBackup={exportFile,parseFile,restore};
   document.querySelector('.app').inert=true;

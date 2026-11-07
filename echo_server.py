@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 MODEL_FILES = ("ve.pt", "s3gen.pt", "t3_mtl23ls_v2.safetensors",
                "grapheme_mtl_merged_expanded_v1.json")
 LANGUAGES = ("ru", "en")  # Product languages with a personal-voice UI.
-PUBLIC_FILES = {"i18n.js", "accessibility.js", "backup.js", "index.html", "script.js", "style.css", "features.js", "features.css",
+PUBLIC_FILES = {"executive.js", "offline-voice.js", "i18n.js", "accessibility.js", "backup.js", "index.html", "script.js", "style.css", "features.js", "features.css",
                 "recorder-worklet.js", "sw.js", "manifest.json", "icon-192.png", "icon-512.png", "cover.png"}
 MAX_REQUEST = 8 * 1024 * 1024
 

@@ -1477,9 +1477,7 @@ function applyEchoTheme(theme) {
   document.querySelector('meta[name="theme-color"]')
     ?.setAttribute(
       "content",
-      selected === "dark"
-        ? "#101714"
-        : "#f7f8f5"
+      selected === "dark" ? "#101714" : selected === "contrast" ? "#000000" : "#F8FAF8"
     );
 }
 
