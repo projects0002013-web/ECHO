@@ -158,21 +158,38 @@
       return { blob, language, sampleId: reference.id, cacheWarning };
     } finally { clearTimeout(timeout); }
   }
+  // Instant communication is the priority: a missing/slow AI must never silence a card.
+  // Prefer an exact local recording, then available personal synthesis, then device voice.
   window.echoLocalSpeech = text => {
     if (mode === "device") return false;
     stop();
     const job = speechJob;
     (async () => {
-      if (mode === "personal") return personal(text, job);
-      const recording = await db("audio", "get", phraseKey(text));
+      let recording = null;
+      try { recording = await db("audio", "get", phraseKey(text)); }
+      catch (_) { /* Broken storage must not stop speech. */ }
       if (job !== speechJob) return;
-      if (recording) { message("Произношу сохранённой записью"); return play(recording.blob, job); }
-      message("Для этой фразы нет записи · используется голос устройства");
-      echoBrowserSpeak(text);
+      if (recording?.blob) {
+        message("Мгновенно · сохранённая запись");
+        return play(recording.blob, job);
+      }
+      if (mode === "personal") {
+        try {
+          return await personal(text, job);
+        } catch (error) {
+          if (job !== speechJob || error.name === "AbortError") return;
+          message("Персональный ИИ недоступен · произношу голосом Android");
+        }
+      } else message("Записи этой фразы нет · произношу голосом Android");
+      if (job === speechJob) echoBrowserSpeak(text);
     })().catch(error => {
       if (job !== speechJob) return;
-      message((error.name === "AbortError" ? "Время ожидания истекло. Повторите после загрузки модели." : errorText(error)) + " Выберите голос устройства или сохранённые записи.");
-      offerFallback();
+      message("Ошибка сохранённой озвучки · пробую голос Android");
+      try { echoBrowserSpeak(text); }
+      catch (_) {
+        message(errorText(error) + " Голос Android недоступен.");
+        offerFallback();
+      }
     });
     return true;
   };
@@ -266,7 +283,7 @@
     <div class="echo-local-actions"><button type="button" id="echoDraftPlay">▶ Прослушать перед сохранением</button><button type="button" id="echoDraftSave">Сохранить запись</button><button type="button" id="echoDraftDiscard">Не сохранять</button></div></div>
     <span id="echoRecordTimer" role="timer">00:00</span><p id="echoLocalVoiceStatus" role="status" aria-live="polite">Образец голоса пока не записан.</p>
     <div class="echo-local-actions"><button type="button" id="echoEngineCheck">Проверить ИИ и память телефона</button><button type="button" id="echoSampleDelete">Удалить образец и созданные фразы</button></div>
-    <p class="echo-local-note">Образец позволяет приблизить тембр, но сходство не гарантируется. Создание новой фразы требует локальной модели; уже созданные фразы и записи работают офлайн. Русский и английский поддерживаются; казахский и белорусский используют голос устройства.</p>
+    <p class="echo-local-note">Сохранённые записи доступны сразу. Персональный ИИ-синтез требует отдельно установленной модели; в текущей Android-сборке его нет. Если ИИ недоступен, карточка автоматически использует голос Android.</p>
     <section class="echo-studio-compose" aria-labelledby="echoStudioComposeTitle">
       <h4 id="echoStudioComposeTitle">Новая фраза моим голосом</h4>
       <label for="echoStudioText">Текст для ИИ-синтеза</label><textarea id="echoStudioText" rows="3" maxlength="300" placeholder="Введите новый текст"></textarea>
