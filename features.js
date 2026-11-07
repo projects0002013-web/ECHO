@@ -40,7 +40,7 @@
   window.echoSpeechNotice = message;
   function voiceMessage(text) { $("echoLocalVoiceStatus").textContent = text; }
   function errorText(error) {
-    if (error.name === "NotAllowedError") return "Разрешите доступ к микрофону в настройках браузера.";
+    if (error.name === "NotAllowedError") return "Разрешите ECHO использовать микрофон в настройках Android или браузера.";
     if (error.name === "NotFoundError") return "Микрофон не найден. Можно загрузить аудиофайл.";
     return window.echoI18n.error(error);
   }
@@ -436,24 +436,52 @@
     const state = { target, text, chunks: [], frames: 0, finishing: false, language: echoCurrentLanguage, epoch: audioEpoch }; recorder = state;
     voiceMessage("Ожидаю разрешение на микрофон…");
     try {
+      // Native Android asks for app permission before WebView requests microphone access.
+      if (typeof window.echoNativeVoice?.requestMicrophonePermission === "function") {
+        const permission = await window.echoNativeVoice.requestMicrophonePermission();
+        if (!permission || permission.granted !== true) throw new Error("Не удалось получить разрешение на микрофон в Android.");
+      }
+      if (recorder !== state) return;
       state.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true }, video: false });
       if (recorder !== state) { state.stream.getTracks().forEach(t => t.stop()); return; }
       state.context = new AudioContext();
-      await state.context.audioWorklet.addModule("./recorder-worklet.js");
-      if (recorder !== state) return;
       await state.context.resume();
       if (recorder !== state) return;
       state.rate = state.context.sampleRate;
       state.source = state.context.createMediaStreamSource(state.stream);
-      state.node = new AudioWorkletNode(state.context, "echo-recorder");
       state.silent = state.context.createGain(); state.silent.gain.value = 0;
-      state.node.port.onmessage = event => {
-        if (state.finishing) return;
+      const collect = data => {
+        if (state.finishing || recorder !== state) return;
         const remaining = Math.max(0, Math.floor(state.rate * 30) - state.frames);
-        const chunk = event.data.subarray(0, remaining);
+        if (remaining <= 0) return;
+        const chunk = data.subarray(0, remaining);
         if (chunk.length) { state.chunks.push(chunk); state.frames += chunk.length; }
         if (state.frames >= Math.floor(state.rate * 30)) finishRecording();
       };
+      // Android System WebView versions differ: use AudioWorklet when available,
+      // otherwise capture the same PCM samples via the older ScriptProcessor API.
+      if (state.context.audioWorklet && typeof AudioWorkletNode === "function") {
+        try {
+          await state.context.audioWorklet.addModule("./recorder-worklet.js");
+          if (recorder !== state) return;
+          state.node = new AudioWorkletNode(state.context, "echo-recorder");
+          state.node.port.onmessage = event => collect(event.data);
+        } catch (error) {
+          // The source stream remains private; fallback does not upload audio.
+          console.warn("ECHO: AudioWorklet unavailable, using local PCM fallback", error.name);
+        }
+      }
+      if (!state.node) {
+        if (typeof state.context.createScriptProcessor !== "function")
+          throw new Error("Эта версия Android WebView не поддерживает запись PCM. Обновите системный WebView.");
+        state.node = state.context.createScriptProcessor(2048, 1, 1);
+        state.node.onaudioprocess = event => {
+          const input = event.inputBuffer.getChannelData(0);
+          collect(new Float32Array(input));
+          event.outputBuffer.getChannelData(0).fill(0);
+        };
+      }
+      if (recorder !== state) return;
       state.source.connect(state.node).connect(state.silent).connect(state.context.destination);
       const started = Date.now(); $("echoRecordTimer").textContent = "00:00";
       voiceMessage("Запись идёт. Говорите спокойно и без фоновой музыки.");

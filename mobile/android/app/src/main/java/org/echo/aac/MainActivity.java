@@ -22,6 +22,8 @@ import java.nio.charset.StandardCharsets;
 public final class MainActivity extends Activity {
     private static final String LOCAL_ORIGIN = "https://appassets.androidplatform.net";
     private static final int MIC_REQUEST_CODE = 401;
+    private static final int MIC_PREFLIGHT_CODE = 402;
+    private String pendingPreflightId;
     private WebView web;
     private PermissionRequest pendingMic;
     private WebViewAssetLoader assets;
@@ -81,6 +83,17 @@ public final class MainActivity extends Activity {
     }
     @Override public void onRequestPermissionsResult(int code, String[] permissions, int[] result) {
         super.onRequestPermissionsResult(code, permissions, result);
+        if (code == MIC_PREFLIGHT_CODE && pendingPreflightId != null) {
+            String id = pendingPreflightId;
+            pendingPreflightId = null;
+            JSONObject answer = new JSONObject();
+            try {
+                if (result.length > 0 && result[0] == PackageManager.PERMISSION_GRANTED)
+                    answer.put("granted", true);
+                else answer.put("error", "Доступ к микрофону запрещён Android. Разрешите его в настройках приложения ECHO.");
+                reply(id, answer);
+            } catch (Exception ignored) {}
+        }
         if (code == MIC_REQUEST_CODE && pendingMic != null) {
             PermissionRequest req = pendingMic; pendingMic = null;
             if (result.length > 0 && result[0] == PackageManager.PERMISSION_GRANTED)
@@ -101,6 +114,24 @@ public final class MainActivity extends Activity {
                 String type = request.optString("type", "");
                 if (id.isEmpty() || id.length() > 40) return;
                 if ("cancel".equals(type)) return;
+                if ("microphonePermission".equals(type)) {
+                    runOnUiThread(() -> {
+                        try {
+                            JSONObject answer = new JSONObject();
+                            if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                answer.put("granted", true);
+                                reply(id, answer);
+                            } else if (pendingPreflightId != null) {
+                                answer.put("error", "Уже ожидается разрешение на микрофон.");
+                                reply(id, answer);
+                            } else {
+                                pendingPreflightId = id;
+                                requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PREFLIGHT_CODE);
+                            }
+                        } catch (Exception ignored) {}
+                    });
+                    return;
+                }
                 JSONObject answer = new JSONObject();
                 if ("status".equals(type)) {
                     answer.put("platform", "android");
