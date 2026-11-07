@@ -19,7 +19,7 @@ def main():
         page.on('pageerror', lambda e: errors.append(str(e)))
         page.on('request', lambda r: requests.append(r.url) if r.method == 'POST' else None)
         page.on('request', lambda r: remote.append(r.url) if r.url.startswith('http') and not r.url.startswith(args.url) else None)
-        page.goto(args.url)
+        page.goto(args.url);page.wait_for_selector("#echoDataPanel",state="attached")
         page.wait_for_function('navigator.serviceWorker.controller !== null')
         page.locator('.settings-btn').click()
         page.locator('#echoAudioImport').set_input_files(str(args.reference))
@@ -46,7 +46,7 @@ def main():
         })''')
         assert len(cached) == 1 and cached[0]['bytes'] > 44 and cached[0]['type'] == 'audio/wav'
         context.set_offline(True)
-        page.reload()
+        page.reload();page.wait_for_selector("#echoDataPanel",state="attached")
         page.wait_for_function("!document.getElementById('echoSamplePlay').disabled")
         page.locator('#customPhrase').fill(text)
         page.locator('.speak-custom').click()

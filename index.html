@@ -239,9 +239,7 @@
     </button>
    </nav>
   </div>
-  <script onerror="alert('Не найден script.js. Проверь, что index.html и script.js лежат в одной папке.')" src="script.js">
-  </script>
-  <script src="features.js"></script>
+  <script src="backup.js"></script>
   <script>
     if ("serviceWorker" in navigator && window.isSecureContext) {
       window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(error => console.warn("ECHO: офлайн-режим недоступен", error)));

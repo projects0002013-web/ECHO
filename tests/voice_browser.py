@@ -34,7 +34,7 @@ class VoiceBrowser(unittest.TestCase):
   self.context=self.browser.new_context(viewport={'width':390,'height':844},permissions=['microphone'])
   self.context.add_init_script(MOCK);self.page=self.context.new_page();self.errors=[]
   self.page.on('pageerror',lambda e:self.errors.append(str(e)));self.page.on('dialog',lambda d:d.accept())
-  self.page.goto(URL);self.page.wait_for_function('navigator.serviceWorker.controller !== null')
+  self.page.goto(URL);self.page.wait_for_selector("#echoDataPanel",state="attached");self.page.wait_for_function('navigator.serviceWorker.controller !== null')
  def tearDown(self):
   self.assertEqual(self.errors,[]);self.context.close()
  def settings(self):self.page.locator('.settings-btn').click()
@@ -49,7 +49,7 @@ class VoiceBrowser(unittest.TestCase):
  def db_records(self,store='audio'):
   return self.page.evaluate('''store=>new Promise((resolve,reject)=>{const r=indexedDB.open('echo-local-voice',1);r.onsuccess=()=>{const d=r.result,t=d.transaction(store),q=t.objectStore(store).getAll();t.oncomplete=()=>{resolve(q.result.map(x=>({key:x.key,id:x.id,size:x.blob.size,type:x.blob.type})));d.close();};r.onerror=()=>reject(r.error);};})''',store)
  def test_voice_choice_survives_reload_and_language_roundtrip(self):
-  p=self.page;self.settings();p.locator('#echoVoiceSelect').select_option('RU two');p.reload();self.settings()
+  p=self.page;self.settings();p.locator('#echoVoiceSelect').select_option('RU two');p.reload();p.wait_for_selector("#echoDataPanel",state="attached");self.settings()
   expect(p.locator('#echoVoiceSelect')).to_have_value('RU two')
   p.locator('[data-language="en"]').click();p.locator('#echoVoiceSelect').select_option('EN local')
   p.locator('[data-language="ru"]').click();expect(p.locator('#echoVoiceSelect')).to_have_value('RU two')
@@ -60,7 +60,7 @@ class VoiceBrowser(unittest.TestCase):
    p.locator('#echoTestVoice').click()
    result=p.evaluate('() => {const u=testSpeech.calls.at(-1).u;return {lang:u.lang,voice:u.voice.name,rate:u.rate,text:u.text};}')
    self.assertTrue(result['lang'].startswith(language));self.assertEqual(result['voice'],voice);self.assertEqual(result['rate'],1.2);self.assertTrue(result['text'])
-  p.reload();self.settings();expect(p.locator('#echoVoiceRate')).to_have_value('1.2');expect(p.locator('[data-language="be"]')).to_have_attribute('aria-pressed','true')
+  p.reload();p.wait_for_selector("#echoDataPanel",state="attached");self.settings();expect(p.locator('#echoVoiceRate')).to_have_value('1.2');expect(p.locator('[data-language="be"]')).to_have_attribute('aria-pressed','true')
  def test_rapid_clicks_and_late_events_do_not_replace_new_status(self):
   p=self.page;p.locator('.card-speak').nth(0).click();p.locator('.card-speak').nth(1).click()
   self.assertEqual(p.evaluate('testSpeech.calls.map(c=>c.u.text)'),['Я хочу пить','Я хочу есть'])
@@ -92,7 +92,7 @@ class VoiceBrowser(unittest.TestCase):
   p=self.page;self.settings();self.stage();self.assertEqual(self.db_records(),[])
   p.locator('#echoDraftPlay').click();p.locator('#echoDraftDiscard').click();self.assertEqual(self.db_records(),[])
   self.stage();self.save_draft();records=self.db_records();self.assertEqual(records[0]['type'],'audio/wav');self.assertGreater(records[0]['size'],44)
-  p.locator('#echoSpeechMode').select_option('recordings');p.reload();self.context.set_offline(True)
+  p.locator('#echoSpeechMode').select_option('recordings');p.reload();p.wait_for_selector("#echoDataPanel",state="attached");self.context.set_offline(True)
   p.locator('.card-speak').first.click();expect(p.locator('#echoSpeechStatus')).to_contain_text('сохранённой записью')
   self.settings();p.locator('#echoRecordingsList button').last.click();expect(p.locator('#echoRecordingsList')).to_contain_text('пока нет')
  def test_sample_requires_permission_confirmation_and_preserves_old_audio(self):
@@ -101,7 +101,7 @@ class VoiceBrowser(unittest.TestCase):
  def test_source_change_cancels_and_persists_without_automatic_speech(self):
   p=self.page;p.locator('.card-speak').first.click();self.settings();before=p.evaluate('testSpeech.cancels')
   p.locator('#echoSpeechMode').select_option('recordings');self.assertGreater(p.evaluate('testSpeech.cancels'),before)
-  p.reload();self.settings();expect(p.locator('#echoSpeechMode')).to_have_value('recordings');self.assertEqual(p.evaluate('testSpeech.calls.length'),0)
+  p.reload();p.wait_for_selector("#echoDataPanel",state="attached");self.settings();expect(p.locator('#echoSpeechMode')).to_have_value('recordings');self.assertEqual(p.evaluate('testSpeech.calls.length'),0)
  def test_microphone_permission_denial_does_not_save_or_stay_busy(self):
   p=self.page;self.settings();p.evaluate('() => {navigator.mediaDevices.getUserMedia=()=>Promise.reject(new DOMException("denied","NotAllowedError"));}')
   p.locator('#echoRecordStart').click();expect(p.locator('#echoLocalVoiceStatus')).to_contain_text('Разрешите доступ')
@@ -133,7 +133,7 @@ class VoiceBrowser(unittest.TestCase):
   def generate(route):calls.append(route.request.post_data_json);route.fulfill(status=200,content_type='audio/wav',body=tone(2))
   p.route('**/api/voice/synthesize',generate);p.locator('#echoSpeechMode').select_option('personal');p.locator('#phrasesTab').click();p.locator('.card-speak').first.click()
   expect(p.locator('#echoSpeechStatus')).to_contain_text('Произношу персональным');self.assertEqual(len(calls),1)
-  p.locator('#echoStopSpeech').click();p.reload();p.wait_for_function('!document.getElementById("echoSamplePlay").disabled');self.context.set_offline(True)
+  p.locator('#echoStopSpeech').click();p.reload();p.wait_for_selector("#echoDataPanel",state="attached");p.wait_for_function('!document.getElementById("echoSamplePlay").disabled');self.context.set_offline(True)
   p.locator('.card-speak').first.click();expect(p.locator('#echoSpeechStatus')).to_contain_text('сохранённая фраза');self.assertEqual(len(calls),1)
  def test_audio_autoplay_error_is_not_reported_as_microphone_denial(self):
   p=self.page;self.settings();self.stage();p.evaluate('() => {HTMLMediaElement.prototype.play=()=>Promise.reject(new DOMException("blocked","NotAllowedError"));}')
