@@ -72,7 +72,8 @@ public final class MainActivity extends Activity {
                 });
             }
         });
-        web.loadUrl(LOCAL_ORIGIN + "/index.html");
+        // The packaged UI is in assets/www; AssetLoader maps URL paths to assets paths.
+        web.loadUrl(LOCAL_ORIGIN + "/www/index.html");
     }
     private WebResourceResponse blocked() {
         return new WebResourceResponse("text/plain", "UTF-8", 403, "Blocked",
