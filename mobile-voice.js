@@ -40,6 +40,9 @@
   }
   window.echoNativeVoice = Object.freeze({
     status: () => request("status"),
+    deviceTtsStatus: () => request("deviceTtsStatus"),
+    speakDevice: (text, language) => request("deviceSpeak", { text, language }),
+    stopDevice: () => request("deviceStop"),
     requestMicrophonePermission: () => request("microphonePermission"),
     synthesize: ({ text, language, referenceWavBase64, signal }) => {
       if (typeof text !== "string" || text.length === 0 || text.length > 300)
