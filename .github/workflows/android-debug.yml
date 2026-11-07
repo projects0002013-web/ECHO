@@ -17,6 +17,7 @@ on:
       - 'mobile/**'
       - 'mobile-voice.js'
       - 'features.js'
+      - 'executive-light.css'
       - 'script.js'
       - 'index.html'
       - '.github/workflows/android-debug.yml'
