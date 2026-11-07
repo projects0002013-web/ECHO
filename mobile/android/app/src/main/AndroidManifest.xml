@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
+    <queries>
+        <intent><action android:name="android.intent.action.TTS_SERVICE"/></intent>
+    </queries>
     <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="ECHO"
         android:usesCleartextTraffic="false" android:allowBackup="false">
         <activity android:name=".MainActivity" android:exported="true">
