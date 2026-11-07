@@ -1,5 +1,5 @@
-const CACHE_NAME = "echo-v16-native-voice-bridge";
-const ASSETS = ["./i18n.js", "./locales/catalog.json", "./locales/manifest-ru.json", "./locales/manifest-kk.json", "./locales/manifest-en.json", "./locales/manifest-be.json", "./accessibility.js", "./backup.js", "./index.html", "./style.css", "./script.js", "./features.css", "./features.js",
+const CACHE_NAME = "echo-v17-mobile-shell-adapter";
+const ASSETS = ["./mobile-voice.js","./i18n.js", "./locales/catalog.json", "./locales/manifest-ru.json", "./locales/manifest-kk.json", "./locales/manifest-en.json", "./locales/manifest-be.json", "./accessibility.js", "./backup.js", "./index.html", "./style.css", "./script.js", "./features.css", "./features.js",
   "./recorder-worklet.js", "./manifest.json", "./icon-192.png", "./icon-512.png", "./cover.png",
   "./fonts/nunito-cyrillic-wght-normal.woff2", "./fonts/nunito-cyrillic-ext-wght-normal.woff2",
   "./fonts/nunito-latin-wght-normal.woff2", "./fonts/nunito-latin-ext-wght-normal.woff2",
