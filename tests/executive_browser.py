@@ -18,17 +18,18 @@ class Executive(unittest.TestCase):
   q=self.q
   cards=q.locator('.phrase-card:not(.custom-card)')
   first=cards.nth(0)
-  first.focus()
-  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),first.get_attribute('data-text'))
+  first.locator('.card-speak').focus()
+  active_text="document.activeElement?.closest('.phrase-card')?.dataset.text"
+  self.assertEqual(q.evaluate(active_text),first.get_attribute('data-text'))
   q.keyboard.press('ArrowRight')
-  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),cards.nth(1).get_attribute('data-text'))
+  self.assertEqual(q.evaluate(active_text),cards.nth(1).get_attribute('data-text'))
   q.keyboard.press('End')
-  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),cards.nth(5).get_attribute('data-text'))
+  self.assertEqual(q.evaluate(active_text),cards.nth(5).get_attribute('data-text'))
   q.keyboard.press('Home')
-  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),first.get_attribute('data-text'))
-  # Normal Tab navigation must not be blocked by the arrow-key helper.
+  self.assertEqual(q.evaluate(active_text),first.get_attribute('data-text'))
+  # Tab navigates to another control instead of being consumed by arrow navigation.
   q.keyboard.press('Tab')
-  self.assertNotEqual(q.evaluate("document.activeElement?.dataset.text"),first.get_attribute('data-text'))
+  self.assertFalse(q.evaluate("document.activeElement===document.querySelector('.phrase-card .card-speak')"))
 
  def test_sos_stop_and_persistent_stop_across_navigation(self):
   q=self.q
