@@ -14,6 +14,26 @@ class Executive(unittest.TestCase):
  def tearDown(self):self.assertEqual(self.errors,[]);self.c.close()
  def ready(self):self.q.wait_for_selector('#echoDataPanel',state='attached');self.q.wait_for_selector('#echoOfflineModelPanel',state='attached')
  def studio(self):self.q.locator('#echoVoiceStudioNav').click()
+ def test_sos_stop_and_persistent_stop_across_navigation(self):
+  q=self.q
+  activity=q.evaluate("""() => {
+    window.testVoiceActivity=[];
+    window.addEventListener('echo-voice-activity', e => testVoiceActivity.push(e.detail.playing));
+    return document.querySelectorAll('#echoDockStop').length;
+  }""")
+  self.assertEqual(activity,1)
+  q.locator('.echo-sos-nav').click()
+  expect(q.locator('#echoSOSStop')).to_be_visible()
+  q.locator('#echoSOSStop').click()
+  expect(q.locator('#echoSpeechStatus')).to_contain_text('остановлена')
+  self.assertIn(False,q.evaluate('window.testVoiceActivity'))
+  q.locator('#settingsTab').click()
+  expect(q.locator('#echoDockStop')).to_be_visible()
+  q.locator('#echoDockStop').click()
+  expect(q.locator('#echoSpeechStatus')).to_contain_text('остановлена')
+  q.locator('#phrasesTab').click()
+  expect(q.locator('#echoDockStop')).to_be_visible()
+  self.assertEqual(self.errors,[])
  def test_talkback_navigation_and_card_toggle_states(self):
   q=self.q
   expect(q.locator('#phrasesTab')).to_have_attribute('aria-current','page')
