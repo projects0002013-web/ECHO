@@ -67,5 +67,36 @@ class ReleaseReadiness(unittest.TestCase):
         self.assertIn('android:allowBackup="false"', manifest)
 
 
+    def test_android_webview_is_closed_to_external_origins(self):
+        android = (ROOT / "mobile/android/app/src/main/java/org/echo/aac/MainActivity.java").read_text(encoding="utf-8")
+        for property_name in (
+            "settings.setAllowFileAccess(false)",
+            "settings.setAllowFileAccessFromFileURLs(false)",
+            "settings.setAllowUniversalAccessFromFileURLs(false)",
+            "settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)",
+            '"https://appassets.androidplatform.net"',
+            "shouldOverrideUrlLoading",
+            "ServiceWorkerClientCompat",
+            "req.deny()",
+        ):
+            with self.subTest(property_name=property_name):
+                self.assertIn(property_name, android)
+        self.assertNotIn("setAllowUniversalAccessFromFileURLs(true)", android)
+        self.assertNotIn("setAllowFileAccessFromFileURLs(true)", android)
+
+    def test_android_only_requests_microphone_for_optional_recording(self):
+        manifest = (ROOT / "mobile/android/app/src/main/AndroidManifest.xml").read_text(encoding="utf-8")
+        self.assertIn("android.permission.RECORD_AUDIO", manifest)
+        self.assertIn('android.hardware.microphone" android:required="false"', manifest)
+        for dangerous_permission in (
+            "READ_CONTACTS", "READ_SMS", "READ_CALL_LOG", "ACCESS_FINE_LOCATION",
+            "ACCESS_BACKGROUND_LOCATION", "READ_EXTERNAL_STORAGE",
+            "WRITE_EXTERNAL_STORAGE", "MANAGE_EXTERNAL_STORAGE",
+        ):
+            with self.subTest(permission=dangerous_permission):
+                self.assertNotIn("android.permission." + dangerous_permission, manifest)
+        self.assertIn('android:usesCleartextTraffic="false"', manifest)
+
+
 if __name__ == "__main__":
     unittest.main()
