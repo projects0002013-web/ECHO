@@ -281,3 +281,16 @@ Latest base merged: 24f3744 (Android microphone/audio routing). One active execu
 Android now compiles with local-device TTS adapter, SAF file import/chunked backup export, safe insets, text scaling, keyboard resize and bundled service-worker assets. Native personalized AI remains not ready; Linux core prototype is distinct. The real APK build passes; check-apk compares 28 web assets to source and apksigner validates signing. Browser-native transport tests simulate TTS events and file writes/failure; they do not test physical Android output or OS picker UI.
 
 Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans, ten JS syntax checks, APK build and ZIP/signature checks passed. No data-loss regression was detected in isolated profiles. Focus, radius and stale upstream permission/worklet expectations initially failed and were corrected with actual reruns. Required manual checks: Redmi Note 14/Android device audio, permissions, SAF, background, rotation, safe area/keyboard, TalkBack, one-hand use and upgrade with existing data; iPhone/VoiceOver unrun. GitHub API remains Forbidden, so PR creation is attempted but not assumed. The branch workflow builds the same APK automatically on push; remote outcome is not inferred from local success.
+
+
+## ECHO 1.0 — повторяемый GitHub CI (2026-11-08)
+
+Проверено по реальным результатам GitHub Actions для ветки `feature/echo-executive-light-offline-voice`:
+
+- **✅ Android Executive Light APK:** [run #25](https://github.com/projects0002013-web/ECHO/actions/runs/42455862798), conclusion `success`; опубликован артефакт `echo-executive-light-debug` (ZIP около 2.47 МБ).
+- **✅ ECHO 1.0 Quality Gates:** [run #4](https://github.com/projects0002013-web/ECHO/actions/runs/42455862826), conclusion `success`; выполняет проверки синтаксиса JS, Python unittest и браузерные регрессии в Chromium.
+- Quality Gate закреплён на `ubuntu-24.04`: `ubuntu-latest` в этом окружении указывал на 26.04, где Playwright 1.56 не поддерживает установку Chromium. Исправлено коммитом `dd4b9e1`.
+- **⏸ Ручные проверки не выполнены:** физическое Android TTS, TalkBack, микрофон, SAF-проводник, обновление без потери записей, реальный iPhone и планшеты. См. [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md).
+- Персональная модель AI **не** включена в APK. GitHub Actions не подтверждает качество или скорость клонирования голоса.
+
+Не переносить формулировку «готов к выпуску» на `main`, пока результаты ручного тестирования не зафиксированы.
