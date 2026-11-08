@@ -253,3 +253,14 @@ GitHub Actions `Android Executive Light APK` создаёт **`ECHO Тест`** 
 - [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md) — ручные испытания Android/iPhone/TalkBack/офлайн, которые нельзя заменить CI.
 
 Автоматические проверки каталога переводов, офлайн-файлов и изоляции Android Debug находятся в `tests/test_release_readiness.py`; они выполняются через `python -m unittest discover -s tests -v` в GitHub Actions. Научные результаты исследования и проверка реального пользовательского опыта **пока не получены**. Не объявляйте ECHO 1.0 выпущенным на основании только проходящих тестов.
+
+
+## Материалы для научных конкурсов ECHO
+
+- [AAC_COMPARISON.md](AAC_COMPARISON.md) — анализ официальных описаний Proloquo2Go, TD Snap и бесплатного Public AAC; это не независимое пользовательское тестирование.
+- [RESEARCH_PROTOCOL.md](RESEARCH_PROTOCOL.md) — методика добровольного UX-исследования без сбора диагнозов и личного аудио.
+- [SCIENTIFIC_PAPER_DRAFT.md](SCIENTIFIC_PAPER_DRAFT.md) — **черновик**, реальных пользовательских результатов и окончательных выводов пока нет.
+- [COMPETITION_PRESENTATION.md](COMPETITION_PRESENTATION.md) — текст для 10 слайдов, не готовый PPTX.
+- [DEMO_VIDEO_SCRIPT.md](DEMO_VIDEO_SCRIPT.md) — сценарий ролика на тестовых данных, не готовый видеоролик.
+
+Фактические результаты исследования, графики, финальное оформление и запись видео требуют отдельной работы. Не выдавайте шаблоны за завершённые пользовательские испытания.
