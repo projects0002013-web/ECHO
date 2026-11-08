@@ -14,6 +14,22 @@ class Executive(unittest.TestCase):
  def tearDown(self):self.assertEqual(self.errors,[]);self.c.close()
  def ready(self):self.q.wait_for_selector('#echoDataPanel',state='attached');self.q.wait_for_selector('#echoOfflineModelPanel',state='attached')
  def studio(self):self.q.locator('#echoVoiceStudioNav').click()
+ def test_keyboard_arrows_home_end_on_cards_preserve_tab(self):
+  q=self.q
+  cards=q.locator('.phrase-card:not(.custom-card)')
+  first=cards.nth(0)
+  first.focus()
+  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),first.get_attribute('data-text'))
+  q.keyboard.press('ArrowRight')
+  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),cards.nth(1).get_attribute('data-text'))
+  q.keyboard.press('End')
+  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),cards.nth(5).get_attribute('data-text'))
+  q.keyboard.press('Home')
+  self.assertEqual(q.evaluate("document.activeElement?.dataset.text"),first.get_attribute('data-text'))
+  # Normal Tab navigation must not be blocked by the arrow-key helper.
+  q.keyboard.press('Tab')
+  self.assertNotEqual(q.evaluate("document.activeElement?.dataset.text"),first.get_attribute('data-text'))
+
  def test_sos_stop_and_persistent_stop_across_navigation(self):
   q=self.q
   activity=q.evaluate("""() => {
