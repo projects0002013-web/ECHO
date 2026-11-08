@@ -320,3 +320,13 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 - ✅ [Android Executive Light APK](https://github.com/projects0002013-web/ECHO/actions/runs/42457515604) завершился `success`.
 - ✅ [ECHO 1.0 Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42457515609) завершился `success`.
 - Физическую проверку звука на Android и доступности TalkBack ещё требуется выполнить на Redmi Note 14.
+
+
+## Подготовка релиза, локализация и управление карточками с клавиатуры (2026-11-08)
+
+- ✅ [Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42458746251) — `success`. Новый `tests/test_release_readiness.py` проверяет полный набор ключей ru/kk/en/be, формат переменных, офлайн-ресурсы, отделение Debug APK и отсутствие персональных аудиофайлов в упаковке.
+- ✅ [Android Executive Light APK](https://github.com/projects0002013-web/ECHO/actions/runs/42458746307) — `success`, отдельный `org.echo.aac.preview`.
+- ✅ В `accessibility.js` добавлена навигация по видимым кнопкам фраз с помощью стрелок/Home/End; при этом Tab сохраняет стандартное поведение. Автоматический тест проходит. Это **не** означает, что управление любыми внешними переключателями или TalkBack на смартфоне уже испытано.
+- ✅ Подготовлены `PRIVACY.md` (черновик), `RELEASE_CHECKLIST.md`, `RESEARCH_PROTOCOL.md`, `AAC_COMPARISON.md` (официальные источники), обновлены README и начальные статусы `ECHO_ROADMAP.html`.
+- ⏸ Испытания Android/iPhone, TalkBack, VoiceOver, действия внешних устройств ввода, безопасность релизной подписи, согласие добровольцев, реальные метрики исследования и выпуск `main` ещё впереди.
+- Один промежуточный запуск CI не прошёл из-за ошибки **теста**, который пытался сфокусировать контейнер `.phrase-card` вместо вложенной кнопки `.card-speak`. Исправлено коммитом `2cf504f` и подтверждено зелёным запуском.
