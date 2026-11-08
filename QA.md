@@ -311,3 +311,12 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 - ✅ [Quality Gates run](https://github.com/projects0002013-web/ECHO/actions/runs/42457051806): `success`.
 - ✅ [Android APK run](https://github.com/projects0002013-web/ECHO/actions/runs/42457044787): `success`.
 - ⏸ Реальный TalkBack на Redmi Note 14 остаётся **не проверен**. Автотесты подтверждают DOM/ARIA, но не работу физического экранного диктора.
+
+
+## SOS/Stop — единая остановка звука (2026-11-08)
+
+- Убрана повторная попытка отмены только системного TTS из старого обработчика SOS. Главный обработчик в `features.js` теперь единообразно отменяет локальные записи, Piper и системную озвучку. Старый обработчик сохраняет fallback, если основная система ещё не загружена.
+- Добавлен браузерный тест наличия постоянной кнопки Stop и работы остановки звука на SOS, в настройках и на главном экране.
+- ✅ [Android Executive Light APK](https://github.com/projects0002013-web/ECHO/actions/runs/42457515604) завершился `success`.
+- ✅ [ECHO 1.0 Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42457515609) завершился `success`.
+- Физическую проверку звука на Android и доступности TalkBack ещё требуется выполнить на Redmi Note 14.
