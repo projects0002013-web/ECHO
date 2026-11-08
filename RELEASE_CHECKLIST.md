@@ -8,7 +8,7 @@
 - [x] Защита от регрессий при экспорте/импорте и восстановлении данных.
 - [x] Навигация, SOS, Stop, важные состояния TalkBack проверяются в браузере.
 - [x] Отдельный пакет `org.echo.aac.preview` для тестирования без замены основного приложения.
-- [ ] Все новые проверки `tests/test_release_readiness.py` проходят в GitHub Actions: **проверять результат run после этого коммита**, не ставить автоматически.
+- [x] Проверки `tests/test_release_readiness.py` (локализация, офлайн-ресурсы, тестовый пакет, разрешения Android/WebView) прошли в [Quality Gates run](https://github.com/projects0002013-web/ECHO/actions/runs/42459219469).
 - [ ] На финальном коммите зелёные оба workflow (Quality Gates + Android APK).
 - [ ] Итоговый APK скачан, контрольная сумма зафиксирована.
 
