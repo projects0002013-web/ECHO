@@ -4355,9 +4355,10 @@ document.getElementById("echoSOSSpeak")
 
 document.getElementById("echoSOSStop")
   .addEventListener("click", () => {
-    if (echoSpeechProvider()) {
-      echoSpeechProvider().cancel();
-    }
+    // Once the app is fully initialized features.js owns a single stop handler.
+    // That handler cancels saved audio, the local Piper bridge and native TTS.
+    // Do not only cancel Web Speech here or issue a redundant second cancel.
+    if (!window.echoStopSpeech) echoSpeechProvider()?.cancel();
   });
 
 // 8. ПЕРЕХОД К НАБОРУ 112
