@@ -301,3 +301,13 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 ✅ GitHub Actions [ECHO 1.0 Quality Gates #7](https://github.com/projects0002013-web/ECHO/actions/runs/42456131649) завершился с `success` после добавления `tests/backup_browser.py` в обязательный CI workflow. Проверки охватывают создание резервного файла, карточки и изображения, WAV-записи, восстановление без сети, объединение с конфликтующими ID, повреждённые файлы, отказ/откат при нехватке места и восстановление из журнала. Испытания автоматизированы в Chromium и **не заменяют** физическую проверку Android SAF (сохранение через системный файловый диалог).
 
 ✅ APK [Android Executive Light #27](https://github.com/projects0002013-web/ECHO/actions/runs/42456131651) также собран успешно. На настоящем Redmi Note 14 ещё не проверены установка поверх старой версии и восстановление пользовательских записей. Эти пункты оставляем незавершёнными в [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md).
+
+
+## Навигация TalkBack и состояния карточек (2026-11-08)
+
+- Кнопки избранного и закрепления карточек синхронизируют `aria-pressed` с фактическим состоянием после каждого переключения (коммит `d99eb3b`).
+- Активный раздел навигации отмечается `aria-current="page"`, а кнопка добавления не выдаёт себя за страницу (коммит `cda8a44`).
+- Добавлен браузерный регрессионный тест на переключение избранного, закрепления, настроек и SOS (коммит `46b0b2b`).
+- ✅ [Quality Gates run](https://github.com/projects0002013-web/ECHO/actions/runs/42457051806): `success`.
+- ✅ [Android APK run](https://github.com/projects0002013-web/ECHO/actions/runs/42457044787): `success`.
+- ⏸ Реальный TalkBack на Redmi Note 14 остаётся **не проверен**. Автотесты подтверждают DOM/ARIA, но не работу физического экранного диктора.
