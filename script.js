@@ -1085,6 +1085,8 @@ function updateFavorites() {
         "is-favorite",
         isFavorite
       );
+      // Announce favorite toggle state to TalkBack.
+      star.setAttribute("aria-pressed", String(isFavorite));
 
       star.setAttribute(
         "aria-label",
@@ -3892,6 +3894,7 @@ function updateEchoPinButtons() {
       pin.textContent = pinned ? "📌" : "📍";
 
       pin.classList.toggle("pinned", pinned);
+      pin.setAttribute("aria-pressed", String(pinned));
 
       pin.setAttribute(
         "aria-label",
