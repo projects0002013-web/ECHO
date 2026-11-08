@@ -14,6 +14,24 @@ class Executive(unittest.TestCase):
  def tearDown(self):self.assertEqual(self.errors,[]);self.c.close()
  def ready(self):self.q.wait_for_selector('#echoDataPanel',state='attached');self.q.wait_for_selector('#echoOfflineModelPanel',state='attached')
  def studio(self):self.q.locator('#echoVoiceStudioNav').click()
+ def test_talkback_navigation_and_card_toggle_states(self):
+  q=self.q
+  expect(q.locator('#phrasesTab')).to_have_attribute('aria-current','page')
+  card=q.locator('.phrase-card:not(.custom-card)').first
+  favorite=card.locator('.favorite-star')
+  pin=card.locator('.echo-pin-button')
+  expect(favorite).to_have_attribute('aria-pressed','false')
+  expect(pin).to_have_attribute('aria-pressed','false')
+  favorite.click()
+  expect(favorite).to_have_attribute('aria-pressed','true')
+  pin.click()
+  expect(pin).to_have_attribute('aria-pressed','true')
+  q.locator('#settingsTab').click()
+  expect(q.locator('#settingsTab')).to_have_attribute('aria-current','page')
+  self.assertEqual(q.locator('#phrasesTab[aria-current]').count(),0)
+  q.locator('.echo-sos-nav').click()
+  expect(q.locator('.echo-sos-nav')).to_have_attribute('aria-current','page')
+  self.assertEqual(q.locator('#settingsTab[aria-current]').count(),0)
  def test_default_palette_professional_icons_and_personal_symbols_preserved(self):
   q=self.q
   self.assertEqual(q.evaluate('getComputedStyle(document.body).backgroundColor'),'rgb(248, 250, 248)');self.assertEqual(q.evaluate('getComputedStyle(document.body).color'),'rgb(23, 35, 27)');self.assertEqual(q.evaluate("getComputedStyle(document.body).getPropertyValue('--primary').trim()"),'#166534')
