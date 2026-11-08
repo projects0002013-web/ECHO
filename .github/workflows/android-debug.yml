@@ -51,6 +51,16 @@ jobs:
         run: gradle -p mobile/android --no-daemon assembleDebug
       - name: Verify packaged Executive Light assets
         run: python3 mobile/check-apk.py mobile/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Verify isolated test-app identity and signature
+        run: |
+          set -euo pipefail
+          APK=mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          AAPT="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/aapt"
+          SIGNER="${ANDROID_HOME:-/usr/local/lib/android/sdk}/build-tools/35.0.0/apksigner"
+          "$AAPT" dump badging "$APK" | grep -F "package: name='org.echo.aac.preview'"
+          "$AAPT" dump badging "$APK" | grep -F "application-label:'ECHO Тест'"
+          "$SIGNER" verify "$APK"
+          echo "This is a separate test package; never uninstall production ECHO." >> "$GITHUB_STEP_SUMMARY"
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
