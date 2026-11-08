@@ -65,6 +65,10 @@ public final class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false);
+        // Explicitly forbid legacy file:// JavaScript bridges and cross-file access.
+        // Android's scoped document picker remains available through content:// grants.
+        settings.setAllowFileAccessFromFileURLs(false);
+        settings.setAllowUniversalAccessFromFileURLs(false);
         settings.setAllowContentAccess(true); // Only explicit document-picker grants are readable.
         settings.setTextZoom(Math.round(getResources().getConfiguration().fontScale * 100));
         settings.setBuiltInZoomControls(true);
