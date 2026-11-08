@@ -9,6 +9,14 @@ android {
     versionCode 2
     versionName '1.0-executive-debug'
   }
+  // Debug builds are isolated from the stable user installation and storage.
+  // They CANNOT be used to test in-place upgrades of the production package.
+  buildTypes {
+    debug {
+      applicationIdSuffix '.preview'
+      versionNameSuffix '-preview'
+    }
+  }
   compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 dependencies { implementation 'androidx.webkit:webkit:1.12.1' }
