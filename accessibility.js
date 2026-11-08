@@ -26,6 +26,21 @@
   function syncEmoji(){for(const button of emojiButtons){button.setAttribute('aria-pressed',String(button.classList.contains('selected')));button.setAttribute('aria-label','Иконка '+button.textContent.trim());}}
   syncEmoji();new MutationObserver(syncEmoji).observe(document.querySelector('.emoji-list'),{subtree:true,attributes:true,attributeFilter:['class']});
   decorate(document);new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)if(n.nodeType===1)decorate(n);}).observe(phraseGrid,{childList:true});
+  // Preserve native button semantics while announcing which screen is open.
+  // "Add" launches an editor, not a persistent page, so it is never aria-current.
+  function syncNavCurrent(){
+    const buttons=[...document.querySelectorAll('.nav-item')];
+    const active=buttons.find(button=>button.classList.contains('active')&&!button.classList.contains('add-button'));
+    for(const button of buttons){
+      if(button===active)button.setAttribute('aria-current','page');
+      else button.removeAttribute('aria-current');
+    }
+  }
+  const navCurrentObserver=new MutationObserver(records=>{
+    if(records.some(record=>record.type==='attributes'&&record.attributeName==='class'&&record.target.matches('.nav-item')))syncNavCurrent();
+  });
+  navCurrentObserver.observe(document.querySelector('.app'),{attributes:true,subtree:true,attributeFilter:['class']});
+  syncNavCurrent();
   const nav=document.querySelector('.bottom-nav');
   function measure(){document.documentElement.style.setProperty('--echo-nav-height',nav.getBoundingClientRect().height+'px');document.documentElement.style.setProperty('--echo-dock-height',dock.getBoundingClientRect().height+'px');}
   new ResizeObserver(measure).observe(nav);new ResizeObserver(measure).observe(dock);
