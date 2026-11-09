@@ -123,8 +123,8 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/echo-real-inference
           BASE=https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1
-          curl -fLSs --retry 3 "$BASE/sherpa-onnx-jvm-2.0.1.jar" -o /tmp/echo-real-inference/jvm.jar
-          curl -fLSs --retry 3 "$BASE/sherpa-onnx-native-lib-linux-x64-2.0.1.jar" -o /tmp/echo-real-inference/native.jar
+          curl -fLSs --retry 10 --retry-all-errors --retry-delay 6 --max-time 180 "$BASE/sherpa-onnx-jvm-2.0.1.jar" -o /tmp/echo-real-inference/jvm.jar
+          curl -fLSs --retry 10 --retry-all-errors --retry-delay 6 --max-time 180 "$BASE/sherpa-onnx-native-lib-linux-x64-2.0.1.jar" -o /tmp/echo-real-inference/native.jar
           echo "8320e2457b6e38dd624fb619d3552e11ef78ffeb394622056126b16f2fd99d12  /tmp/echo-real-inference/jvm.jar" | sha256sum -c
           echo "744330a68a7024d9412f029c23b06f847b8444787c94e5118e0fdaf1b4b2cb3f  /tmp/echo-real-inference/native.jar" | sha256sum -c
       - name: Compile and run real PocketTTS speech generation
