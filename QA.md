@@ -428,3 +428,17 @@ APK после последней поправки: 185212854 байт; SHA-256 
 `test_old_page_native_reply_cannot_resolve_a_new_page_request` перезагружает реальную страницу, открывает новый pending-запрос и подаёт старый ответ: он игнорируется; только соответствующий новый ответ завершает запрос. Это проверка протокола с mock host, не нейросети. Итог локально: **9/9 native_voice_browser**, **28/28 voice_browser**, **15/15 backup_browser**, assembleDebug/assembleDebugAndroidTest — passed. Static cache version v24.
 
 APK после изоляции request ID: 185212854 байт; SHA-256 `c24c2f1448f61f9f3460356906c839119872f3705755ac494e7ffa9bd883287b`; check-apk сверил исходники, модель и обе ABI.
+
+
+### Подтверждённый Android-эмуляторный инференс (2026-11-09)
+
+Исправленная CI-сборка [Android Executive Light APK #42575423980](https://github.com/projects0002013-web/ECHO/actions/runs/42575423980) **полностью успешна**: job `build` = success, `android-real-inference` = success. Это первый подтверждённый в этой ветке полный запуск четырёх инструментальных тестов на Android x86_64 в авиарежиме без мобильной сети:
+
+- `serviceSerializesRequestsAndSurvivesStop` — **50,883 с** (последовательное выполнение и отмена);
+- `realNativeInferenceResamplingCancellationAndPlayback` — **87,801 с** (реальная JNI/ONNX-генерация нового WAV, ресемплинг, остановка и MediaPlayer);
+- `corruptedModelIsRejectedAndRecoveredWithoutTouchingUserData` — **4,189 с** (отказ при повреждении весов, восстановление и сохранение пользовательского контрольного файла);
+- `savedSampleConsentNewTextAndRealNativeWav` — **36,426 с** (WebView → импорт образца → согласие → новый текст → реальный WAV в IndexedDB).
+
+Все четыре теста выполнились без skipped/failure/error. Их образцы синтетические, что **не доказывает сходство с голосом человека**. x86_64-эмуляторный успех **не доказывает** поддержку Android arm64 на Redmi Note 14, качество звучания, тепло/память и безопасность подписанного обновления основной версии.
+
+В `android-debug.yml` добавлено явное утверждение `airplane_mode_on=1` **до** запуска инструментальных тестов; проверка запуска с новым утверждением должна быть подтверждена отдельно. Основной `org.echo.aac` не изменялся, тестовый `org.echo.aac.preview` остаётся изолированным.
