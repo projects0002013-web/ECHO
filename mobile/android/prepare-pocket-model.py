@@ -13,7 +13,7 @@ import json
 
 URL = ("https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/"
        "sherpa-onnx-pocket-tts-int8-2026-01-26.tar.bz2")
-EXPECTED_ARCHIVE_SHA256 = ""  # Fill with CI's printed hash before stable release.
+EXPECTED_ARCHIVE_SHA256 = "2f3b88823cbbb9bf0b2477ec8ae7b3fec417b3a87b6bb5f256dba66f2ad967cb"
 ROOT = Path(__file__).resolve().parent / "app/src/main/assets/pockettts"
 MODEL_ROOT = "sherpa-onnx-pocket-tts-int8-2026-01-26/"
 FILES = {
