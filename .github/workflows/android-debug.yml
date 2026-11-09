@@ -40,6 +40,8 @@ jobs:
           gradle-version: '8.10.2'
       - name: Install pinned offline PocketTTS Android runtime
         run: python3 mobile/android/prepare-pocket-runtime.py
+      - name: Bundle PocketTTS English model for fully offline generation
+        run: python3 mobile/android/prepare-pocket-model.py
       - name: Package offline assets
         run: python3 mobile/package-web.py
       - name: Install Android SDK 35
