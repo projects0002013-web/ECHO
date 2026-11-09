@@ -38,15 +38,55 @@
       }
     });
   }
+  if(android){
+    const utterances=new Map();let utteranceSequence=0,refreshAttempts=0;
+    class AndroidSpeech extends EventTarget {
+      constructor(){super();this.voices=[];}
+      getVoices(){return this.voices;}
+      async refresh(){try{const result=await request("ttsVoices");this.voices=(result.voices||[]).map(v=>({...v,localService:true,default:false}));this.dispatchEvent(new Event('voiceschanged'));if(result.loading && ++refreshAttempts<12)setTimeout(()=>this.refresh(),400);}catch{this.voices=[];}}
+      speak(utterance){utterances.clear();const id='tts-'+(++utteranceSequence);utterances.set(id,utterance);request("ttsSpeak",{utteranceId:id,text:utterance.text,language:utterance.lang,voice:utterance.voice?.name||'',rate:utterance.rate,pitch:utterance.pitch,volume:utterance.volume}).catch(()=>{if(utterances.has(id)){utterances.delete(id);utterance.onerror?.({error:'synthesis-failed'});}});}
+      cancel(){utterances.clear();request("ttsStop").catch(()=>{});}
+    }
+    window.echoAndroidSpeech=new AndroidSpeech();
+    window.echoNativeTTSEvent=(id,state)=>{const u=utterances.get(String(id));if(!u)return;if(state==='start')u.onstart?.();else{utterances.delete(String(id));state==='end'?u.onend?.():u.onerror?.({error:'synthesis-failed'});}};
+    window.addEventListener('focus',()=>window.echoAndroidSpeech.refresh());window.echoAndroidSpeech.refresh();
+  }
+  if(android)window.echoNativeFiles=Object.freeze({
+    async saveBlob(blob,name){
+      if(!(blob instanceof Blob) || blob.size>100*1024*1024)throw new Error("Резервная копия превышает 100 МБ.");
+      const {session}=await request("saveStart",{name});
+      try {
+        for(let at=0;at<blob.size;at+=65536){
+          const bytes=new Uint8Array(await blob.slice(at,at+65536).arrayBuffer());let binary="";
+          for(let n=0;n<bytes.length;n+=8192)binary+=String.fromCharCode(...bytes.subarray(n,n+8192));
+          await request("saveChunk",{session,base64:btoa(binary)});
+        }
+        const result=await request("saveFinish",{session});if(result.saved!==true)throw new Error("Файл не сохранён.");
+      }catch(error){await request("saveAbort",{session}).catch(()=>{});throw error;}
+    }
+  });
+  async function checkReferenceWav(blob,signal) {
+    if(!android)throw new Error("Проверка WAV доступна в Android-приложении.");
+    if(!(blob instanceof Blob) || !blob.size || blob.size>8*1024*1024)
+      throw new Error("Нужен WAV-файл до 8 МБ.");
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    signal?.throwIfAborted();
+    let binary='';
+    for(let offset=0;offset<bytes.length;offset+=8192)
+      binary+=String.fromCharCode(...bytes.subarray(offset,offset+8192));
+    return request("aiReferenceCheck",{referenceWavBase64:btoa(binary)},signal);
+  }
   window.echoNativeVoice = Object.freeze({
     status: () => request("status"),
+    checkReferenceWav,
     requestMicrophonePermission: () => request("microphonePermission"),
-    synthesize: ({ text, language, referenceWavBase64, signal }) => {
+    synthesize: ({ text, language, referenceWavBase64, consent, signal }) => {
       if (typeof text !== "string" || text.length === 0 || text.length > 300)
         return Promise.reject(new Error("Некорректный текст."));
       if (typeof referenceWavBase64 !== "string" || referenceWavBase64.length > 16 * 1024 * 1024)
         return Promise.reject(new Error("Слишком большой голосовой образец."));
-      return request("synthesize", { text, language, referenceWavBase64 }, signal);
+      if(consent!==true)return Promise.reject(new Error("Требуется согласие владельца голоса."));
+      return request("synthesize", { text, language, referenceWavBase64, consent:true }, signal);
     }
   });
 })();

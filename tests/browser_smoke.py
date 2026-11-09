@@ -244,7 +244,7 @@ def main():
         hosted.locator('#echoSpeechMode').select_option('personal')
         hosted.locator('#phrasesTab').click()
         hosted.locator('.phrase-card').first.click()
-        expect(hosted.locator('#echoSpeechStatus')).to_contain_text('Образец не будет отправлен на сайт')
+        expect(hosted.locator('#echoSpeechStatus')).to_contain_text('образец не будет отправлен на сайт')
         assert not posted, posted
         public.close()
         passed.append('public-origin app never uploads a voice sample')

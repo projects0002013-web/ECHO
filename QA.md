@@ -255,3 +255,112 @@ GitHub: получение main через Git работает. API `api.github
 
 
 Итог запуска: 7/7 новых Studio-тестов, 20/20 серверных, 28/28 голосовых, 15/15 резервных, 13/13 языковых, 14/14 регрессионных, 10/10 accessibility-тестов (15 прежних axe-сканов + 3 скана новой студии в Studio-тестах), 15/15 групп smoke и 12/12 групп core browser. Семь JS-проверок синтаксиса и git diff --check прошли. Первичные падения описаны выше, незакрытых падений в последующих прогонах нет. API GitHub отвечает Forbidden; ветка отправляется без обхода PR и прямого изменения main.
+
+
+## Executive Light + Offline Personal Voice
+
+База main=38664df, ветка feature/echo-executive-light-offline-voice. Executive Light заменяет оформление светлой темы без изменения ключей и выбора старых пользователей. Применены заданная палитра, системная типографика, линейные SVG для системных карточек/навигации/управления, новые поверхности карточек, поиска, конструктора, настроек и студии; личные изображения/emoji остаются пользовательскими данными. Новые модули включены в безопасный bootstrap после восстановления журнала, allowlist сервера и service-worker v15. Формат данных/резервных копий не меняется.
+
+PWA проверяет присутствие совместимого нативного хоста и модели, честно показывает отсутствие автономного телефона и предлагает существующие явные источники. Наличие WebAssembly/WebGPU не считается установленной моделью. Публичная PWA блокирует действие Chatterbox, требующее localhost/ПК. Отдельная основа native/pocket_voice.cpp вызывает действительный sherpa C API с reference_audio и новым текстом, но JNI/Swift-оболочки, модель и мобильная сборка отсутствуют. Для изолированной проверки Linux-прототипа скачаны int8-архив 98 МБ и временный sherpa-onnx 2.0.1. В PWA они не включены. Готового автономного AI для телефона нет: **Настоящий автономный AI-синтез не проверен на телефоне**.
+
+Проверены первичные исходники PocketTTS и sherpa-onnx, лицензии их кода (MIT / Apache-2.0), явная поддержка reference audio, Kotlin/Swift/C API и EN WASM пример. Нельзя переносить поддержку языков интерфейса на модель; адаптер допускает только EN. Модельная карточка HF возвращает 403; затем в официальном совместимом архиве проверена лицензия CC BY 4.0, сохранены её текст/атрибуция и SHA-256 каждого файла. Модель не распространяется вместе с PWA. Источники, ревизии и оценки ресурсов с оговорками — native/README.md.
+
+Новые тесты используют настоящий Chromium/IndexedDB/PWA, сохраняют выбор тем и проверяют экспорт, размеры 320–1280 и четыре языка. Нативные успешные ответы подставные: проверяется только граница API, разрешение владельца, языки, WAV, readiness без сети. Ни Android, ни iPhone, ни настоящая автономная модель/физический микрофон/VoiceOver/TalkBack не тестировались. C++ прошёл синтаксис, компиляцию и линковку с официальным C API из wheel 2.0.1; выполнен настоящий CPU-инференс. NDK/Xcode/CMake и инференс на телефонах не запускались.
+
+
+Настоящий native CPU smoke с Pocket int8: передан новый EN-текст и искусственный PCM-сигнал 7 с, получен непустой WAV mono PCM16 24 кГц с ненулевым RMS и новым SHA-256. Проверены отказ без согласия, сохранность reference и запрет перезаписи существующего output. Основной прогон: 14.782 с на Linux, WAV 39.781 с/1,909,534 байта. Это тест численного инференса/формата, **не проверка разборчивости или похожести голоса**: синтетический тон не является образцом речи человека. Предыдущий прогон занял 1.87 с с пиковой RSS 574,216 KiB; результаты не являются мобильным benchmark. Установка модели ограничена ~98 МБ, веса и runtime остаются в /tmp, не в Git/PWA. Первый запуск измерения не стартовал из-за отсутствия /usr/bin/time; повтор через Python subprocess/resource прошёл. Smoke интерфейса обнаружил переопределение радиуса конструктора общей панелью; добавлено точное правило 22px, повтор без ослабления теста прошёл.
+
+
+Итог: 7/7 Executive, 7/7 Studio, 20/20 серверных, 28/28 голосовых, 15/15 резервных, 13/13 языковых, 14/14 регрессионных, 10/10 accessibility-тестов; 15/15 групп browser_smoke и 12/12 core_browser. Включены 18 axe-сканов (15 экранов/тем и 3 Studio), девять JS-файлов прошли node --check. C++ компилируется и линкуется; отдельный настоящий native CPU smoke прошёл с тестовым сигналом. Публичный HTTPS-origin проверен отдельно: ПК-синтез отключён с объяснением, образец не отправляется. Первичный конфликт радиуса конструктора исправлен, последующие прогоны зелёные. Проверенные случаи не заменяют реальные мобильные устройства и проверку речи человеком. GitHub API возвращает Forbidden, поэтому PR/checks/merge недоступны; ветка сохраняется без прямого обновления main.
+
+
+## Executive Light — full mobile redesign on Android main
+
+Latest base merged: 24f3744 (Android microphone/audio routing). One active executive-light.css replaces the 4,369-line legacy cascade and accumulated features.css overrides; legacy files are comments. Full audit, screen map, tokens, file list and manual limits are in UI_AUDIT.md. Four bottom tabs plus persistent SOS/Stop, direct history/quick access, grouped/jumpable settings, non-overlapping card tools, concise preset titles and real speech-state badges are implemented. Changes preserve all storage keys, app identity/origin, IDs, speech entry points and backup format.
+
+Android now compiles with local-device TTS adapter, SAF file import/chunked backup export, safe insets, text scaling, keyboard resize and bundled service-worker assets. Native personalized AI remains not ready; Linux core prototype is distinct. The real APK build passes; check-apk compares 28 web assets to source and apksigner validates signing. Browser-native transport tests simulate TTS events and file writes/failure; they do not test physical Android output or OS picker UI.
+
+Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans, ten JS syntax checks, APK build and ZIP/signature checks passed. No data-loss regression was detected in isolated profiles. Focus, radius and stale upstream permission/worklet expectations initially failed and were corrected with actual reruns. Required manual checks: Redmi Note 14/Android device audio, permissions, SAF, background, rotation, safe area/keyboard, TalkBack, one-hand use and upgrade with existing data; iPhone/VoiceOver unrun. GitHub API remains Forbidden, so PR creation is attempted but not assumed. The branch workflow builds the same APK automatically on push; remote outcome is not inferred from local success.
+
+
+## ECHO 1.0 — повторяемый GitHub CI (2026-11-08)
+
+Проверено по реальным результатам GitHub Actions для ветки `feature/echo-executive-light-offline-voice`:
+
+- **✅ Android Executive Light APK:** [run #25](https://github.com/projects0002013-web/ECHO/actions/runs/42455862798), conclusion `success`; опубликован артефакт `echo-executive-light-debug` (ZIP около 2.47 МБ).
+- **✅ ECHO 1.0 Quality Gates:** [run #4](https://github.com/projects0002013-web/ECHO/actions/runs/42455862826), conclusion `success`; выполняет проверки синтаксиса JS, Python unittest и браузерные регрессии в Chromium.
+- Quality Gate закреплён на `ubuntu-24.04`: `ubuntu-latest` в этом окружении указывал на 26.04, где Playwright 1.56 не поддерживает установку Chromium. Исправлено коммитом `dd4b9e1`.
+- **⏸ Ручные проверки не выполнены:** физическое Android TTS, TalkBack, микрофон, SAF-проводник, обновление без потери записей, реальный iPhone и планшеты. См. [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md).
+- Персональная модель AI **не** включена в APK. GitHub Actions не подтверждает качество или скорость клонирования голоса.
+
+Не переносить формулировку «готов к выпуску» на `main`, пока результаты ручного тестирования не зафиксированы.
+
+
+## Обязательные браузерные испытания резервной копии (2026-11-08)
+
+✅ GitHub Actions [ECHO 1.0 Quality Gates #7](https://github.com/projects0002013-web/ECHO/actions/runs/42456131649) завершился с `success` после добавления `tests/backup_browser.py` в обязательный CI workflow. Проверки охватывают создание резервного файла, карточки и изображения, WAV-записи, восстановление без сети, объединение с конфликтующими ID, повреждённые файлы, отказ/откат при нехватке места и восстановление из журнала. Испытания автоматизированы в Chromium и **не заменяют** физическую проверку Android SAF (сохранение через системный файловый диалог).
+
+✅ APK [Android Executive Light #27](https://github.com/projects0002013-web/ECHO/actions/runs/42456131651) также собран успешно. На настоящем Redmi Note 14 ещё не проверены установка поверх старой версии и восстановление пользовательских записей. Эти пункты оставляем незавершёнными в [DEVICE_ACCEPTANCE.md](DEVICE_ACCEPTANCE.md).
+
+
+## Навигация TalkBack и состояния карточек (2026-11-08)
+
+- Кнопки избранного и закрепления карточек синхронизируют `aria-pressed` с фактическим состоянием после каждого переключения (коммит `d99eb3b`).
+- Активный раздел навигации отмечается `aria-current="page"`, а кнопка добавления не выдаёт себя за страницу (коммит `cda8a44`).
+- Добавлен браузерный регрессионный тест на переключение избранного, закрепления, настроек и SOS (коммит `46b0b2b`).
+- ✅ [Quality Gates run](https://github.com/projects0002013-web/ECHO/actions/runs/42457051806): `success`.
+- ✅ [Android APK run](https://github.com/projects0002013-web/ECHO/actions/runs/42457044787): `success`.
+- ⏸ Реальный TalkBack на Redmi Note 14 остаётся **не проверен**. Автотесты подтверждают DOM/ARIA, но не работу физического экранного диктора.
+
+
+## SOS/Stop — единая остановка звука (2026-11-08)
+
+- Убрана повторная попытка отмены только системного TTS из старого обработчика SOS. Главный обработчик в `features.js` теперь единообразно отменяет локальные записи, Piper и системную озвучку. Старый обработчик сохраняет fallback, если основная система ещё не загружена.
+- Добавлен браузерный тест наличия постоянной кнопки Stop и работы остановки звука на SOS, в настройках и на главном экране.
+- ✅ [Android Executive Light APK](https://github.com/projects0002013-web/ECHO/actions/runs/42457515604) завершился `success`.
+- ✅ [ECHO 1.0 Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42457515609) завершился `success`.
+- Физическую проверку звука на Android и доступности TalkBack ещё требуется выполнить на Redmi Note 14.
+
+
+## Подготовка релиза, локализация и управление карточками с клавиатуры (2026-11-08)
+
+- ✅ [Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42458746251) — `success`. Новый `tests/test_release_readiness.py` проверяет полный набор ключей ru/kk/en/be, формат переменных, офлайн-ресурсы, отделение Debug APK и отсутствие персональных аудиофайлов в упаковке.
+- ✅ [Android Executive Light APK](https://github.com/projects0002013-web/ECHO/actions/runs/42458746307) — `success`, отдельный `org.echo.aac.preview`.
+- ✅ В `accessibility.js` добавлена навигация по видимым кнопкам фраз с помощью стрелок/Home/End; при этом Tab сохраняет стандартное поведение. Автоматический тест проходит. Это **не** означает, что управление любыми внешними переключателями или TalkBack на смартфоне уже испытано.
+- ✅ Подготовлены `PRIVACY.md` (черновик), `RELEASE_CHECKLIST.md`, `RESEARCH_PROTOCOL.md`, `AAC_COMPARISON.md` (официальные источники), обновлены README и начальные статусы `ECHO_ROADMAP.html`.
+- ⏸ Испытания Android/iPhone, TalkBack, VoiceOver, действия внешних устройств ввода, безопасность релизной подписи, согласие добровольцев, реальные метрики исследования и выпуск `main` ещё впереди.
+- Один промежуточный запуск CI не прошёл из-за ошибки **теста**, который пытался сфокусировать контейнер `.phrase-card` вместо вложенной кнопки `.card-speak`. Исправлено коммитом `2cf504f` и подтверждено зелёным запуском.
+
+
+## Android PocketTTS — этап подготовки WAV-образца (2026-11-09)
+
+- Реализован `PocketReferenceAudio.java`: RIFF/WAVE mono 16-bit PCM, 5–30 секунд, 8–96 kHz, ограничение размера 8 МБ, проверка уровня сигнала, защита от повреждённых WAV-чанков и преобразование в `float[]`.
+- `MainActivity` обрабатывает `aiReferenceCheck` на рабочем потоке, не сохраняя и не отправляя WAV. В ECHO Тест есть Android-only выбор образца для проверки.
+- ✅ [Android APK](https://github.com/projects0002013-web/ECHO/actions/runs/42544611406): `success`.
+- ✅ [Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42544611388): `success`, включая компиляцию Java и `PocketReferenceAudioTest`.
+- ⚠️ Само подключение PocketTTS ONNX/JNI, установка весов и генерация нового текста в персональном голосе **не выполнены**. Это инфраструктура, а не работающий AI-синтез в Android.
+- Дальнейшие технические условия документированы в [POCKET_TTS_INTEGRATION.md](POCKET_TTS_INTEGRATION.md). Испытания на реальном телефоне сознательно отложены по просьбе владельца проекта.
+
+
+## Настоящий PocketTTS — Android сборка и Linux-инференс (2026-11-09)
+
+- ✅ Подключён официальный sherpa-onnx v2.0.1 JVM/JNI и модель PocketTTS English int8 2026-01-26 в изолированную ECHO Тест APK.
+- ✅ Модель загружается **при сборке APK**, в Android копируется в приватные файлы с проверкой SHA-256. Официальный архив закреплён хэшем `2f3b88823cbbb9bf0b2477ec8ae7b3fec417b3a87b6bb5f256dba66f2ad967cb`. Веса не скачиваются в фоне при работе приложения.
+- ✅ [Реальный Linux ONNX inference smoke](https://github.com/projects0002013-web/ECHO/actions/runs/42547174434): получен **WAV 1 071 404 байта за 5,11 с** по новому английскому тексту и синтетическому тестовому звуку. Это НЕ имитация, но не доказательство голосового сходства.
+- ✅ [Android APK Success](https://github.com/projects0002013-web/ECHO/actions/runs/42547644458): приложение с моделью и вызовом нативной генерации собрано в тестовый пакет.
+- ✅ [Quality Gates Success](https://github.com/projects0002013-web/ECHO/actions/runs/42547644507): браузерная регрессия и реальный Linux PocketTTS smoke пройдены.
+- ✅ Voice Studio подключена к нативному bridge (`status`/`synthesize`/`cancel`); требуется согласие владельца записи, поддерживается английский; русский/казахский/белорусский используют запись или системный голос.
+- ⚠️ **Не подтверждены**: запуск ONNX именно на Android-телефоне, производительность, память, сходство синтеза с голосом, устойчивость первого извлечения ~198 МБ весов и совместимость обновления основного пакета `org.echo.aac`.
+- Испытания на телефоне и iPhone отложены до финальной приёмки по просьбе владельца проекта. Stable `main` не менялся.
+
+
+## Roadmap 60,6% — 57/94 задач, 9 ноября 2026
+
+- ✅ **Программные и документальные критерии**: после независимой проверки соответствующих сценариев 13 ранее частичных пунктов Roadmap переведены в done. Полный перечень и связь «пункт → тест/документ» приведены в [ROADMAP_ACCEPTANCE.md](ROADMAP_ACCEPTANCE.md).
+- ✅ [ECHO 1.0 Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42553551384): `offline-web-regression` и `offline-pocket-inference` завершены `success`.
+- ✅ [Android Executive Light APK](https://github.com/projects0002013-web/ECHO/actions/runs/42553551344): тестовая сборка завершена `success`, основной пакет пользователей не затронут.
+- ✅ Презентация научного проекта на 10 слайдов создана, её воспроизводимый генератор `scripts/generate_science_slides.py` выполняется в CI. Файл PPTX публикуется как артефакт `echo-science-presentation`. На слайдах не выдуманы результаты исследования.
+- ✅ В научную работу добавлены обоснование с первичными источниками WHO и ASHA; описано, почему общую статистику ассистивных технологий нельзя выдавать за число людей с потребностями AAC.
+- 📊 **Итоговая арифметика** Roadmap: 57 `done`, 18 `partial`, 19 `todo`, всего 94. `57/94 × 100 = 60,64%`.
+- ⏸ Результаты Android/iPhone/TalkBack/VoiceOver, реальная работа персонального ИИ на телефоне, безопасность стабильных обновлений и исследования с людьми **не подтверждены** и продолжают учитываться в незакрытых пунктах.
+- ⚠️ Пользовательские статусы, ранее сохранённые локально в браузере интерактивного Roadmap, могут иметь приоритет над обновлёнными начальными статусами файла; изменения в GitHub их автоматически не стирают.

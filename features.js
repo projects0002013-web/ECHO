@@ -45,6 +45,7 @@
     return window.echoI18n.error(error);
   }
   function stop() {
+    window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:false}}));
     speechJob++;
     preparedAudio = null;
     if ($("echoResumeAudio")) $("echoResumeAudio").hidden = true;
@@ -65,7 +66,7 @@
     const playing = audio;
     playing.onended = () => { if (playing === audio) { stop(); message("Готово"); } };
     playing.onerror = () => { if (playing === audio) { stop(); message("Не удалось воспроизвести запись."); } };
-    try { await playing.play(); }
+    try { await playing.play(); if(job===speechJob)window.dispatchEvent(new CustomEvent('echo-voice-activity',{detail:{playing:true}})); }
     catch (error) {
       if (job !== speechJob) return;
       if (playing === audio) { playing.pause(); playing.src = ""; audio = null; if (audioURL) URL.revokeObjectURL(audioURL); audioURL = null; }
@@ -125,7 +126,7 @@
       if (nativeReady) {
         // Native shell must enforce trusted local app origin, explicit consent, and never use network.
         const result = await nativeVoice.synthesize({
-          text, language, referenceWavBase64: await base64(reference.blob), signal
+          text, language, referenceWavBase64: await base64(reference.blob), consent:true, signal
         });
         if (result instanceof Blob) blob = result;
         else if (result && typeof result.wavBase64 === "string") blob = wavBlobFromBase64(result.wavBase64);

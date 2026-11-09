@@ -1,0 +1,132 @@
+name: ECHO 1.0 Quality Gates
+
+on:
+  push:
+    branches: [main, feature/echo-executive-light-offline-voice]
+    paths:
+      - '*.py'
+      - '*.js'
+      - '*.css'
+      - 'index.html'
+      - 'backup.js'
+      - 'locales/**'
+      - 'tests/**'
+      - '.github/workflows/quality-gates.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-web-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          for file in script.js features.js backup.js accessibility.js i18n.js sw.js mobile-voice.js executive.js offline-voice.js recorder-worklet.js; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify on-device AI voice reference WAV decoder
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/echo-voice-test
+          javac -encoding UTF-8 -d /tmp/echo-voice-test \
+            mobile/android/app/src/main/java/org/echo/aac/PocketReferenceAudio.java \
+            tests/java/PocketReferenceAudioTest.java
+          java -cp /tmp/echo-voice-test PocketReferenceAudioTest
+      - name: Verify reproducible scientific presentation (10 slides; no invented results)
+        run: |
+          python -m pip install "python-pptx==1.0.2"
+          python scripts/generate_science_slides.py /tmp/ECHO-science.pptx
+          python - <<'PY'
+          from zipfile import ZipFile
+          with ZipFile('/tmp/ECHO-science.pptx') as slides:
+              pages=[n for n in slides.namelist() if n.startswith('ppt/slides/slide') and n.endswith('.xml')]
+              assert len(pages)==10, len(pages)
+          print('Science deck validated: 10 slides')
+          PY
+      - name: Upload ten-slide competition presentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo-science-presentation
+          path: /tmp/ECHO-science.pptx
+          if-no-files-found: error
+      - name: Install isolated browser test runtime
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "playwright==1.56.0"
+          python -m playwright install --with-deps chromium
+          CHROME=$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
+          sudo ln -sf "$CHROME" /usr/bin/chromium
+          /usr/bin/chromium --version
+      - name: Run Python and browser regression tests
+        run: |
+          set -euo pipefail
+          python echo_server.py --port 8000 > /tmp/echo-ci-server.log 2>&1 &
+          echo $! > /tmp/echo-ci-server.pid
+          trap 'kill $(cat /tmp/echo-ci-server.pid) 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/index.html -o /dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8000/index.html -o /dev/null
+          python -m unittest discover -s tests -v
+          python tests/browser_smoke.py
+          python tests/core_browser.py
+          python tests/final_regression.py
+          python tests/voice_browser.py
+          python tests/redesign_browser.py
+          python tests/executive_browser.py
+          python tests/backup_browser.py
+      - name: Publish failure report without user data
+        if: failure()
+        run: |
+          echo "Quality checks failed. Inspect the failed step and test name." >> "$GITHUB_STEP_SUMMARY"
+          echo "These automated checks do NOT prove real device TTS, TalkBack, SAF, microphone or safe Android upgrade." >> "$GITHUB_STEP_SUMMARY"
+
+  offline-pocket-inference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download pinned PocketTTS model for genuine inference
+        run: python3 mobile/android/prepare-pocket-model.py
+      - name: Fetch pinned sherpa-onnx JVM + Linux runtime
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/echo-real-inference
+          BASE=https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1
+          curl -fLSs --retry 3 "$BASE/sherpa-onnx-jvm-2.0.1.jar" -o /tmp/echo-real-inference/jvm.jar
+          curl -fLSs --retry 3 "$BASE/sherpa-onnx-native-lib-linux-x64-2.0.1.jar" -o /tmp/echo-real-inference/native.jar
+          echo "8320e2457b6e38dd624fb619d3552e11ef78ffeb394622056126b16f2fd99d12  /tmp/echo-real-inference/jvm.jar" | sha256sum -c
+          echo "744330a68a7024d9412f029c23b06f847b8444787c94e5118e0fdaf1b4b2cb3f  /tmp/echo-real-inference/native.jar" | sha256sum -c
+      - name: Compile and run real PocketTTS speech generation
+        run: |
+          set -euo pipefail
+          JVM=/tmp/echo-real-inference/jvm.jar
+          NATIVE=/tmp/echo-real-inference/native.jar
+          javac -encoding UTF-8 -cp "$JVM" -d /tmp/echo-real-inference \
+            mobile/android/app/src/main/java/org/echo/aac/PocketReferenceAudio.java \
+            mobile/android/app/src/main/java/org/echo/aac/PocketTtsEngine.java \
+            tests/java/PocketTtsInferenceSmoke.java
+          java -Xmx4g -cp "/tmp/echo-real-inference:$JVM:$NATIVE" PocketTtsInferenceSmoke \
+            mobile/android/app/src/main/assets/pockettts
+          echo "Real Linux ONNX synthesis passed; Android runtime and voice likeness still require device testing." >> "$GITHUB_STEP_SUMMARY"

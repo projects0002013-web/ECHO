@@ -3,8 +3,8 @@
   "short_name": "ECHO",
   "start_url": "../index.html",
   "display": "standalone",
-  "background_color": "#f4f8f7",
-  "theme_color": "#078568",
+  "background_color": "#F8FAF8",
+  "theme_color": "#166534",
   "lang": "en",
   "icons": [
     {

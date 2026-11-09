@@ -26,6 +26,46 @@
   function syncEmoji(){for(const button of emojiButtons){button.setAttribute('aria-pressed',String(button.classList.contains('selected')));button.setAttribute('aria-label','Иконка '+button.textContent.trim());}}
   syncEmoji();new MutationObserver(syncEmoji).observe(document.querySelector('.emoji-list'),{subtree:true,attributes:true,attributeFilter:['class']});
   decorate(document);new MutationObserver(records=>{for(const r of records)for(const n of r.addedNodes)if(n.nodeType===1)decorate(n);}).observe(phraseGrid,{childList:true});
+  // Preserve native button semantics while announcing which screen is open.
+  // "Add" launches an editor, not a persistent page, so it is never aria-current.
+  function syncNavCurrent(){
+    const buttons=[...document.querySelectorAll('.nav-item')];
+    const active=buttons.find(button=>button.classList.contains('active')&&!button.classList.contains('add-button'));
+    for(const button of buttons){
+      if(button===active)button.setAttribute('aria-current','page');
+      else button.removeAttribute('aria-current');
+    }
+  }
+  const navCurrentObserver=new MutationObserver(records=>{
+    if(records.some(record=>record.type==='attributes'&&record.attributeName==='class'&&record.target.matches('.nav-item')))syncNavCurrent();
+  });
+  navCurrentObserver.observe(document.querySelector('.app'),{attributes:true,subtree:true,attributeFilter:['class']});
+  syncNavCurrent();
+  // Optional motor-access navigation: arrow keys move between visible phrase actions.
+  // Tab/Shift+Tab continue to work normally; never intercept when editing text.
+  phraseGrid.addEventListener('keydown',event=>{
+    const direction={ArrowRight:1,ArrowLeft:-1,ArrowDown:2,ArrowUp:-2};
+    if(!Object.hasOwn(direction,event.key)&&event.key!=='Home'&&event.key!=='End')return;
+    if(event.altKey||event.ctrlKey||event.metaKey||event.shiftKey)return;
+    const active=event.target;
+    const card=active.closest?.('.phrase-card');
+    if(!card||!phraseGrid.contains(card))return;
+    const primary=card.querySelector('.card-speak')||(card.matches('button')?card:null);
+    if(active!==primary)return;
+    const cards=[...phraseGrid.querySelectorAll('.phrase-card')]
+      .filter(c=>!c.hidden&&!c.closest('[hidden]')&&c.getClientRects().length);
+    const items=cards.map(c=>c.querySelector('.card-speak')||(c.matches('button')?c:null));
+    const index=items.indexOf(primary);
+    if(index<0)return;
+    // Use actual grid columns, not hardcoded viewport assumptions.
+    const columns=Math.max(1,getComputedStyle(phraseGrid).gridTemplateColumns.split(/\s+/).filter(Boolean).length);
+    const offset=event.key==='ArrowDown'?columns:event.key==='ArrowUp'?-columns:direction[event.key];
+    const next=event.key==='Home'?0:event.key==='End'?items.length-1:index+offset;
+    if(next<0||next>=items.length||!items[next])return;
+    event.preventDefault();
+    items[next].focus({preventScroll:true});
+    items[next].scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'});
+  });
   const nav=document.querySelector('.bottom-nav');
   function measure(){document.documentElement.style.setProperty('--echo-nav-height',nav.getBoundingClientRect().height+'px');document.documentElement.style.setProperty('--echo-dock-height',dock.getBoundingClientRect().height+'px');}
   new ResizeObserver(measure).observe(nav);new ResizeObserver(measure).observe(dock);
