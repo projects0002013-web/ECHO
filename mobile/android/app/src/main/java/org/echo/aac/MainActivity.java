@@ -207,6 +207,33 @@ public final class MainActivity extends Activity {
                 if (id.isEmpty() || id.length() > 40) return;
                 if ("cancel".equals(type)) return;
                 if("ttsVoices".equals(type) || "ttsSpeak".equals(type) || "ttsStop".equals(type)){runOnUiThread(()->handleTts(id,type,request));return;}
+                if ("aiReferenceCheck".equals(type)) {
+                    // Explicit user-selected WAV; decode on a worker, never on the UI thread.
+                    // No reference bytes are stored, uploaded or passed to third-party services.
+                    String encoded=request.optString("referenceWavBase64","");
+                    if(encoded.length() > ((PocketReferenceAudio.MAX_BYTES + 2L) / 3L) * 4L + 8L) {
+                        JSONObject answer=new JSONObject();
+                        answer.put("error","Образец WAV превышает 8 МБ.");
+                        reply(id,answer);
+                        return;
+                    }
+                    new Thread(() -> {
+                        JSONObject answer=new JSONObject();
+                        try {
+                            byte[] bytes=Base64.decode(encoded,Base64.NO_WRAP);
+                            PocketReferenceAudio pcm=PocketReferenceAudio.decode(bytes);
+                            answer.put("valid",true);
+                            answer.put("sampleRate",pcm.sampleRate);
+                            answer.put("durationSeconds",pcm.durationSeconds);
+                            answer.put("modelReady",false);
+                        }catch(Exception error) {
+                            try{answer.put("error","Нужна слышимая запись: моно PCM WAV, 16 бит, 5–30 секунд.");}
+                            catch(Exception ignored){}
+                        }
+                        reply(id,answer);
+                    },"echo-reference-check").start();
+                    return;
+                }
                 if ("saveStart".equals(type)) {
                     String name=request.optString("name","ECHO-backup.json").replaceAll("[^A-Za-z0-9._-]","_");
                     runOnUiThread(()->{JSONObject a=new JSONObject();try{
