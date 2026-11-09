@@ -31,6 +31,17 @@ public final class PocketAndroidInferenceTest {
     private void playable(byte[] wav)throws Exception{
         assertTrue("new nonempty WAV",wav.length>44);
         assertEquals("RIFF",new String(wav,0,4,StandardCharsets.US_ASCII));
+        assertEquals("WAVE",new String(wav,8,4,StandardCharsets.US_ASCII));
+        // A RIFF header alone does not prove that the neural engine created audio.
+        // Assert that the actual PCM contains an audible, non-silent signal.
+        int peak=0, nonzero=0;
+        for(int i=44;i+1<wav.length;i+=2){
+            int pcm=(short)((wav[i]&0xff)|((wav[i+1]&0xff)<<8));
+            peak=Math.max(peak,Math.abs(pcm));
+            if(Math.abs(pcm)>64)nonzero++;
+        }
+        assertTrue("generated AI-WAV contains no audible PCM signal",peak>128 && nonzero>1024);
+
         File result=new File(context.getCacheDir(),"inference-test.wav");
         try{
             try(FileOutputStream out=new FileOutputStream(result)){out.write(wav);}
