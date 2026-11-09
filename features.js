@@ -126,7 +126,7 @@
       if (nativeReady) {
         // Native shell must enforce trusted local app origin, explicit consent, and never use network.
         const result = await nativeVoice.synthesize({
-          text, language, referenceWavBase64: await base64(reference.blob), signal
+          text, language, referenceWavBase64: await base64(reference.blob), consent:true, signal
         });
         if (result instanceof Blob) blob = result;
         else if (result && typeof result.wavBase64 === "string") blob = wavBlobFromBase64(result.wavBase64);
