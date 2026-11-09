@@ -229,7 +229,7 @@ public final class MainActivity extends Activity {
                         answer.put("error","Требуются согласие владельца, английский текст и WAV до 8 МБ.");
                         reply(id,answer);return;
                     }
-                    if(!PocketTtsEngine.hasModel(pocketModelDirectory())) {
+                    if(!PocketModelInstaller.bundled(MainActivity.this)) {
                         answer.put("error","Локальные файлы PocketTTS ещё не установлены.");
                         reply(id,answer);return;
                     }
@@ -244,12 +244,13 @@ public final class MainActivity extends Activity {
                         try {
                             PocketReferenceAudio reference=PocketReferenceAudio.decode(
                                 Base64.decode(encoded,Base64.NO_WRAP));
-                            try(PocketTtsEngine engine=new PocketTtsEngine(pocketModelDirectory())){
+                            java.io.File installed=PocketModelInstaller.ensureInstalled(MainActivity.this);
+                            try(PocketTtsEngine engine=new PocketTtsEngine(installed)){
                                 activePocketEngine=engine;
                                 byte[] wav=engine.generate(input,reference);
                                 if(wav.length>8*1024*1024)throw new Exception("generated audio too large");
                                 result.put("wavBase64",Base64.encodeToString(wav,Base64.NO_WRAP));
-                                result.put("sampleRate",24000);
+                                // WAV header declares the actual output sample rate.
                             }
                         }catch(Throwable error){
                             try{result.put("error","Не удалось синтезировать фразу. Проверьте модель и образец.");}catch(Exception ignored){}
@@ -279,7 +280,7 @@ public final class MainActivity extends Activity {
                             answer.put("valid",true);
                             answer.put("sampleRate",pcm.sampleRate);
                             answer.put("durationSeconds",pcm.durationSeconds);
-                            answer.put("modelReady",false);
+                            answer.put("modelReady",bundled);
                         }catch(Exception error) {
                             try{answer.put("error","Нужна слышимая запись: моно PCM WAV, 16 бит, 5–30 секунд.");}
                             catch(Exception ignored){}
@@ -329,13 +330,15 @@ public final class MainActivity extends Activity {
                 JSONObject answer = new JSONObject();
                 if ("status".equals(type)) {
                     answer.put("platform", "android");
-                    answer.put("ready", false);
-                    answer.put("modelFilesPresent",PocketTtsEngine.hasModel(pocketModelDirectory()));
+                    boolean bundled=PocketModelInstaller.bundled(MainActivity.this);
+                    answer.put("ready",bundled);
+                    answer.put("languages",bundled ? new org.json.JSONArray().put("en") : new org.json.JSONArray());
+                    answer.put("modelFilesPresent",bundled);
                     answer.put("engine","sherpa-onnx-pocket");
                     answer.put("localOnly",true);
                     answer.put("supportsReference",true);
                     answer.put("modelReady",false);
-                    answer.put("licenseVerified",false);
+                    answer.put("licenseVerified",bundled);
                     answer.put("languages", new org.json.JSONArray());
                 } else {
                     answer.put("error", "Мобильный AI-движок ещё не установлен. Используйте сохранённые записи или системный голос.");
