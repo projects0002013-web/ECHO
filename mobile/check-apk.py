@@ -28,8 +28,10 @@ with zipfile.ZipFile(apk) as z:
     calculated.update(block)
     size+=len(block)
   assert size>0 and calculated.hexdigest()==digest,'PocketTTS model mismatch: '+filename
- jni={name for name in z.namelist() if name.startswith('lib/arm64-v8a/') and name.endswith('.so')}
- assert 'lib/arm64-v8a/libsherpa-onnx-jni.so' in jni,'PocketTTS JNI missing'
- assert 'lib/arm64-v8a/libonnxruntime.so' in jni,'ONNX Runtime missing'
+ jni=set()
+ for abi in ('arm64-v8a','x86_64'):
+  required={'lib/'+abi+'/'+n for n in ('libsherpa-onnx-jni.so','libonnxruntime.so')}
+  assert required.issubset(z.namelist()),'Missing real JNI/ONNX runtime for '+abi
+  jni.update(required)
  assert not any(n.endswith('personal.wav') or 'user-voice' in n.lower() for n in z.namelist()),'Private voice bundled into APK'
 print(json.dumps({'apk':str(apk),'bytes':apk.stat().st_size,'sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'current_offline_assets_checked':checked,'stylesheet':'executive-light.css','pocket_model_files':8,'android_jni_libraries':sorted(jni)}))

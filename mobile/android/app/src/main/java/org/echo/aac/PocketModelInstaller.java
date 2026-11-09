@@ -40,7 +40,7 @@ public final class PocketModelInstaller {
             return Arrays.copyOf(manifest,off);
         }
     }
-    private static boolean valid(File dir,JSONObject hashes)throws Exception{
+    static boolean valid(File dir,JSONObject hashes)throws Exception{
         for(String name:FILES){
             File file=new File(dir,name);
             if(!file.isFile() || !hashes.has(name))return false;
@@ -68,6 +68,10 @@ public final class PocketModelInstaller {
         JSONObject manifest=new JSONObject(new String(readManifest(assets),StandardCharsets.UTF_8));
         File installed=new File(context.getFilesDir(),"pockettts");
         if(installed.isDirectory() && valid(installed,manifest))return installed;
+        File previous=new File(context.getFilesDir(),"pockettts-previous");
+        // Recover an interrupted activation before touching any new files.
+        if(!installed.exists() && previous.exists() && !previous.renameTo(installed))
+            throw new IOException("Cannot recover previous model");
         File staging=new File(context.getFilesDir(),"pockettts-stage");
         erase(staging);
         if(context.getFilesDir().getUsableSpace()<250L*1024*1024)
@@ -92,8 +96,16 @@ public final class PocketModelInstaller {
                     throw new IOException("PocketTTS model checksum mismatch");
             }
             if(!valid(staging,manifest))throw new IOException("Model verification failed");
-            erase(installed);
-            if(!staging.renameTo(installed))throw new IOException("Cannot activate model");
+            erase(previous);
+            if(installed.exists() && !installed.renameTo(previous))
+                throw new IOException("Cannot preserve previous model");
+            if(!staging.renameTo(installed)){
+                if(previous.exists() && !previous.renameTo(installed))
+                    throw new IOException("Cannot activate model; previous model retained for recovery");
+                throw new IOException("Cannot activate model");
+            }
+            // Cleanup failure must not turn a successful activation into a false failure.
+            try {erase(previous);}catch(IOException ignored){}
             return installed;
         }finally{
             if(staging.exists())erase(staging);

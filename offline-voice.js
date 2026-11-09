@@ -12,7 +12,7 @@
     try {
       const s=await timeout(host.status(),3000);
       if(s?.engine!=='sherpa-onnx-pocket' || s.localOnly!==true || s.supportsReference!==true)return unavailable('runtime_invalid');
-      if(s.modelReady!==true || s.licenseVerified!==true)return unavailable('model_missing');
+      if(s.modelReady!==true || s.licenseVerified!==true)return {...unavailable('model_missing'),phase:s.phase,errorCode:s.errorCode};
       // This integration targets the documented English Pocket model only.
       if(!Array.isArray(s.languages) || !s.languages.includes('en'))return unavailable('language_unsupported');
       return {ready:true,reason:'experimental_native',languages:['en']};
@@ -57,29 +57,6 @@
   const panel=document.createElement('section');panel.id='echoOfflineModelPanel';panel.setAttribute('aria-labelledby','echoOfflineModelTitle');
   panel.innerHTML=`<h4 id="echoOfflineModelTitle">Автономный голос на телефоне</h4><p>Экспериментальная мобильная интеграция. Автономная модель пока не входит в приложение. Записи и голос устройства доступны.</p><button type="button" id="echoOfflineCheck">Проверить офлайн-модель</button><p id="echoOfflineModelStatus" role="status" aria-live="polite"></p><p>Системный голос и сохранённые записи остаются доступны. Новые фразы Chatterbox требуют локального сервера на ПК.</p><div class="echo-local-actions"><button type="button" id="echoOfflineUseDevice">Голос устройства</button><button type="button" id="echoOfflineUseRecordings">Сохранённые записи</button></div>`;
   document.getElementById('echoLocalVoicePanel').querySelector('.echo-studio-compose').before(panel);
-  if(typeof window.echoNativeVoice?.checkReferenceWav==='function' && window.EchoAndroid){
-    // First native AI step: check a sample before connecting inference. No upload or storage.
-    const sampleCheck=document.createElement('div');
-    sampleCheck.className='echo-local-actions';
-    const label=document.createElement('label');label.textContent='Проверить WAV для локального ИИ (5–30 сек, моно, 16 бит): ';
-    const picker=document.createElement('input');
-    picker.type='file';picker.accept='.wav,audio/wav';picker.setAttribute('aria-label','Выбрать голосовой WAV-образец для проверки');
-    const result=document.createElement('p');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
-    label.append(picker);sampleCheck.append(label,result);panel.append(sampleCheck);
-    let requestId=0;
-    picker.addEventListener('change',async()=>{
-      const file=picker.files?.[0];if(!file)return;
-      const token=++requestId;picker.disabled=true;result.textContent='Проверка WAV на устройстве…';
-      try{
-        const info=await window.echoNativeVoice.checkReferenceWav(file);
-        if(token!==requestId)return;
-        result.textContent=info.valid===true
-          ?'Образец проверен: '+info.durationSeconds.toFixed(1)+' сек, '+info.sampleRate+' Гц. '+(info.modelReady?'Локальная модель доступна.':'Модель ещё не установлена.')
-          :'Не удалось подтвердить голосовой образец.';
-      }catch(error){if(token===requestId)result.textContent='Образец не подходит: '+error.message;}
-      finally{if(token===requestId)picker.disabled=false;}
-    });
-  }
   const pcNote=document.createElement('p');pcNote.id='echoPCRequirement';pcNote.textContent='Синтез ниже использует Chatterbox на локальном сервере ПК. Это не автономный ИИ телефона.';
   const generate=document.getElementById('echoStudioGenerate');generate.parentElement.before(pcNote);generate.setAttribute('aria-describedby','echoPCRequirement');
   const pcLocal=['localhost','127.0.0.1'].includes(location.hostname);
@@ -98,22 +75,36 @@
         paragraph.textContent='В ECHO Тест на Android английская модель PocketTTS работает локально без сервера. Системные голоса и сохранённые записи доступны отдельно. Реальное качество AI-голоса на этом телефоне ещё не проверено.';
       }
     }
-    panel.querySelector('p').textContent='Английская модель PocketTTS включена в тестовую Android-сборку. При первой генерации проверяются файлы модели и может потребоваться дополнительное свободное место.';
+    panel.querySelector('p').textContent='Английская модель PocketTTS включена в тестовую Android-сборку. При подготовке проверяются файлы модели и загружается движок. Может потребоваться дополнительное свободное место. Генерация не скачивает модель.';
     const paragraphs=panel.querySelectorAll(':scope > p');if(paragraphs[2])paragraphs[2].textContent='Создание новых фраз выполняется без облака. Русский, казахский и белорусский остаются доступны через системный голос или сохранённые записи.';
-    generate.disabled=true;
-    generate.textContent='Проверяю локальную AI-модель…';
-    window.echoNativeVoice.status().then(s=>{
-      if(s.ready===true && Array.isArray(s.languages) && s.languages.includes('en')){
-        generate.disabled=false;generate.textContent='Синтезировать моим голосом';
-        pcNote.textContent='Генерация новых фраз выполняется PocketTTS полностью на этом Android, без сервера. Только английский язык.';
-      } else {
-        generate.disabled=true;
-        generate.textContent='Локальная AI-модель отсутствует';
-        pcNote.textContent='Модель PocketTTS не найдена в этой сборке. Используйте голос устройства или записи.';
-      }
-    }).catch(()=>{
-      generate.disabled=true;generate.textContent='Не удалось проверить AI-модель';
-    });
+    let nativeState=null;
+    const phases={installing:'Проверка и установка файлов модели…',loading:'Загрузка локального AI-движка…',
+      not_installed:'Модель не установлена.',error:'Не удалось подготовить модель. Используйте голос устройства или записи.'};
+    const updateGate=()=>{
+      const state=window.echoVoiceStudioState?.();
+      const enabled=nativeState?.ready===true && nativeState?.phase==='ready' &&
+        state?.sampleReady && !state.busy && document.getElementById('echoStudioConsent').checked &&
+        document.documentElement.lang==='en' && !!document.getElementById('echoStudioText').value.trim();
+      if(generate.disabled===enabled)generate.disabled=!enabled;
+    };
+    const refresh=async()=>{
+      try{
+        nativeState=await window.echoNativeVoice.status();
+        const note=nativeState.ready?'Модель готова к генерации. Нужны сохранённый образец, согласие, текст и английский язык интерфейса.':
+          phases[nativeState.phase]||phases.error;
+        if(pcNote.textContent!==note)pcNote.textContent=note;
+        const title=nativeState.ready?'Синтезировать моим голосом':'Проверяю локальную AI-модель…';
+        if(generate.textContent!==title)generate.textContent=title;
+      }catch{nativeState=null;pcNote.textContent=phases.error;}
+      updateGate();
+      // Installation / JNI loading can take minutes; keep status current without blocking UI.
+      setTimeout(refresh,nativeState?.ready?3000:1000);
+    };
+    window.addEventListener('echo-sample-validated',updateGate);
+    studio.addEventListener('input',updateGate);studio.addEventListener('change',updateGate);
+    new MutationObserver(updateGate).observe(studio,{subtree:true,attributes:true,attributeFilter:['disabled','aria-busy']});
+    new MutationObserver(updateGate).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+    refresh();
   }
   let operation=0;
   async function check() {
@@ -122,7 +113,7 @@
     document.getElementById('echoOfflineModelStatus').textContent=s.ready?'Офлайн-модель PocketTTS найдена. Можно запустить английский AI-синтез с собственным WAV-образцом. Работа на устройстве ещё требует проверки.':s.reason==='model_missing'?'Нативный движок найден, но проверенная офлайн-модель не установлена. Используйте голос устройства или записи.':'Автономная модель телефона не подключена. Android и iPhone не проверены. Используйте голос устройства или записи.';
     button.disabled=false;
   }
-  document.getElementById('echoOfflineCheck').onclick=check;
+  document.getElementById('echoOfflineCheck').onclick=async()=>{await window.echoNativeVoice?.prepare?.();check();};
   document.getElementById('echoOfflineUseDevice').onclick=()=>document.getElementById('echoUseDevice').click();
   document.getElementById('echoOfflineUseRecordings').onclick=()=>document.getElementById('echoUseRecordings').click();
   window.addEventListener('echo-native-voice-ready',check);check();

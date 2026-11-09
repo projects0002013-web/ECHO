@@ -61,6 +61,7 @@ public final class PocketReferenceAudio {
         if (declared != wav.length-8L) throw new IOException("Truncated or trailing WAV bytes.");
 
         int format = -1, channels = 0, rate = 0, bits = 0, blockAlign = 0;
+        long byteRate = 0;
         int dataAt = -1, dataSize = 0;
         int pos = 12;
         while (pos + 8 <= wav.length) {
@@ -73,6 +74,7 @@ public final class PocketReferenceAudio {
                 format = u16(wav,pos+8);
                 channels = u16(wav,pos+10);
                 rate = (int)u32(wav,pos+12);
+                byteRate = u32(wav,pos+16);
                 blockAlign = u16(wav,pos+20);
                 bits = u16(wav,pos+22);
             } else if (tag(wav,pos,"data")) {
@@ -83,7 +85,7 @@ public final class PocketReferenceAudio {
             pos = (int)(end + (len & 1L));
         }
         if (pos != wav.length || format != 1 || channels != 1 || bits != 16 ||
-                rate < 8000 || rate > 96000 || blockAlign != 2 ||
+                rate < 8000 || rate > 96000 || blockAlign != 2 || byteRate != rate * 2L ||
                 dataAt < 0 || dataSize <= 0 || (dataSize & 1) != 0)
             throw new IOException("Reference must be mono 16-bit PCM WAV (8–96 kHz).");
 

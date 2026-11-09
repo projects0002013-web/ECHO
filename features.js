@@ -97,13 +97,6 @@
   }
   async function personal(text, job, { autoplay = true, fresh = false } = {}) {
     if (!sample) throw new Error("Сначала запишите образец своего голоса в настройках.");
-    const nativeVoice = window.echoNativeVoice;
-    const nativeAvailable = nativeVoice && typeof nativeVoice.status === "function" && typeof nativeVoice.synthesize === "function";
-    const nativeStatus = nativeAvailable ? await nativeVoice.status() : null;
-    const nativeReady = nativeStatus && nativeStatus.ready === true && nativeStatus.platform && ["android", "ios"].includes(nativeStatus.platform);
-    if (nativeAvailable && !nativeReady) throw new Error("Мобильная модель не готова. Установите совместимую модель в нативном приложении ECHO.");
-    if (nativeReady ? languageNotSupported(nativeStatus, echoCurrentLanguage) : !["ru", "en"].includes(echoCurrentLanguage))
-      throw new Error("Выбранный язык не поддерживается установленным голосовым движком. Используйте записи или голос устройства.");
     const reference = sample, language = echoCurrentLanguage, epoch = audioEpoch;
     const current = () => job === speechJob && epoch === audioEpoch;
     const key = `${reference.id}:${language}:${normalized(text)}`;
@@ -114,6 +107,14 @@
       if (autoplay) await play(saved.blob, job);
       return { blob: saved.blob, language, sampleId: reference.id };
     }
+    const nativeVoice = window.echoNativeVoice;
+    const nativeAvailable = nativeVoice && typeof nativeVoice.status === "function" && typeof nativeVoice.synthesize === "function";
+    const nativeStatus = nativeAvailable ? await nativeVoice.status() : null;
+    const nativeReady = nativeStatus && nativeStatus.ready === true && nativeStatus.platform && ["android", "ios"].includes(nativeStatus.platform);
+    if (nativeAvailable && !nativeReady) throw new Error("Мобильная модель не готова. Установите совместимую модель в нативном приложении ECHO.");
+    if (nativeReady ? languageNotSupported(nativeStatus, echoCurrentLanguage) : !["ru", "en"].includes(echoCurrentLanguage))
+      throw new Error("Выбранный язык не поддерживается установленным голосовым движком. Используйте записи или голос устройства.");
+    if (!current()) return;
     if (!nativeReady && !["localhost", "127.0.0.1"].includes(location.hostname)) {
       throw new Error("На этом сайте нет локального мобильного ИИ. Откройте ECHO в нативном приложении с установленной моделью; образец не будет отправлен на сайт.");
     }
@@ -286,7 +287,9 @@
   document.querySelector(".header").insertBefore(voiceEntry, document.querySelector(".settings-btn"));
   voiceEntry.onclick = $("echoOpenStudio").onclick = () => { route("voice"); $("echoStudioTitle").focus(); };
   $("echoStudioBack").onclick = () => { route("phrases"); voiceEntry.focus(); };
-  let studioResult = null, studioOperation = 0;
+  let studioResult = null, studioOperation = 0, verifiedNativeSample = null;
+  // Read-only state for the native model gate; no audio bytes or storage changes.
+  window.echoVoiceStudioState=()=>({hasSample:!!sample,sampleReady:!!sample && (!window.EchoAndroid || verifiedNativeSample===sample.id),busy:!!recorder||!!draft||$("echoStudioText").hasAttribute("aria-busy")});
   const studioStatus = text => { $("echoStudioStatus").textContent = text; };
   function clearStudioResult() { studioResult = null; $("echoStudioResult").hidden = true; }
   function cancelStudio() { studioOperation++; stop(); $("echoStudioGenerate").disabled = false; $("echoStudioText").removeAttribute("aria-busy"); }
@@ -521,6 +524,15 @@
   };
   async function renderRecordings() {
     const entries = await db("audio", "getAll"); sample = entries.find(e => e.key === "sample") || null;
+    if(window.EchoAndroid && sample && verifiedNativeSample!==sample.id){
+      const reference=sample;
+      voiceMessage("Проверка голосового образца…");
+      try{
+        const info=await window.echoNativeVoice.checkReferenceWav(reference.blob);
+        if(sample===reference && info.valid===true)verifiedNativeSample=reference.id;
+      }catch(error){voiceMessage(errorText(error));}
+      window.dispatchEvent(new Event('echo-sample-validated'));
+    }
     $("echoSamplePlay").disabled = !sample; $("echoSampleDelete").disabled = !sample;
     $("echoRecordingsList").replaceChildren();
     for (const entry of entries.filter(e => e.key !== "sample")) {

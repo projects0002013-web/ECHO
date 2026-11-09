@@ -1,0 +1,51 @@
+"""Android JS bridge regressions. Host is mocked; these do NOT prove native inference."""
+import base64,json,unittest
+from playwright.sync_api import sync_playwright,expect
+from browser_smoke import tone
+from voice_browser import MOCK
+
+class NativeVoice(unittest.TestCase):
+ @classmethod
+ def setUpClass(cls):
+  cls.p=sync_playwright().start();cls.b=cls.p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ @classmethod
+ def tearDownClass(cls):cls.b.close();cls.p.stop()
+ def setUp(self):
+  self.c=self.b.new_context(viewport={'width':393,'height':852});self.c.add_init_script(MOCK)
+  self.c.add_init_script('''localStorage.setItem('echoLanguage','en');window.nativePhase='ready';window.nativeCalls=[];
+    window.EchoAndroid={request(raw){const q=JSON.parse(raw);nativeCalls.push(q);
+      let answer={};
+      if(q.type==='status'||q.type==='prepare')answer={platform:'android',engine:'sherpa-onnx-pocket',localOnly:true,supportsReference:true,ready:nativePhase==='ready',phase:nativePhase,modelReady:nativePhase==='ready',licenseVerified:true,languages:['en']};
+      if(q.type==='aiReferenceCheck')answer={valid:true,durationSeconds:7,sampleRate:24000};
+      if(q.type==='synthesize'){window.nativeGeneration=q;if(window.holdGeneration)return;answer={wavBase64:window.resultWav};}
+      if(q.type==='cancel')return;
+      setTimeout(()=>window.echoNativeReply(q.id,answer),10);
+    }};''')
+  self.q=self.c.new_page();self.errors=[];self.q.on('pageerror',lambda e:self.errors.append(str(e)));self.q.on('dialog',lambda d:d.accept());self.q.goto('http://127.0.0.1:8000');self.q.wait_for_selector('#echoDataPanel',state='attached');self.q.locator('#echoVoiceStudioNav').click();self.q.evaluate('(wav)=>window.resultWav=wav',base64.b64encode(tone(1)).decode())
+ def tearDown(self):self.assertEqual(self.errors,[]);self.c.close()
+ def sample(self):
+  self.q.locator('#echoAudioImport').set_input_files({'name':'owner-approved-test-tone.wav','mimeType':'audio/wav','buffer':tone(7)})
+  expect(self.q.locator('#echoAudioDraft')).to_be_visible();self.q.locator('#echoVoiceConsent').check();self.q.locator('#echoDraftSave').click();expect(self.q.locator('#echoAudioDraft')).to_be_hidden()
+ def prepare(self):
+  self.sample();self.q.locator('#echoStudioText').fill('A completely new message.');self.q.locator('#echoStudioConsent').check()
+ def count_cache(self):return self.q.evaluate("()=>new Promise(ok=>{const r=indexedDB.open('echo-local-voice',1);r.onsuccess=()=>{const t=r.result.transaction('cache'),q=t.objectStore('cache').count();t.oncomplete=()=>{ok(q.result);r.result.close();};};})")
+ def test_api_version_and_honest_gate(self):
+  self.assertEqual(self.q.evaluate('echoNativeVoice.apiVersion'),1)
+  self.assertTrue(self.q.evaluate('async()=>(await echoOfflineVoice.status()).ready'))
+  expect(self.q.locator('#echoStudioGenerate')).to_be_disabled();self.prepare();expect(self.q.locator('#echoStudioGenerate')).to_be_enabled()
+  self.q.locator('#echoStudioConsent').uncheck();expect(self.q.locator('#echoStudioGenerate')).to_be_disabled();self.q.locator('#echoStudioStop').click();expect(self.q.locator('#echoStudioGenerate')).to_be_disabled()
+ def test_loading_and_failed_model_cannot_generate(self):
+  self.q.evaluate("nativePhase='loading'");self.prepare();expect(self.q.locator('#echoStudioGenerate')).to_be_disabled();expect(self.q.locator('#echoPCRequirement')).to_contain_text('Loading',timeout=6000)
+  self.q.evaluate("nativePhase='error'");expect(self.q.locator('#echoPCRequirement')).to_contain_text('Could not',timeout=6000);expect(self.q.locator('#echoStudioGenerate')).to_be_disabled()
+  self.assertFalse(self.q.evaluate("nativeCalls.some(q=>q.type==='synthesize')"))
+ def test_native_new_text_is_cached_and_plays_without_model(self):
+  self.prepare();self.q.locator('#echoStudioGenerate').click();expect(self.q.locator('#echoStudioResult')).to_be_visible();self.assertEqual(self.count_cache(),1)
+  q=self.q.evaluate('nativeGeneration');self.assertEqual(q['text'],'A completely new message.');self.assertEqual(q['language'],'en');self.assertTrue(q['consent']);self.assertEqual(base64.b64decode(q['referenceWavBase64'])[:4],b'RIFF')
+  self.q.evaluate("nativePhase='error'");self.q.locator('#echoStudioUse').click();self.q.evaluate("echoLocalSpeech('A completely new message.')")
+  expect(self.q.locator('#echoSpeechStatus')).to_contain_text('saved',ignore_case=True);self.assertEqual(self.q.evaluate("nativeCalls.filter(q=>q.type==='synthesize').length"),1)
+ def test_stop_rejects_late_result_and_next_request_works(self):
+  self.prepare();self.q.evaluate('holdGeneration=true');self.q.locator('#echoStudioGenerate').click();self.q.wait_for_function('window.nativeGeneration');self.q.locator('#echoStudioStop').click()
+  self.q.evaluate("echoNativeReply(nativeGeneration.id,{wavBase64:resultWav})");expect(self.q.locator('#echoStudioResult')).to_be_hidden();self.assertEqual(self.count_cache(),0);self.assertTrue(self.q.evaluate("nativeCalls.some(q=>q.type==='cancel')"))
+  self.q.evaluate('holdGeneration=false');self.q.locator('#echoStudioGenerate').click();expect(self.q.locator('#echoStudioResult')).to_be_visible();self.assertEqual(self.count_cache(),1)
+
+if __name__=='__main__':unittest.main(verbosity=2)

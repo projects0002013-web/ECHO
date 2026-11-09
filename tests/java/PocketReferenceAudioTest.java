@@ -26,6 +26,9 @@ public class PocketReferenceAudioTest {
         catch(IOException expected){ }
     }
     public static void main(String[] args) throws Exception{
+        for(int rate:new int[]{8000,16000,24000,44100,48000,96000})
+            ok(PocketReferenceAudio.decode(audio(6,rate,1,16,2048)).sampleRate==rate,"sample rate "+rate);
+        byte[] wrongByteRate=audio(6,16000,1,16,2048);put32(wrongByteRate,28,1);invalid(wrongByteRate,"byte rate");
         byte[] valid=audio(7,16000,1,16,2048);
         PocketReferenceAudio ref=PocketReferenceAudio.decode(new ByteArrayInputStream(valid));
         ok(ref.samples.length==112000,"sample count");

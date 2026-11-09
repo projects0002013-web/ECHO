@@ -14,3 +14,7 @@ mobile/android/app/src/main/assets/www/
 mobile/android/local.properties
 mobile/ios/www/
 native/build/
+
+mobile/android/app/libs/
+mobile/android/app/src/main/jniLibs/
+mobile/android/app/src/main/assets/pockettts/

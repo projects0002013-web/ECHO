@@ -12,7 +12,18 @@
     if (!p) return;
     pending.delete(String(id));
     p.cleanup?.();
-    if (payload && payload.error) p.reject(new Error(String(payload.error)));
+    if (payload && payload.error) {
+      const messages={busy:'ИИ уже генерирует фразу. Остановите её или дождитесь окончания.',
+        model_not_ready:'Модель ещё не готова. Дождитесь проверки файлов и загрузки движка.',
+        reference:'Нужна слышимая запись: моно PCM WAV, 16 бит, 5–30 секунд.',
+        cancelled:'Генерация отменена.', timeout:'Время генерации истекло. Попробуйте более короткий текст.',
+        storage:'Недостаточно свободного места для офлайн-модели.',
+        checksum:'Файлы модели повреждены. Переустановите тестовую сборку без удаления данных.',
+        native_runtime:'Не удалось загрузить нативный AI-движок этой сборки.',
+        memory:'Недостаточно памяти для AI-модели. Закройте другие приложения.',
+        engine:'Не удалось выполнить AI-синтез. Проверьте модель и образец.'};
+      p.reject(new Error(messages[payload.error]||String(payload.error)));
+    }
     else p.resolve(payload);
   };
   function request(type, data = {}, signal) {
@@ -20,14 +31,18 @@
     const id = String(++sequence);
     return new Promise((resolve, reject) => {
       const abort = () => {
-        pending.delete(id);
+        pending.delete(id); cleanup();
         try {
           if (android) window.EchoAndroid.request(JSON.stringify({ id, type: "cancel" }));
           else ios.postMessage({ id, type: "cancel" });
         } catch (_) {}
         reject(new DOMException("Cancelled", "AbortError"));
       };
-      const cleanup = () => signal?.removeEventListener("abort", abort);
+      // Permission / SAF prompts remain user-controlled. Native inference is cooperative;
+      // a timeout also sends cancellation, rather than only hiding the pending promise.
+      const timer=setTimeout(abort,type==='synthesize'?245000:
+        ['saveStart','microphonePermission'].includes(type)?600000:15000);
+      const cleanup = () => {clearTimeout(timer);signal?.removeEventListener("abort", abort);};
       pending.set(id, { resolve, reject, cleanup });
       signal?.addEventListener("abort", abort, { once: true });
       try {
@@ -77,7 +92,9 @@
     return request("aiReferenceCheck",{referenceWavBase64:btoa(binary)},signal);
   }
   window.echoNativeVoice = Object.freeze({
+    apiVersion: 1,
     status: () => request("status"),
+    prepare: () => request("prepare"),
     checkReferenceWav,
     requestMicrophonePermission: () => request("microphonePermission"),
     synthesize: ({ text, language, referenceWavBase64, consent, signal }) => {

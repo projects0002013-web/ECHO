@@ -2,7 +2,7 @@ name: ECHO 1.0 Quality Gates
 
 on:
   push:
-    branches: [main, feature/echo-executive-light-offline-voice]
+    branches: [main, feature/echo-executive-light-offline-voice, feature/echo-1-0-release-hardening]
     paths:
       - '*.py'
       - '*.js'
@@ -73,6 +73,8 @@ jobs:
           CHROME=$(python -c 'from playwright.sync_api import sync_playwright; p=sync_playwright().start(); print(p.chromium.executable_path); p.stop()')
           sudo ln -sf "$CHROME" /usr/bin/chromium
           /usr/bin/chromium --version
+      - name: Prepare pinned accessibility test asset
+        run: python scripts/prepare-test-assets.py
       - name: Run Python and browser regression tests
         run: |
           set -euo pipefail
@@ -92,6 +94,10 @@ jobs:
           python tests/redesign_browser.py
           python tests/executive_browser.py
           python tests/backup_browser.py
+          python tests/studio_browser.py
+          python tests/localization_browser.py
+          python tests/accessibility_browser.py
+          python tests/native_voice_browser.py
       - name: Publish failure report without user data
         if: failure()
         run: |

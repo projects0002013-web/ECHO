@@ -21,7 +21,7 @@ public final class PocketTtsEngine implements AutoCloseable {
       "decoder.int8.onnx", "text_conditioner.onnx", "vocab.json", "token_scores.json"
   };
   private final OfflineTts engine;
-  private final AtomicBoolean cancelled = new AtomicBoolean(false);
+  private volatile AtomicBoolean activeCancellation;
 
   public static boolean hasModel(File directory) {
     if(directory == null || !directory.isDirectory())return false;
@@ -47,21 +47,34 @@ public final class PocketTtsEngine implements AutoCloseable {
         .setPocket(pocket).setNumThreads(2).setDebug(false).build();
     engine=new OfflineTts(OfflineTtsConfig.builder().setModel(model).build());
   }
-  public void cancel(){cancelled.set(true);}
-  public byte[] generate(String text, PocketReferenceAudio reference) throws IOException {
-    if(text==null||text.trim().isEmpty()||text.length()>300||reference==null)
+  public void cancel(){AtomicBoolean token=activeCancellation;if(token!=null)token.set(true);}
+  public synchronized byte[] generate(String text, PocketReferenceAudio reference) throws IOException {
+    return generate(text,reference,new AtomicBoolean(false),System.nanoTime()+240_000_000_000L);
+  }
+  /** A request owns its token; Stop before JNI starts must never be reset. */
+  public synchronized byte[] generate(String text,PocketReferenceAudio reference,AtomicBoolean cancelled,
+                         long deadlineNanos) throws IOException {
+    if(text==null||text.trim().isEmpty()||text.length()>300||reference==null||cancelled==null)
       throw new IOException("Invalid text or voice reference.");
-    cancelled.set(false);
+    if(cancelled.get() || Thread.currentThread().isInterrupted())throw new IOException("cancelled");
+    if(System.nanoTime()>deadlineNanos)throw new IOException("timeout");
+    activeCancellation=cancelled;
+    try {
     GenerationConfig generation=new GenerationConfig();
     generation.setReferenceAudio(reference.samples);
     generation.setReferenceSampleRate(reference.sampleRate);
     generation.setNumSteps(5);
     GeneratedAudio output=engine.generateWithConfigAndCallback(
-        text.trim(),generation,samples->cancelled.get()?0:1);
+        text.trim(),generation,samples->{
+          if(System.nanoTime()>deadlineNanos)cancelled.set(true);
+          return cancelled.get() || Thread.currentThread().isInterrupted()?0:1;
+        });
     if(cancelled.get())throw new IOException("Voice generation cancelled.");
     if(output==null || output.getSamples()==null || output.getSampleRate()<8000)
       throw new IOException("PocketTTS did not return audio.");
+    if(System.nanoTime()>deadlineNanos)throw new IOException("timeout");
     return toWav(output.getSamples(),output.getSampleRate());
+    } finally { activeCancellation=null; }
   }
   private static void le16(ByteArrayOutputStream out,int value){
     out.write(value&255);out.write((value>>>8)&255);
@@ -87,5 +100,5 @@ public final class PocketTtsEngine implements AutoCloseable {
     }
     return out.toByteArray();
   }
-  @Override public void close(){engine.release();}
+  @Override public synchronized void close(){engine.release();}
 }
