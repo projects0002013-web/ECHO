@@ -330,3 +330,13 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 - ✅ Подготовлены `PRIVACY.md` (черновик), `RELEASE_CHECKLIST.md`, `RESEARCH_PROTOCOL.md`, `AAC_COMPARISON.md` (официальные источники), обновлены README и начальные статусы `ECHO_ROADMAP.html`.
 - ⏸ Испытания Android/iPhone, TalkBack, VoiceOver, действия внешних устройств ввода, безопасность релизной подписи, согласие добровольцев, реальные метрики исследования и выпуск `main` ещё впереди.
 - Один промежуточный запуск CI не прошёл из-за ошибки **теста**, который пытался сфокусировать контейнер `.phrase-card` вместо вложенной кнопки `.card-speak`. Исправлено коммитом `2cf504f` и подтверждено зелёным запуском.
+
+
+## Android PocketTTS — этап подготовки WAV-образца (2026-11-09)
+
+- Реализован `PocketReferenceAudio.java`: RIFF/WAVE mono 16-bit PCM, 5–30 секунд, 8–96 kHz, ограничение размера 8 МБ, проверка уровня сигнала, защита от повреждённых WAV-чанков и преобразование в `float[]`.
+- `MainActivity` обрабатывает `aiReferenceCheck` на рабочем потоке, не сохраняя и не отправляя WAV. В ECHO Тест есть Android-only выбор образца для проверки.
+- ✅ [Android APK](https://github.com/projects0002013-web/ECHO/actions/runs/42544611406): `success`.
+- ✅ [Quality Gates](https://github.com/projects0002013-web/ECHO/actions/runs/42544611388): `success`, включая компиляцию Java и `PocketReferenceAudioTest`.
+- ⚠️ Само подключение PocketTTS ONNX/JNI, установка весов и генерация нового текста в персональном голосе **не выполнены**. Это инфраструктура, а не работающий AI-синтез в Android.
+- Дальнейшие технические условия документированы в [POCKET_TTS_INTEGRATION.md](POCKET_TTS_INTEGRATION.md). Испытания на реальном телефоне сознательно отложены по просьбе владельца проекта.
