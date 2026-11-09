@@ -111,6 +111,9 @@ jobs:
             adb shell cmd connectivity airplane-mode enable
             adb shell svc wifi disable
             adb shell svc data disable || echo "No cellular radio in this emulator; airplane mode and Wi-Fi isolation remain enabled."
+            # android-emulator-runner executes every script line in a fresh shell.
+            # Assert airplane mode is active before the real model receives any data.
+            adb shell settings get global airplane_mode_on | grep -qx '1'
             echo "Network isolation requested; actual inference tests must still pass."
             gradle -p mobile/android --no-daemon connectedDebugAndroidTest
       - name: Assert and summarize executed Android inference tests
