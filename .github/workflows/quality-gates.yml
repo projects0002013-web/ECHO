@@ -80,3 +80,37 @@ jobs:
         run: |
           echo "Quality checks failed. Inspect the failed step and test name." >> "$GITHUB_STEP_SUMMARY"
           echo "These automated checks do NOT prove real device TTS, TalkBack, SAF, microphone or safe Android upgrade." >> "$GITHUB_STEP_SUMMARY"
+
+  offline-pocket-inference:
+    if: github.ref == 'refs/heads/feature/echo-executive-light-offline-voice' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Download pinned PocketTTS model for genuine inference
+        run: python3 mobile/android/prepare-pocket-model.py
+      - name: Fetch pinned sherpa-onnx JVM + Linux runtime
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/echo-real-inference
+          BASE=https://github.com/k2-fsa/sherpa-onnx/releases/download/v2.0.1
+          curl -fLSs --retry 3 "$BASE/sherpa-onnx-jvm-2.0.1.jar" -o /tmp/echo-real-inference/jvm.jar
+          curl -fLSs --retry 3 "$BASE/sherpa-onnx-native-lib-linux-x64-2.0.1.jar" -o /tmp/echo-real-inference/native.jar
+          echo "8320e2457b6e38dd624fb619d3552e11ef78ffeb394622056126b16f2fd99d12  /tmp/echo-real-inference/jvm.jar" | sha256sum -c
+          echo "744330a68a7024d9412f029c23b06f847b8444787c94e5118e0fdaf1b4b2cb3f  /tmp/echo-real-inference/native.jar" | sha256sum -c
+      - name: Compile and run real PocketTTS speech generation
+        run: |
+          set -euo pipefail
+          JVM=/tmp/echo-real-inference/jvm.jar
+          NATIVE=/tmp/echo-real-inference/native.jar
+          javac -encoding UTF-8 -cp "$JVM" -d /tmp/echo-real-inference \
+            mobile/android/app/src/main/java/org/echo/aac/PocketReferenceAudio.java \
+            mobile/android/app/src/main/java/org/echo/aac/PocketTtsEngine.java \
+            tests/java/PocketTtsInferenceSmoke.java
+          java -Xmx4g -cp "/tmp/echo-real-inference:$JVM:$NATIVE" PocketTtsInferenceSmoke \
+            mobile/android/app/src/main/assets/pockettts
+          echo "Real Linux ONNX synthesis passed; Android runtime and voice likeness still require device testing." >> "$GITHUB_STEP_SUMMARY"
