@@ -32,9 +32,24 @@
     const bytes=new Uint8Array(await reference.arrayBuffer());assertWav(bytes);
     signal?.throwIfAborted();
     // A future native host must verify PCM/duration, ownership and file checksums again.
-    const output=await timeout(window.echoNativeOfflineVoice.synthesize({apiVersion:1,text:text.trim(),language,referenceWav:bytes,consent:true}),120000);
+    let output;
+    if(window.EchoAndroid && window.echoNativeVoice?.synthesize){
+      let binary='';for(let i=0;i<bytes.length;i+=8192)
+        binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+      output=await timeout(window.echoNativeVoice.synthesize({
+        text:text.trim(),language,referenceWavBase64:btoa(binary),consent:true,signal
+      }),240000);
+    }else{
+      output=await timeout(window.echoNativeOfflineVoice.synthesize({
+        apiVersion:1,text:text.trim(),language,referenceWav:bytes,consent:true
+      }),120000);
+    }
     signal?.throwIfAborted();
-    const wav=output instanceof Blob?new Uint8Array(await output.arrayBuffer()):output instanceof Uint8Array?output:output instanceof ArrayBuffer?new Uint8Array(output):null;
+    const wav=typeof output?.wavBase64==='string'
+      ?Uint8Array.from(atob(output.wavBase64),c=>c.charCodeAt(0))
+      :output instanceof Blob?new Uint8Array(await output.arrayBuffer())
+      :output instanceof Uint8Array?output
+      :output instanceof ArrayBuffer?new Uint8Array(output):null;
     if(!wav)throw new Error('invalid_wav');assertWav(wav);
     return new Blob([wav],{type:'audio/wav'});
   }
@@ -59,7 +74,7 @@
         const info=await window.echoNativeVoice.checkReferenceWav(file);
         if(token!==requestId)return;
         result.textContent=info.valid===true
-          ?'Образец проверен: '+info.durationSeconds.toFixed(1)+' сек, '+info.sampleRate+' Гц. Сама AI-модель пока не установлена.'
+          ?'Образец проверен: '+info.durationSeconds.toFixed(1)+' сек, '+info.sampleRate+' Гц. '+(info.modelReady?'Локальная модель доступна.':'Модель ещё не установлена.')
           :'Не удалось подтвердить голосовой образец.';
       }catch(error){if(token===requestId)result.textContent='Образец не подходит: '+error.message;}
       finally{if(token===requestId)picker.disabled=false;}
@@ -76,6 +91,8 @@
   });
   unavailableObserver.observe(generate,{attributes:true,attributeFilter:['disabled']});
   if(androidNative) {
+    panel.querySelector('p').textContent='Английская модель PocketTTS включена в тестовую Android-сборку. При первой генерации проверяются файлы модели и может потребоваться дополнительное свободное место.';
+    const paragraphs=panel.querySelectorAll(':scope > p');if(paragraphs[2])paragraphs[2].textContent='Создание новых фраз выполняется без облака. Русский, казахский и белорусский остаются доступны через системный голос или сохранённые записи.';
     generate.disabled=true;
     generate.textContent='Проверяю локальную AI-модель…';
     window.echoNativeVoice.status().then(s=>{
@@ -95,7 +112,7 @@
   async function check() {
     const token=++operation;const button=document.getElementById('echoOfflineCheck');button.disabled=true;
     const s=await status();if(token!==operation)return;
-    document.getElementById('echoOfflineModelStatus').textContent=s.ready?'Офлайн-модель найдена. Поддерживается английский. Мобильный синтез ещё не включён в приложение.':s.reason==='model_missing'?'Нативный движок найден, но проверенная офлайн-модель не установлена. Используйте голос устройства или записи.':'Автономная модель телефона не подключена. Android и iPhone не проверены. Используйте голос устройства или записи.';
+    document.getElementById('echoOfflineModelStatus').textContent=s.ready?'Офлайн-модель PocketTTS найдена. Можно запустить английский AI-синтез с собственным WAV-образцом. Работа на устройстве ещё требует проверки.':s.reason==='model_missing'?'Нативный движок найден, но проверенная офлайн-модель не установлена. Используйте голос устройства или записи.':'Автономная модель телефона не подключена. Android и iPhone не проверены. Используйте голос устройства или записи.';
     button.disabled=false;
   }
   document.getElementById('echoOfflineCheck').onclick=check;
