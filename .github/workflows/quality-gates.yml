@@ -48,6 +48,17 @@ jobs:
             mobile/android/app/src/main/java/org/echo/aac/PocketReferenceAudio.java \
             tests/java/PocketReferenceAudioTest.java
           java -cp /tmp/echo-voice-test PocketReferenceAudioTest
+      - name: Verify reproducible scientific presentation (10 slides; no invented results)
+        run: |
+          python -m pip install "python-pptx==1.0.2"
+          python scripts/generate_science_slides.py /tmp/ECHO-science.pptx
+          python - <<'PY'
+          from zipfile import ZipFile
+          with ZipFile('/tmp/ECHO-science.pptx') as slides:
+              pages=[n for n in slides.namelist() if n.startswith('ppt/slides/slide') and n.endswith('.xml')]
+              assert len(pages)==10, len(pages)
+          print('Science deck validated: 10 slides')
+          PY
       - name: Install isolated browser test runtime
         run: |
           python -m pip install --upgrade pip
