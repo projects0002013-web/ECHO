@@ -70,7 +70,7 @@
   const pcLocal=['localhost','127.0.0.1'].includes(location.hostname);
   const androidNative=!!window.EchoAndroid && typeof window.echoNativeVoice?.synthesize==='function';
   const canSynthesizeLocally=pcLocal || androidNative;
-  if(!canSynthesizeLocally){generate.disabled=true;generate.textContent='ИИ-синтез требует локального движка';}
+  if(!canSynthesizeLocally){generate.disabled=true;generate.textContent='ИИ-синтез требует локального сервера ПК';}
   const unavailableObserver=new MutationObserver(()=>{
     if(!canSynthesizeLocally && !generate.disabled)generate.disabled=true;
   });
