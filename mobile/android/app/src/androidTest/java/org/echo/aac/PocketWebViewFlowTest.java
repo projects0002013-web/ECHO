@@ -31,6 +31,27 @@ public final class PocketWebViewFlowTest {
         while(System.nanoTime()<end){if("true".equals(evaluate(web,condition)))return;Thread.sleep(200);}
         fail("WebView flow timed out: "+condition+"; "+evaluate(web,"document.getElementById('echoStudioStatus')?.textContent+' / '+document.getElementById('echoPCRequirement')?.textContent"));
     }
+    @Test public void nativeBridgeRejectsMissingConsentAndUnsupportedLanguage()throws Exception{
+        Intent launch=new Intent(instrumentation.getTargetContext(),MainActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        MainActivity activity=(MainActivity)instrumentation.startActivitySync(launch);
+        WebView[] web={null};
+        instrumentation.runOnMainSync(()->web[0]=(WebView)((ViewGroup)activity.findViewById(android.R.id.content)).getChildAt(0));
+        try{
+            until(web[0],"!!window.echoNativeReply && !!window.EchoAndroid",60);
+            // Invoke the native security boundary directly, not a mocked JavaScript
+            // wrapper. Neither rejection may trigger generation or save voice data.
+            evaluate(web[0],"window.nativeSecurityReplies={};(()=>{const old=window.echoNativeReply;window.echoNativeReply=(id,data)=>{nativeSecurityReplies[id]=data;old?.(id,data)};})()");
+            evaluate(web[0],"EchoAndroid.request(JSON.stringify({id:'missing-owner-consent',type:'synthesize',text:'Hello',language:'en',referenceWavBase64:'UklGRg==',consent:false}))");
+            until(web[0],"!!nativeSecurityReplies['missing-owner-consent']",10);
+            assertEquals("false",evaluate(web[0],"String(nativeSecurityReplies['missing-owner-consent'].wavBase64!==undefined)"));
+            assertEquals("true",evaluate(web[0],"String(typeof nativeSecurityReplies['missing-owner-consent'].error==='string')"));
+            evaluate(web[0],"EchoAndroid.request(JSON.stringify({id:'wrong-language',type:'synthesize',text:'Hello',language:'ru',referenceWavBase64:'UklGRg==',consent:true}))");
+            until(web[0],"!!nativeSecurityReplies['wrong-language']",10);
+            assertEquals("false",evaluate(web[0],"String(nativeSecurityReplies['wrong-language'].wavBase64!==undefined)"));
+            assertEquals("true",evaluate(web[0],"String(typeof nativeSecurityReplies['wrong-language'].error==='string')"));
+        }finally{instrumentation.runOnMainSync(activity::finish);}
+    }
     @Test public void savedSampleConsentNewTextAndRealNativeWav()throws Exception{
         Intent launch=new Intent(instrumentation.getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         MainActivity activity=(MainActivity)instrumentation.startActivitySync(launch);
