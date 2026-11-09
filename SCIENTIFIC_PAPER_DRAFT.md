@@ -16,6 +16,14 @@ ECHO разрабатывается как локальный коммуника
 
 Актуальность состоит в необходимости удобного интерфейса с заметными элементами управления, автономной работой и защитой личных записей. Современные AAC-приложения разнообразны: существуют коммерческие решения (например, Proloquo2Go и TD Snap), а также бесплатные открытые решения (например, Public AAC). **ECHO не является единственным бесплатным AAC-приложением.** Подтверждённые первичные источники перечислены в [AAC_COMPARISON.md](AAC_COMPARISON.md).
 
+### Научные основания актуальности
+
+Согласно [ASHA: Augmentative and Alternative Communication](https://www.asha.org/practice-portal/professional-issues/augmentative-and-alternative-communication), AAC включает как простые средства (изображения и карточки), так и электронные коммуникаторы; профессиональный подбор должен учитывать индивидуальные языковые, моторные и сенсорные потребности пользователя. Именно поэтому проект ECHO исследует разные размеры карточек, режимы доступа и способы озвучивания.
+
+[ВОЗ, «Ассистивные технологии», 2 января 2024 г.](https://www.who.int/ru/news-room/fact-sheets/detail/assistive-technology) рассматривает поддержку коммуникации в контексте ассистивных технологий. Оценка ВОЗ о более чем 2,5 млрд людей, нуждающихся хотя бы в одном ассистивном продукте, **не является оценкой числа пользователей AAC**. Для ECHO не следует выводить рыночный размер или распространённость нарушений речи из этой общей цифры.
+
+Подробное обоснование: [SCIENCE_BACKGROUND.md](SCIENCE_BACKGROUND.md).
+
 ## 3. Цель, задачи и гипотеза
 
 **Цель:** разработать AAC-коммуникатор ECHO и экспериментально исследовать удобство использования его основных функций.
@@ -67,7 +75,9 @@ ECHO содержит HTML/CSS/JavaScript-интерфейс, локальные
 1. AssistiveWare. Proloquo2Go. https://www.assistiveware.com/products/proloquo2go
 2. Tobii Dynavox. TD Snap. https://www.tobiidynavox.com/products/td-snap/
 3. Public AAC. Official website. https://publicaac.org/
-4. Исходный код ECHO, документация и журнал качества в репозитории проекта.
+4. WHO. Assistive technology (2024). https://www.who.int/news-room/fact-sheets/detail/assistive-technology
+5. ASHA. Augmentative and Alternative Communication. https://www.asha.org/practice-portal/professional-issues/augmentative-and-alternative-communication
+6. Исходный код ECHO, документация и журнал качества в репозитории проекта.
 
 ## Приложения
 
