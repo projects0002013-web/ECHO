@@ -5,7 +5,10 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/mobile/android/app/build/outputs/androidTest-results"
 mkdir -p "$OUT"
-exec > >(tee "$OUT/echo-emulator-diagnostics.log") 2>&1
+# Android Gradle may recreate output directories when connectedAndroidTest runs.
+# Keep the active log outside Gradle's generated outputs, then copy it back for CI artifact upload.
+DIAGNOSTICS="/tmp/echo-emulator-diagnostics-$.log"
+exec > >(tee "$DIAGNOSTICS") 2>&1
 echo "=== ECHO Android emulator diagnostics ==="
 date -u '+%Y-%m-%dT%H:%M:%SZ'
 adb version || true
@@ -34,6 +37,7 @@ echo "gradle_instrumentation_exit_code=$code"
 echo "=== Android logcat (tail) ==="
 adb logcat -d -v threadtime -t 1500 > "$OUT/echo-emulator-logcat.txt" 2>&1 || true
 grep -E 'FATAL EXCEPTION|UnsatisfiedLinkError|AndroidRuntime|PocketTts|sherpa|onnxruntime|INSTRUMENTATION_STATUS|Process crashed' "$OUT/echo-emulator-logcat.txt" | tail -80 || true
+cp "$DIAGNOSTICS" "$OUT/echo-emulator-diagnostics.log" || true
 echo "=== JUnit XML files ==="
 find "$OUT" -name '*.xml' -print || true
 echo "=== Gradle androidTest reports ==="
