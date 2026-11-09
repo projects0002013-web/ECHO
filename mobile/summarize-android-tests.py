@@ -9,6 +9,7 @@ expected={
     'corruptedModelIsRejectedAndRecoveredWithoutTouchingUserData',
     'serviceSerializesRequestsAndSurvivesStop',
     'savedSampleConsentNewTextAndRealNativeWav',
+    'nativeBridgeRejectsMissingConsentAndUnsupportedLanguage',
 }
 tests=[]
 for report in root.rglob('TEST-*.xml'):
