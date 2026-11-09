@@ -110,9 +110,7 @@ jobs:
             # cellular radio must not stop JUnit instrumentation from running.
             adb shell cmd connectivity airplane-mode enable
             adb shell svc wifi disable
-            if ! adb shell svc data disable; then
-              echo "No cellular service in this emulator; proceeding with airplane mode and Wi-Fi disabled."
-            fi
+            adb shell svc data disable || echo "No cellular radio in this emulator; airplane mode and Wi-Fi isolation remain enabled."
             echo "Network isolation requested; actual inference tests must still pass."
             gradle -p mobile/android --no-daemon connectedDebugAndroidTest
       - name: Assert and summarize executed Android inference tests
