@@ -12,9 +12,23 @@ expected={
     'nativeBridgeRejectsMissingConsentAndUnsupportedLanguage',
 }
 tests=[]
+diagnostics=root/'echo-emulator-diagnostics.log'
+logcat=root/'echo-emulator-logcat.txt'
 for report in root.rglob('TEST-*.xml'):
     tests.extend(ET.parse(report).getroot().iter('testcase'))
 seen={test.attrib['name'] for test in tests}
+if not tests:
+    print("No Android JUnit XML found: instrumentation did not start or stopped before reporting.",flush=True)
+    for file in (diagnostics,logcat):
+        if file.exists():
+            excerpt=file.read_text(errors='replace')[-14000:]
+            print(f"== {file.name} (last 14k chars) ==\\n{excerpt}",flush=True)
+    if os.environ.get('GITHUB_STEP_SUMMARY'):
+        with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
+            summary.write('## Android inference did not produce JUnit XML\\n'
+                          'This is **not** evidence of working or failed AI inference. '
+                          'Inspect echo-emulator-diagnostics.log and echo-emulator-logcat.txt artifacts.\\n')
+    raise SystemExit("Android instrumentation produced no JUnit XML; consult persisted emulator diagnostics.")
 lines=['## Real offline Android JNI/ONNX integration',
        'Executed on an Android x86_64 emulator with Wi-Fi and mobile data disabled.',
        'Synthetic reference samples exercise inference, not voice likeness.',
