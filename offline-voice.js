@@ -7,7 +7,7 @@
     Promise.resolve(promise).then(resolve,reject).finally(()=>clearTimeout(id));
   });
   async function status() {
-    const host=window.echoNativeOfflineVoice;
+    const host=window.echoNativeOfflineVoice || (window.EchoAndroid ? window.echoNativeVoice : null);
     if(!host || host.apiVersion!==1 || typeof host.status!=='function' || typeof host.synthesize!=='function')return unavailable('native_missing');
     try {
       const s=await timeout(host.status(),3000);
@@ -68,10 +68,29 @@
   const pcNote=document.createElement('p');pcNote.id='echoPCRequirement';pcNote.textContent='Синтез ниже использует Chatterbox на локальном сервере ПК. Это не автономный ИИ телефона.';
   const generate=document.getElementById('echoStudioGenerate');generate.parentElement.before(pcNote);generate.setAttribute('aria-describedby','echoPCRequirement');
   const pcLocal=['localhost','127.0.0.1'].includes(location.hostname);
-  // No synthesis action is advertised in the ordinary phone PWA without a runtime.
-  if(!pcLocal){generate.disabled=true;generate.textContent='ИИ-синтез требует локального сервера ПК';}
-  const unavailableObserver=new MutationObserver(()=>{if(!pcLocal && !generate.disabled)generate.disabled=true;});
+  const androidNative=!!window.EchoAndroid && typeof window.echoNativeVoice?.synthesize==='function';
+  const canSynthesizeLocally=pcLocal || androidNative;
+  if(!canSynthesizeLocally){generate.disabled=true;generate.textContent='ИИ-синтез требует локального движка';}
+  const unavailableObserver=new MutationObserver(()=>{
+    if(!canSynthesizeLocally && !generate.disabled)generate.disabled=true;
+  });
   unavailableObserver.observe(generate,{attributes:true,attributeFilter:['disabled']});
+  if(androidNative) {
+    generate.disabled=true;
+    generate.textContent='Проверяю локальную AI-модель…';
+    window.echoNativeVoice.status().then(s=>{
+      if(s.ready===true && Array.isArray(s.languages) && s.languages.includes('en')){
+        generate.disabled=false;generate.textContent='Синтезировать моим голосом';
+        pcNote.textContent='Генерация новых фраз выполняется PocketTTS полностью на этом Android, без сервера. Только английский язык.';
+      } else {
+        generate.disabled=true;
+        generate.textContent='Локальная AI-модель отсутствует';
+        pcNote.textContent='Модель PocketTTS не найдена в этой сборке. Используйте голос устройства или записи.';
+      }
+    }).catch(()=>{
+      generate.disabled=true;generate.textContent='Не удалось проверить AI-модель';
+    });
+  }
   let operation=0;
   async function check() {
     const token=++operation;const button=document.getElementById('echoOfflineCheck');button.disabled=true;
