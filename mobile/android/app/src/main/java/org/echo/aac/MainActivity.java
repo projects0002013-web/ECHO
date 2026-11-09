@@ -111,10 +111,25 @@ public final class MainActivity extends Activity {
                     }
                     if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                         req.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
+                    } else if (pendingMic != null) {
+                        // A second WebView request must not replace the first pending
+                        // Android permission callback and leave it unresolved.
+                        req.deny();
                     } else {
                         pendingMic = req;
-                        requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_REQUEST_CODE);
+                        try {
+                            requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_REQUEST_CODE);
+                        } catch (RuntimeException error) {
+                            pendingMic = null;
+                            req.deny();
+                        }
                     }
+                });
+            }
+            @Override public void onPermissionRequestCanceled(PermissionRequest req) {
+                runOnUiThread(() -> {
+                    // A canceled WebView request is no longer eligible for a grant.
+                    if (pendingMic == req) pendingMic = null;
                 });
             }
         });
