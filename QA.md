@@ -419,3 +419,12 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 Не запускались optional `personal_voice_browser.py` / `voice_smoke.py` с настоящим Chatterbox: в этой среде нет его модели и разрешённой голосовой записи человека. Их отсутствие не подменяется mock-тестами и не относится к подтверждённому PocketTTS JNI-инференсу. Отдельный старый C++ prototype не является Android backend; активный Java/JNI backend проверен выше.
 
 APK после последней поправки: 185212854 байт; SHA-256 `7b38398d184f98cbed30ed94381f7ba585139a50101db04c82e3bf0b73cac36f`; assembleDebug/assembleDebugAndroidTest и check-apk — passed.
+
+
+### Изоляция запросов между перезагрузками WebView
+
+`mobile-voice.js` теперь добавляет случайный 64-bit префикс страницы к request ID и ID событий Android TTS (в пределах 40 символов native-контракта). Поздний результат старой страницы не может ошибочно завершить новый status/permission/save/synthesize запрос с тем же порядковым номером. Ключи пользовательских данных и формат backup не менялись.
+
+`test_old_page_native_reply_cannot_resolve_a_new_page_request` перезагружает реальную страницу, открывает новый pending-запрос и подаёт старый ответ: он игнорируется; только соответствующий новый ответ завершает запрос. Это проверка протокола с mock host, не нейросети. Итог локально: **9/9 native_voice_browser**, **28/28 voice_browser**, **15/15 backup_browser**, assembleDebug/assembleDebugAndroidTest — passed. Static cache version v24.
+
+APK после изоляции request ID: 185212854 байт; SHA-256 `c24c2f1448f61f9f3460356906c839119872f3705755ac494e7ffa9bd883287b`; check-apk сверил исходники, модель и обе ABI.

@@ -5,6 +5,9 @@
   const ios = window.webkit?.messageHandlers?.echoNative;
   if (!android && !ios) return;
   const pending = new Map();
+  // A native operation may outlive WebView reload. Its old reply must never match
+  // a new page's status, permission, backup or synthesis request.
+  const session = Array.from(crypto.getRandomValues(new Uint8Array(8)), b=>b.toString(16).padStart(2,'0')).join('');
   let sequence = 0;
   const nativeErrors={busy:'ИИ уже генерирует фразу. Остановите её или дождитесь окончания.',
         model_not_ready:'Модель ещё не готова. Дождитесь проверки файлов и загрузки движка.',
@@ -28,7 +31,7 @@
   };
   function request(type, data = {}, signal) {
     if (signal?.aborted) return Promise.reject(new DOMException("Cancelled", "AbortError"));
-    const id = String(++sequence);
+    const id = session+"-"+(++sequence);
     return new Promise((resolve, reject) => {
       const abort = () => {
         pending.delete(id); cleanup();
@@ -59,7 +62,7 @@
       constructor(){super();this.voices=[];}
       getVoices(){return this.voices;}
       async refresh(){try{const result=await request("ttsVoices");this.voices=(result.voices||[]).map(v=>({...v,localService:true,default:false}));this.dispatchEvent(new Event('voiceschanged'));if(result.loading && ++refreshAttempts<12)setTimeout(()=>this.refresh(),400);}catch{this.voices=[];}}
-      speak(utterance){utterances.clear();const id='tts-'+(++utteranceSequence);utterances.set(id,utterance);request("ttsSpeak",{utteranceId:id,text:utterance.text,language:utterance.lang,voice:utterance.voice?.name||'',rate:utterance.rate,pitch:utterance.pitch,volume:utterance.volume}).catch(()=>{if(utterances.has(id)){utterances.delete(id);utterance.onerror?.({error:'synthesis-failed'});}});}
+      speak(utterance){utterances.clear();const id='tts-'+session+'-'+(++utteranceSequence);utterances.set(id,utterance);request("ttsSpeak",{utteranceId:id,text:utterance.text,language:utterance.lang,voice:utterance.voice?.name||'',rate:utterance.rate,pitch:utterance.pitch,volume:utterance.volume}).catch(()=>{if(utterances.has(id)){utterances.delete(id);utterance.onerror?.({error:'synthesis-failed'});}});}
       cancel(){utterances.clear();request("ttsStop").catch(()=>{});}
     }
     window.echoAndroidSpeech=new AndroidSpeech();

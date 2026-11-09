@@ -46,6 +46,13 @@ class NativeVoice(unittest.TestCase):
   expect(self.q.locator('#echoPCRequirement')).to_contain_text('The model is ready')
   self.q.evaluate("""()=>{window.statusMutations=0;new MutationObserver(records=>statusMutations+=records.length).observe(document.getElementById('echoPCRequirement'),{subtree:true,childList:true,characterData:true});}""")
   self.q.wait_for_timeout(3400);self.assertEqual(self.q.evaluate('statusMutations'),0)
+ def test_old_page_native_reply_cannot_resolve_a_new_page_request(self):
+  self.q.evaluate("""()=>{holdGeneration=true;echoNativeVoice.synthesize({text:'Old message.',language:'en',referenceWavBase64:'UklGRg==',consent:true}).catch(()=>{});}""")
+  old=self.q.evaluate('nativeGeneration.id');self.q.reload();self.q.wait_for_selector('#echoDataPanel',state='attached')
+  self.q.evaluate("""()=>{holdGeneration=true;window.replyState='pending';echoNativeVoice.synthesize({text:'New message.',language:'en',referenceWavBase64:'UklGRg==',consent:true}).then(()=>replyState='resolved').catch(()=>replyState='error');}""")
+  new=self.q.evaluate('nativeGeneration.id');self.assertNotEqual(old,new)
+  self.q.evaluate('(id)=>echoNativeReply(id,{wavBase64:"old-result"})',old);self.assertEqual(self.q.evaluate('replyState'),'pending')
+  self.q.evaluate('(id)=>echoNativeReply(id,{wavBase64:"new-result"})',new);self.q.wait_for_function("replyState==='resolved'")
  def test_api_version_and_honest_gate(self):
   self.assertEqual(self.q.evaluate('echoNativeVoice.apiVersion'),1)
   self.assertTrue(self.q.evaluate('async()=>(await echoOfflineVoice.status()).ready'))
