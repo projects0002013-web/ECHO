@@ -42,6 +42,29 @@
   const panel=document.createElement('section');panel.id='echoOfflineModelPanel';panel.setAttribute('aria-labelledby','echoOfflineModelTitle');
   panel.innerHTML=`<h4 id="echoOfflineModelTitle">Автономный голос на телефоне</h4><p>Экспериментальная мобильная интеграция. Автономная модель пока не входит в приложение. Записи и голос устройства доступны.</p><button type="button" id="echoOfflineCheck">Проверить офлайн-модель</button><p id="echoOfflineModelStatus" role="status" aria-live="polite"></p><p>Системный голос и сохранённые записи остаются доступны. Новые фразы Chatterbox требуют локального сервера на ПК.</p><div class="echo-local-actions"><button type="button" id="echoOfflineUseDevice">Голос устройства</button><button type="button" id="echoOfflineUseRecordings">Сохранённые записи</button></div>`;
   document.getElementById('echoLocalVoicePanel').querySelector('.echo-studio-compose').before(panel);
+  if(typeof window.echoNativeVoice?.checkReferenceWav==='function' && window.EchoAndroid){
+    // First native AI step: check a sample before connecting inference. No upload or storage.
+    const sampleCheck=document.createElement('div');
+    sampleCheck.className='echo-local-actions';
+    const label=document.createElement('label');label.textContent='Проверить WAV для локального ИИ (5–30 сек, моно, 16 бит): ';
+    const picker=document.createElement('input');
+    picker.type='file';picker.accept='.wav,audio/wav';picker.setAttribute('aria-label','Выбрать голосовой WAV-образец для проверки');
+    const result=document.createElement('p');result.setAttribute('role','status');result.setAttribute('aria-live','polite');
+    label.append(picker);sampleCheck.append(label,result);panel.append(sampleCheck);
+    let requestId=0;
+    picker.addEventListener('change',async()=>{
+      const file=picker.files?.[0];if(!file)return;
+      const token=++requestId;picker.disabled=true;result.textContent='Проверка WAV на устройстве…';
+      try{
+        const info=await window.echoNativeVoice.checkReferenceWav(file);
+        if(token!==requestId)return;
+        result.textContent=info.valid===true
+          ?'Образец проверен: '+info.durationSeconds.toFixed(1)+' сек, '+info.sampleRate+' Гц. Сама AI-модель пока не установлена.'
+          :'Не удалось подтвердить голосовой образец.';
+      }catch(error){if(token===requestId)result.textContent='Образец не подходит: '+error.message;}
+      finally{if(token===requestId)picker.disabled=false;}
+    });
+  }
   const pcNote=document.createElement('p');pcNote.id='echoPCRequirement';pcNote.textContent='Синтез ниже использует Chatterbox на локальном сервере ПК. Это не автономный ИИ телефона.';
   const generate=document.getElementById('echoStudioGenerate');generate.parentElement.before(pcNote);generate.setAttribute('aria-describedby','echoPCRequirement');
   const pcLocal=['localhost','127.0.0.1'].includes(location.hostname);
