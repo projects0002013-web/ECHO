@@ -280,7 +280,7 @@ public final class MainActivity extends Activity {
                             answer.put("valid",true);
                             answer.put("sampleRate",pcm.sampleRate);
                             answer.put("durationSeconds",pcm.durationSeconds);
-                            answer.put("modelReady",bundled);
+                            answer.put("modelReady",PocketModelInstaller.bundled(MainActivity.this));
                         }catch(Exception error) {
                             try{answer.put("error","Нужна слышимая запись: моно PCM WAV, 16 бит, 5–30 секунд.");}
                             catch(Exception ignored){}
