@@ -408,3 +408,14 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 Дополнительная проверка Android-host UI в Chromium: 320/360/393/412/480/768 px — без горизонтального переполнения; все видимые кнопки Voice Studio не меньше 44×44. Снимки `.test-output/release-voice-393.png` / `release-main-393.png` — локальные, с mock bridge, не доказательство физического Android. ELF LOAD alignment обеих ABI проверен: 0x4000 (16 KiB) у всех восьми native libraries.
 
 Финальная локальная APK после исправления Android-подсказок: 185212854 байт; SHA-256 `50281ca94885deae992a5347a096c0b315de0c5bade2d64b934d384d2b3b647d`. Повторно пройдены 7 native_voice_browser, 28 voice_browser, 7 studio_browser, 10 executive_browser, 13 localization_browser, browser_smoke (15 групп), Python (28); assembleDebug/assembleDebugAndroidTest и проверка 28 web assets/8 model files/JNI/лицензий выполнены.
+
+
+### Завершение исправлений доступности
+
+На `cd0aca3` прошли оба workflow: [Android + сквозной JNI 42557179322](https://github.com/projects0002013-web/ECHO/actions/runs/42557179322) и [Quality Gates 42557179446](https://github.com/projects0002013-web/ECHO/actions/runs/42557179446).
+
+Последняя поправка: опрос native status сравнивает уже переведённый текст, поэтому неизменившаяся aria-live область больше не перезаписывается каждые 3 s. `test_stable_model_poll_does_not_repeat_screen_reader_announcements` наблюдает реальный DOM и подтверждает отсутствие повторных мутаций. Теперь **8/8 native_voice_browser**; повторно **10/10 accessibility_browser**, **13/13 localization_browser**. Cache version v23. Это автоматическая защита от повторных live-объявлений, а не фактическое испытание TalkBack/VoiceOver.
+
+Не запускались optional `personal_voice_browser.py` / `voice_smoke.py` с настоящим Chatterbox: в этой среде нет его модели и разрешённой голосовой записи человека. Их отсутствие не подменяется mock-тестами и не относится к подтверждённому PocketTTS JNI-инференсу. Отдельный старый C++ prototype не является Android backend; активный Java/JNI backend проверен выше.
+
+APK после последней поправки: 185212854 байт; SHA-256 `7b38398d184f98cbed30ed94381f7ba585139a50101db04c82e3bf0b73cac36f`; assembleDebug/assembleDebugAndroidTest и check-apk — passed.

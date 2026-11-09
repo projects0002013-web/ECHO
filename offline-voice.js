@@ -91,9 +91,13 @@
         nativeState=await window.echoNativeVoice.status();
         const note=nativeState.ready?'Модель готова к генерации. Нужны сохранённый образец, согласие, текст и английский язык интерфейса.':
           nativeState.phase==='error' && nativeState.errorCode?window.echoNativeVoice.describeError(nativeState.errorCode):phases[nativeState.phase]||phases.error;
-        if(pcNote.textContent!==note)pcNote.textContent=note;
+        // Compare in the active language: otherwise the poll overwrites translated
+        // live-region text every three seconds and repeatedly interrupts screen readers.
+        const displayedNote=window.echoI18n?.translate(note)||note;
+        if(pcNote.textContent!==displayedNote)pcNote.textContent=displayedNote;
         const title=nativeState.ready?'Синтезировать моим голосом':'Проверяю локальную AI-модель…';
-        if(generate.textContent!==title)generate.textContent=title;
+        const displayedTitle=window.echoI18n?.translate(title)||title;
+        if(generate.textContent!==displayedTitle)generate.textContent=displayedTitle;
       }catch{nativeState=null;pcNote.textContent=phases.error;}
       updateGate();
       // Installation / JNI loading can take minutes; keep status current without blocking UI.

@@ -42,6 +42,10 @@ class NativeVoice(unittest.TestCase):
   self.q.evaluate("""()=>{const put=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(...args){if(this.name==='cache')throw new DOMException('full','QuotaExceededError');return put.apply(this,args);};}""")
   self.q.locator('#echoStudioGenerate').click();expect(self.q.locator('#echoStudioResult')).to_be_visible();self.assertEqual(self.count_cache(),50)
   expect(self.q.locator('#echoStudioStatus')).to_contain_text('not saved offline',ignore_case=True)
+ def test_stable_model_poll_does_not_repeat_screen_reader_announcements(self):
+  expect(self.q.locator('#echoPCRequirement')).to_contain_text('The model is ready')
+  self.q.evaluate("""()=>{window.statusMutations=0;new MutationObserver(records=>statusMutations+=records.length).observe(document.getElementById('echoPCRequirement'),{subtree:true,childList:true,characterData:true});}""")
+  self.q.wait_for_timeout(3400);self.assertEqual(self.q.evaluate('statusMutations'),0)
  def test_api_version_and_honest_gate(self):
   self.assertEqual(self.q.evaluate('echoNativeVoice.apiVersion'),1)
   self.assertTrue(self.q.evaluate('async()=>(await echoOfflineVoice.status()).ready'))
