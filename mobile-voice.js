@@ -80,12 +80,13 @@
     status: () => request("status"),
     checkReferenceWav,
     requestMicrophonePermission: () => request("microphonePermission"),
-    synthesize: ({ text, language, referenceWavBase64, signal }) => {
+    synthesize: ({ text, language, referenceWavBase64, consent, signal }) => {
       if (typeof text !== "string" || text.length === 0 || text.length > 300)
         return Promise.reject(new Error("Некорректный текст."));
       if (typeof referenceWavBase64 !== "string" || referenceWavBase64.length > 16 * 1024 * 1024)
         return Promise.reject(new Error("Слишком большой голосовой образец."));
-      return request("synthesize", { text, language, referenceWavBase64 }, signal);
+      if(consent!==true)return Promise.reject(new Error("Требуется согласие владельца голоса."));
+      return request("synthesize", { text, language, referenceWavBase64, consent:true }, signal);
     }
   });
 })();
