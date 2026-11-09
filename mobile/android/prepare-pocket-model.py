@@ -8,6 +8,8 @@ from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryFile
 from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+import time
 import tarfile
 import json
 
@@ -24,16 +26,32 @@ FILES = {
 }
 ROOT.mkdir(parents=True, exist_ok=True)
 with TemporaryFile() as archive:
-    size=0
-    digest=sha256()
-    with urlopen(URL, timeout=180) as response:
-        while chunk:=response.read(1024*1024):
-            size+=len(chunk)
-            if size>130*1024*1024:
-                raise RuntimeError("Unexpected PocketTTS archive size")
-            digest.update(chunk)
-            archive.write(chunk)
-    checksum=digest.hexdigest()
+    checksum = None
+    for attempt in range(6):
+        archive.seek(0)
+        archive.truncate(0)
+        size = 0
+        digest = sha256()
+        try:
+            with urlopen(URL, timeout=180) as response:
+                while chunk:=response.read(1024*1024):
+                    size+=len(chunk)
+                    if size>130*1024*1024:
+                        raise RuntimeError("Unexpected PocketTTS archive size")
+                    digest.update(chunk)
+                    archive.write(chunk)
+            checksum = digest.hexdigest()
+            break
+        except (HTTPError, URLError, TimeoutError) as error:
+            if isinstance(error, HTTPError) and error.code not in (429,500,502,503,504):
+                raise
+            if attempt==5:
+                raise
+            delay=min(4*(2**attempt),30)
+            print(f"Transient model download error ({type(error).__name__}); retry {attempt+1}/5 in {delay}s",flush=True)
+            time.sleep(delay)
+    if checksum is None:
+        raise RuntimeError("PocketTTS model download failed")
     print("PocketTTS official release archive SHA-256:",checksum)
     if EXPECTED_ARCHIVE_SHA256 and checksum != EXPECTED_ARCHIVE_SHA256:
         raise RuntimeError("PocketTTS archive checksum mismatch")
