@@ -108,7 +108,7 @@ class Executive(unittest.TestCase):
    response=public.request.get('http://127.0.0.1:8000'+urlsplit(route.request.url).path);route.fulfill(response=response)
   public.route('https://echo.example/**',asset);q=public.new_page();q.on('pageerror',lambda e:self.errors.append(str(e)))
   try:
-   q.goto('https://echo.example/index.html');q.wait_for_selector('#echoDataPanel',state='attached');q.locator('#echoVoiceStudioNav').click();expect(q.locator('#echoStudioGenerate')).to_be_disabled();expect(q.locator('#echoStudioGenerate')).to_contain_text('локального движка')
+   q.goto('https://echo.example/index.html');q.wait_for_selector('#echoDataPanel',state='attached');q.locator('#echoVoiceStudioNav').click();expect(q.locator('#echoStudioGenerate')).to_be_disabled();expect(q.locator('#echoStudioGenerate')).to_contain_text('локального сервера ПК')
    q.locator('.settings-btn').click();q.locator('[data-language="en"]').click();q.locator('#echoVoiceStudioNav').click();expect(q.locator('#echoStudioGenerate')).to_be_disabled();expect(q.locator('#echoStudioGenerate')).to_contain_text('local computer server');self.assertEqual(posted,[])
   finally:public.close()
 if __name__=='__main__':unittest.main(verbosity=2)
