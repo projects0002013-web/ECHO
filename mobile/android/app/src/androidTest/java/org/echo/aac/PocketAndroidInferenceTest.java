@@ -54,6 +54,8 @@ public final class PocketAndroidInferenceTest {
                 try{pending.get(90,TimeUnit.SECONDS);fail("cancelled output returned");}
                 catch(ExecutionException expected){assertTrue(expected.getCause() instanceof IOException);}
             }finally{thread.shutdownNow();}
+            try{engine.generate("Stop when time runs out.",PocketReferenceAudio.decode(reference(16000)),new AtomicBoolean(),System.nanoTime()+100_000_000L);fail("running deadline ignored");}
+            catch(IOException expected){assertTrue(expected.getMessage().contains("timeout"));}
             playable(engine.generate("Ready again.",PocketReferenceAudio.decode(reference(44100))));
         }
     }

@@ -61,6 +61,6 @@ public class PocketReferenceAudioTest {
         put32(withJunk,40,4);withJunk[44]=12;withJunk[45]=34;
         System.arraycopy(valid,36,withJunk,48,valid.length-36);put32(withJunk,4,withJunk.length-8);
         ok(PocketReferenceAudio.decode(withJunk).samples.length==112000,"non-audio chunk");
-        System.out.println("PocketReferenceAudio: all 17 validations passed.");
+        System.out.println("PocketReferenceAudio: all WAV validations passed.");
     }
 }

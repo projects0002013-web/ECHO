@@ -1,0 +1,20 @@
+ECHO offline personal voice preview
+
+Model: sherpa-onnx-pocket-tts-int8-2026-01-26 (English).
+PocketTTS by Kyutai; ONNX conversion/distribution by k2-fsa/sherpa-onnx.
+ECHO has not modified these model weights.
+Model license: Creative Commons Attribution 4.0 International (CC BY 4.0).
+The full model license is bundled at assets/pockettts/LICENSE.
+Model source: https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+
+Engine: official sherpa-onnx 2.0.1 Android JNI + Java API, Apache-2.0.
+License: sherpa-onnx-2.0.1-LICENSE.txt in this directory.
+Source: https://github.com/k2-fsa/sherpa-onnx/tree/v2.0.1
+
+ONNX Runtime: copyright Microsoft Corporation, MIT.
+License: onnxruntime-LICENSE.txt in this directory.
+Source: https://github.com/microsoft/onnxruntime
+
+These notices cover the named components; production release requires review
+of transitive dependencies and their notices in the official native runtime.
+No personal voice samples are included with ECHO.

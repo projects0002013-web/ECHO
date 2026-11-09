@@ -36,6 +36,25 @@
       tx.onerror = tx.onabort = () => reject(new Error("Не удалось сохранить данные. Проверьте свободное место."));
     });
   }
+  async function cacheGenerated(key,blob,current) {
+    const connection=await database();
+    if(!current())throw new DOMException("Операция отменена","AbortError");
+    return new Promise((resolve,reject)=>{
+      const tx=connection.transaction("cache","readwrite"),store=tx.objectStore("cache");
+      let failure;
+      const read=store.getAll();
+      read.onsuccess=()=>{
+        try {
+          if(!current())throw new DOMException("Операция отменена","AbortError");
+          const previous=read.result.filter(item=>item.key!==key).sort((a,b)=>b.time-a.time);
+          for(const old of previous.slice(49))store.delete(old.key);
+          store.put({key,blob,time:Date.now()});
+        }catch(error){failure=error;tx.abort();}
+      };
+      tx.oncomplete=()=>resolve();
+      tx.onerror=tx.onabort=()=>reject(failure||tx.error||new Error("Не удалось сохранить данные. Проверьте свободное место."));
+    });
+  }
   function message(text) { $("echoSpeechStatus").textContent = text; }
   window.echoSpeechNotice = message;
   function voiceMessage(text) { $("echoLocalVoiceStatus").textContent = text; }
@@ -148,11 +167,9 @@
         const header = new TextDecoder('ascii').decode(await blob.slice(0, 12).arrayBuffer());
         if (blob.size <= 44 || !header.startsWith('RIFF') || header.slice(8) !== 'WAVE') throw new Error("Голосовой движок вернул некорректный WAV.");
       }
-      // Keep at most 50 generated phrases on this device.
-      const cached = (await db("cache", "getAll")).sort((a, b) => a.time - b.time);
-      for (const item of cached.slice(0, Math.max(0, cached.length - 49))) await db("cache", "delete", item.key, current);
+      // Eviction and the new WAV commit together. A failed write must retain old audio.
       let cacheWarning = false;
-      try { await db("cache", "put", { key, blob, time: Date.now() }, current); }
+      try { await cacheGenerated(key,blob,current); }
       catch (_) { if (!current()) return; cacheWarning = true; }
       if (!current()) return;
       if (autoplay) await play(blob, job);
@@ -293,6 +310,7 @@
   const studioStatus = text => { $("echoStudioStatus").textContent = text; };
   function clearStudioResult() { studioResult = null; $("echoStudioResult").hidden = true; }
   function cancelStudio() { studioOperation++; stop(); $("echoStudioGenerate").disabled = false; $("echoStudioText").removeAttribute("aria-busy"); }
+  $("echoStudioConsent").addEventListener("change",()=>{if(!$("echoStudioConsent").checked && $("echoStudioText").hasAttribute("aria-busy"))$("echoStudioStop").click();});
   $("echoStudioStop").onclick = () => { cancelStudio(); studioStatus("Синтез и воспроизведение остановлены."); };
   $("echoStudioGenerate").onclick = async () => {
     if (recorder || draft) { studioStatus("Сначала завершите и сохраните запись образца."); return; }

@@ -364,3 +364,34 @@ Final: 120 unittest cases across nine suites, 27 core/smoke groups, 18 axe scans
 - 📊 **Итоговая арифметика** Roadmap: 57 `done`, 18 `partial`, 19 `todo`, всего 94. `57/94 × 100 = 60,64%`.
 - ⏸ Результаты Android/iPhone/TalkBack/VoiceOver, реальная работа персонального ИИ на телефоне, безопасность стабильных обновлений и исследования с людьми **не подтверждены** и продолжают учитываться в незакрытых пунктах.
 - ⚠️ Пользовательские статусы, ранее сохранённые локально в браузере интерактивного Roadmap, могут иметь приоритет над обновлёнными начальными статусами файла; изменения в GitHub их автоматически не стирают.
+
+
+## Release hardening — 9 ноября 2026, отдельная feature-ветка
+
+База `b2dbe87`, первый коммит исправлений `ab7ad77`. Основной ECHO не удалялся, стабильный `org.echo.aac` и `main` не изменялись. Проверки выполнялись на изолированных тестовых профилях и синтетическом аудио.
+
+Исправлены: отсутствующий API version Android-моста; сброс отмены перед JNI; преждевременный `modelReady/licenseVerified`; повторная загрузка/проверка модели при каждой генерации; потеря старой модели при неудачной активации; бесконтрольные потоки проверки WAV; поздние ответы; заблокированное воспроизведение кэша при отсутствии модели; неатомарное вытеснение старых WAV при квоте; отсутствие проверки WAV byteRate; непереведённые Android-сообщения и неверная подсказка RU/EN вместо EN-only PocketTTS.
+
+| Проверка | Фактический результат локального запуска |
+|---|---|
+| Python unittest discover | 28 passed |
+| browser_smoke / core_browser | 15 / 12 групп passed |
+| final_regression / voice_browser | 14 / 28 passed |
+| redesign_browser / executive_browser | 6 / 10 passed |
+| backup_browser / studio_browser | 15 / 7 passed |
+| localization_browser / accessibility_browser | 13 / 10 passed, включая 15 axe-сканов основных экранов и 3 axe-скана Voice Studio в studio_browser |
+| native_voice_browser | 7 passed: Android handshake/gates/cancel/cache/4 языка и отзыв согласия |
+| Java WAV decoder | Валидные 8/16/24/44.1/48/96 kHz; повреждённые RIFF/PCM, byteRate, тишина/длительность — passed |
+| Настоящий Linux Java/JNI PocketTTS | Последний запуск: новый WAV 572 204 байта; отмена до/во время, истёкший дедлайн до/во время, повторный запуск с 48 kHz reference — passed (28,08 s весь сценарий, не скорость телефона) |
+| Локальный APK | 185 236 011 байт, SHA-256 `9e6f534894e8be44a1c52e085fc1751de27b7e413566643d3e5743101abc1136`; 28 актуальных web assets, 8 файлов модели, JNI arm64/x86_64, 16 KiB ZIP alignment — passed. Хеш GitHub-сборки может отличаться из-за debug-подписи. |
+| Android Gradle | assembleDebug + assembleDebugAndroidTest — BUILD SUCCESSFUL |
+| Android JNI на эмуляторе | [42555182123](https://github.com/projects0002013-web/ECHO/actions/runs/42555182123): success, реальный ONNX, MediaPlayer, отмена/повтор, повреждённая модель, Wi-Fi/data disabled |
+| GitHub Quality Gates | [42555182083](https://github.com/projects0002013-web/ECHO/actions/runs/42555182083): success |
+
+Первый запуск Python в сетевом sandbox получил `PermissionError` при создании тестовых HTTP-сокетов; повторный запуск в разрешённом сетевом окружении выполнил все 28 тестов успешно. Это не скрытый pass первоначальной ошибки. Mock-ответы используются только в браузерных тестах протокола; native-тесты вызывают реальные веса.
+
+Отмена/дедлайн JNI кооперативные: callback прекращает генерацию при следующей возможности, worker занят до возврата native. Интерфейс сразу отбрасывает отменённый результат; новую генерацию не допускает до освобождения worker. Жёсткое убийство JNI-потока не применяется. Модель устанавливается из SHA-256 проверенных APK assets, при генерации ничего не скачивается. Модель/образцы не отправляются в сеть.
+
+Остаются открыты физические Redmi Note 14 / iPhone / планшеты, микрофон/системные диалоги реального Android, TalkBack/VoiceOver, акустическое качество/сходство голоса, память/нагрев/скорость длительной работы, принудительное завершение процесса во время установки, аппаратная нехватка диска и обновление стабильного пакета совместимой подписью. Обязательная вычитка переводов носителями, исследование с добровольцами и стабильная публикация не заменяются автотестами.
+
+Создание PR через `gh pr create` получило `Post https://api.github.com/graphql: Forbidden`; ветка опубликована через git push. Это ограничение API, не успешное создание PR. Ссылка подготовки сравнения: https://github.com/projects0002013-web/ECHO/compare/feature%2Fecho-executive-light-offline-voice...feature%2Fecho-1-0-release-hardening?expand=1 .

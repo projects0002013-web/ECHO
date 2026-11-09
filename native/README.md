@@ -1,6 +1,7 @@
 # Offline personal voice: experimental native foundation
 
-**Not a completed Android/iOS application. No autonomous phone synthesis has been verified.**
+**Android implementation now lives in `mobile/android/`: real JNI/ONNX inference passed on an offline Android emulator in [run 42555182123](https://github.com/projects0002013-web/ECHO/actions/runs/42555182123). Physical phone quality and iOS remain unverified.**
+The C++ material below describes the earlier portable prototype. See `POCKET_TTS_INTEGRATION.md` and `PocketVoiceService.java` for the active Android implementation.
 The shipped PWA contains no Pocket model/runtime and cannot advertise one merely because WebAssembly/WebGPU exists. It preserves device TTS, local recordings and cached Chatterbox phrases. Chatterbox still requires a local computer server for new text. The model check makes no HTTP requests or uploads. There is no new browser synthesis button for this prototype.
 
 ## Evidence checked, 2026-11-07

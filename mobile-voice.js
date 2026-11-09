@@ -6,14 +6,7 @@
   if (!android && !ios) return;
   const pending = new Map();
   let sequence = 0;
-  // Called only by the native app shell. Never treat native status as proof of successful inference.
-  window.echoNativeReply = (id, payload) => {
-    const p = pending.get(String(id));
-    if (!p) return;
-    pending.delete(String(id));
-    p.cleanup?.();
-    if (payload && payload.error) {
-      const messages={busy:'ИИ уже генерирует фразу. Остановите её или дождитесь окончания.',
+  const nativeErrors={busy:'ИИ уже генерирует фразу. Остановите её или дождитесь окончания.',
         model_not_ready:'Модель ещё не готова. Дождитесь проверки файлов и загрузки движка.',
         reference:'Нужна слышимая запись: моно PCM WAV, 16 бит, 5–30 секунд.',
         cancelled:'Генерация отменена.', timeout:'Время генерации истекло. Попробуйте более короткий текст.',
@@ -22,7 +15,14 @@
         native_runtime:'Не удалось загрузить нативный AI-движок этой сборки.',
         memory:'Недостаточно памяти для AI-модели. Закройте другие приложения.',
         engine:'Не удалось выполнить AI-синтез. Проверьте модель и образец.'};
-      p.reject(new Error(messages[payload.error]||String(payload.error)));
+  // Called only by the native app shell. Never treat native status as proof of successful inference.
+  window.echoNativeReply = (id, payload) => {
+    const p = pending.get(String(id));
+    if (!p) return;
+    pending.delete(String(id));
+    p.cleanup?.();
+    if (payload && payload.error) {
+      p.reject(new Error(nativeErrors[payload.error]||String(payload.error)));
     }
     else p.resolve(payload);
   };
@@ -93,6 +93,7 @@
   }
   window.echoNativeVoice = Object.freeze({
     apiVersion: 1,
+    describeError: code => nativeErrors[code] || nativeErrors.engine,
     status: () => request("status"),
     prepare: () => request("prepare"),
     checkReferenceWav,

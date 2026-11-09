@@ -32,3 +32,16 @@
 Итоговая физическая приёмка Android и iPhone, качество персонального AI-голоса на устройствах, доступность TalkBack/VoiceOver, установка/обновление стабильного приложения без потери данных, финальные документы публикации, добровольное исследование и его реальные результаты.
 
 **Итог:** закрытие этих 13 пунктов не означает, что ECHO 1.0 выпущен или 60% пользовательской/медицинской эффективности доказаны. Это доля задач исходного списка с критериями выполнения.
+
+
+## Проверка release-hardening, 9 ноября 2026
+
+Исходная ветка: `feature/echo-executive-light-offline-voice` (`b2dbe87`); отдельная ветка изменений: `feature/echo-1-0-release-hardening`. Исходный seed действительно содержит **94 задачи: 57 Done, 18 Partial, 19 Todo**. Все 94 ID уникальны, иных начальных статусов нет. Доли не повышались ради процента. Локально сохранённые пользовательские отметки Roadmap не очищались.
+
+- `voice_ai_native` / `voice_ai_quality`: [успешный Android workflow 42555182123](https://github.com/projects0002013-web/ECHO/actions/runs/42555182123) на `ab7ad77` выполняет **реальный Android JNI/ONNX-инференс в эмуляторе**, не Linux и не mock. `PocketAndroidInferenceTest` проверяет загрузку весов, 48/44.1 kHz reference audio, новый WAV через MediaPlayer, отмену до/во время inference, повторную генерацию, повреждение/восстановление модели и последовательность запросов. Wi-Fi/data выключены перед тестами. Эти пункты остаются **Partial** до физической приёмки владельцем; сходство синтетическим тестом не оценивается.
+- `voice_ai_ui`: `mobile-voice.js` объявляет API version 1; `offline-voice.js` ожидает проверку весов и JNI, затем проверенный сохранённый WAV, согласие, текст и EN. `tests/native_voice_browser.py` проверяет модель loading/error, отмену, поздний WAV, кэш без готовой модели, отзыв согласия и RU/KK/EN/BE. Браузерный host здесь mock и не доказывает inference.
+- `voice_cache` / `data_failure`: `features.js::cacheGenerated` атомарно сохраняет WAV и вытесняет старые записи. `test_cache_quota_rolls_back_eviction_of_existing_audio` сохраняет все 50 прежних элементов при ошибке записи. Ключи и версии IndexedDB/localStorage прежние.
+- `rel_ci`: локально собраны `assembleDebug` и `assembleDebugAndroidTest`; [APK CI](https://github.com/projects0002013-web/ECHO/actions/runs/42555182123#artifacts) содержит `arm64-v8a`, `x86_64`, веса и лицензии. `mobile/check-apk.py` сверяет актуальные web-файлы, графы и JNI. Пакет только `org.echo.aac.preview`.
+- `rel_regression`: [Quality Gates 42555182083](https://github.com/projects0002013-web/ECHO/actions/runs/42555182083) успешно выполнил web/Python и настоящий Linux JNI-инференс. Полный локальный журнал и границы проверок ниже в QA.md.
+
+Дополнительный `PocketWebViewFlowTest` проверяет упакованный WebView → импорт WAV → сохранение образца → согласие → новый текст → Java/JNI → WAV в IndexedDB. Он включён в следующий CI-прогон этой ветки; успешное выполнение подтверждается отдельной записью QA, а не фактом компиляции. `mobile/summarize-android-tests.py` требует исполнения всех четырёх инструментальных тестов без skip и публикует фактические имена/время в summary workflow.

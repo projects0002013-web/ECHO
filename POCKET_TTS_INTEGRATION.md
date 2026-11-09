@@ -39,3 +39,14 @@
 - https://github.com/k2-fsa/sherpa-onnx/blob/master/java-api-examples/PocketTts.java
 - https://github.com/k2-fsa/sherpa-onnx/releases/tag/v2.0.1
 - https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+
+
+## Android hardening (2026-11-09)
+
+`PocketVoiceService.java` держит один локальный экземпляр модели на одном worker. Статусы: not_installed → installing → loading → ready → generating; ошибка подготовки доступна через errorCode и повторную явную проверку. Ready выдаётся только после проверки SHA-256 всех файлов (включая лицензию) и успешного конструктора JNI. Подготовка не выполняется внутри generate. Предыдущая модель сохраняется до успешного rename; записи пользователя находятся в других хранилищах и не затрагиваются.
+
+Каждая генерация получает собственный AtomicBoolean, deadline 240 s и проверку PCM WAV (включая byteRate). Reference sample rate передаётся реальному sherpa resampler: тестируются 44.1/48 kHz → модель 24 kHz. Отмена не обнуляется при старте. JNI callback отменяет кооперативно; новый запрос отклоняется busy до окончания старого. Повторная загрузка модели на каждую карточку устранена. Личный текст/образец не логируются и не передаются на сервер. Android assets берутся из официальных SHA-256 закреплённых архивов; AAR включает arm64-v8a и x86_64 (последний для эмулятора).
+
+[Android JNI/ONNX CI](https://github.com/projects0002013-web/ECHO/actions/runs/42555182123) впервые подтверждает генерацию и MediaPlayer на Android-эмуляторе без сети. Физический телефон и сходство голоса не проверены. Модель остаётся English-only. Системный TTS, записи и ранее созданный кэш доступны отдельно.
+
+В `assets/licenses/` включены Apache-2.0 sherpa-onnx и MIT ONNX Runtime; CC BY 4.0 весов — `assets/pockettts/LICENSE`, авторство Kyutai / конвертация k2-fsa сохранено в UI и THIRD_PARTY_NOTICES. Финальная проверка транзитивных лицензий официального native runtime остаётся требованием стабильной публикации.

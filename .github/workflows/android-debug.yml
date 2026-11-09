@@ -69,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: echo-executive-light-debug
-          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk*
           if-no-files-found: error
 
   android-real-inference:
@@ -108,6 +108,9 @@ jobs:
             adb shell svc wifi disable
             adb shell svc data disable
             gradle -p mobile/android --no-daemon connectedDebugAndroidTest
+      - name: Assert and summarize executed Android inference tests
+        if: always()
+        run: python3 mobile/summarize-android-tests.py
       - name: Upload Android inference evidence
         if: always()
         uses: actions/upload-artifact@v4

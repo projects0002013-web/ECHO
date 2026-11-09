@@ -4,6 +4,9 @@ on:
   push:
     branches: [main, feature/echo-executive-light-offline-voice, feature/echo-1-0-release-hardening]
     paths:
+      - 'mobile/**'
+      - 'native/**'
+      - 'scripts/**'
       - '*.py'
       - '*.js'
       - '*.css'

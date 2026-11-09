@@ -60,20 +60,19 @@ public final class PocketTtsEngine implements AutoCloseable {
     if(System.nanoTime()>deadlineNanos)throw new IOException("timeout");
     activeCancellation=cancelled;
     try {
-    GenerationConfig generation=new GenerationConfig();
-    generation.setReferenceAudio(reference.samples);
-    generation.setReferenceSampleRate(reference.sampleRate);
-    generation.setNumSteps(5);
-    GeneratedAudio output=engine.generateWithConfigAndCallback(
-        text.trim(),generation,samples->{
-          if(System.nanoTime()>deadlineNanos)cancelled.set(true);
-          return cancelled.get() || Thread.currentThread().isInterrupted()?0:1;
-        });
-    if(cancelled.get())throw new IOException("Voice generation cancelled.");
-    if(output==null || output.getSamples()==null || output.getSampleRate()<8000)
-      throw new IOException("PocketTTS did not return audio.");
-    if(System.nanoTime()>deadlineNanos)throw new IOException("timeout");
-    return toWav(output.getSamples(),output.getSampleRate());
+      GenerationConfig generation=new GenerationConfig();
+      generation.setReferenceAudio(reference.samples);
+      generation.setReferenceSampleRate(reference.sampleRate);
+      generation.setNumSteps(5);
+      GeneratedAudio output=engine.generateWithConfigAndCallback(
+          text.trim(),generation,samples->{
+            return cancelled.get() || Thread.currentThread().isInterrupted() || System.nanoTime()>deadlineNanos?0:1;
+          });
+      if(cancelled.get())throw new IOException("Voice generation cancelled.");
+      if(System.nanoTime()>deadlineNanos)throw new IOException("timeout");
+      if(output==null || output.getSamples()==null || output.getSampleRate()<8000)
+        throw new IOException("PocketTTS did not return audio.");
+      return toWav(output.getSamples(),output.getSampleRate());
     } finally { activeCancellation=null; }
   }
   private static void le16(ByteArrayOutputStream out,int value){

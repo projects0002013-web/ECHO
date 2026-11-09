@@ -29,6 +29,17 @@ class NativeVoice(unittest.TestCase):
  def prepare(self):
   self.sample();self.q.locator('#echoStudioText').fill('A completely new message.');self.q.locator('#echoStudioConsent').check()
  def count_cache(self):return self.q.evaluate("()=>new Promise(ok=>{const r=indexedDB.open('echo-local-voice',1);r.onsuccess=()=>{const t=r.result.transaction('cache'),q=t.objectStore('cache').count();t.oncomplete=()=>{ok(q.result);r.result.close();};};})")
+ def test_android_messages_translate_in_all_four_languages(self):
+  for language in ['ru','kk','en','be']:
+   self.q.locator('.settings-btn').click();self.q.locator('[data-language="'+language+'"]').click();self.q.locator('#echoVoiceStudioNav').click();self.q.locator('#echoOfflineCheck').click()
+   expect(self.q.locator('#echoOfflineModelStatus')).to_have_text(self.q.evaluate("echoI18n.t('Офлайн-модель PocketTTS найдена. Можно запустить английский AI-синтез с собственным WAV-образцом. Работа на устройстве ещё требует проверки.')"))
+  self.assertEqual(self.q.evaluate('[...echoI18n.missing]'),[])
+ def test_cache_quota_rolls_back_eviction_of_existing_audio(self):
+  self.prepare()
+  self.q.evaluate("""()=>new Promise(ok=>{const r=indexedDB.open('echo-local-voice',1);r.onsuccess=()=>{const d=r.result,t=d.transaction('cache','readwrite');for(let i=0;i<50;i++)t.objectStore('cache').put({key:'keep-'+i,blob:new Blob(['saved-audio']),time:i});t.oncomplete=()=>{d.close();ok();};};})""")
+  self.q.evaluate("""()=>{const put=IDBObjectStore.prototype.put;IDBObjectStore.prototype.put=function(...args){if(this.name==='cache')throw new DOMException('full','QuotaExceededError');return put.apply(this,args);};}""")
+  self.q.locator('#echoStudioGenerate').click();expect(self.q.locator('#echoStudioResult')).to_be_visible();self.assertEqual(self.count_cache(),50)
+  expect(self.q.locator('#echoStudioStatus')).to_contain_text('not saved offline',ignore_case=True)
  def test_api_version_and_honest_gate(self):
   self.assertEqual(self.q.evaluate('echoNativeVoice.apiVersion'),1)
   self.assertTrue(self.q.evaluate('async()=>(await echoOfflineVoice.status()).ready'))
@@ -43,6 +54,10 @@ class NativeVoice(unittest.TestCase):
   q=self.q.evaluate('nativeGeneration');self.assertEqual(q['text'],'A completely new message.');self.assertEqual(q['language'],'en');self.assertTrue(q['consent']);self.assertEqual(base64.b64decode(q['referenceWavBase64'])[:4],b'RIFF')
   self.q.evaluate("nativePhase='error'");self.q.locator('#echoStudioUse').click();self.q.evaluate("echoLocalSpeech('A completely new message.')")
   expect(self.q.locator('#echoSpeechStatus')).to_contain_text('saved',ignore_case=True);self.assertEqual(self.q.evaluate("nativeCalls.filter(q=>q.type==='synthesize').length"),1)
+ def test_withdrawing_consent_cancels_inflight_native_request(self):
+  self.prepare();self.q.evaluate('holdGeneration=true');self.q.locator('#echoStudioGenerate').click();self.q.wait_for_function('window.nativeGeneration')
+  self.q.locator('#echoStudioConsent').uncheck();self.q.wait_for_function("nativeCalls.some(q=>q.type==='cancel')")
+  self.q.evaluate("echoNativeReply(nativeGeneration.id,{wavBase64:resultWav})");expect(self.q.locator('#echoStudioResult')).to_be_hidden();expect(self.q.locator('#echoStudioGenerate')).to_be_disabled();self.assertEqual(self.count_cache(),0)
  def test_stop_rejects_late_result_and_next_request_works(self):
   self.prepare();self.q.evaluate('holdGeneration=true');self.q.locator('#echoStudioGenerate').click();self.q.wait_for_function('window.nativeGeneration');self.q.locator('#echoStudioStop').click()
   self.q.evaluate("echoNativeReply(nativeGeneration.id,{wavBase64:resultWav})");expect(self.q.locator('#echoStudioResult')).to_be_hidden();self.assertEqual(self.count_cache(),0);self.assertTrue(self.q.evaluate("nativeCalls.some(q=>q.type==='cancel')"))

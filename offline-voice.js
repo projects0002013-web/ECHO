@@ -57,7 +57,7 @@
   const panel=document.createElement('section');panel.id='echoOfflineModelPanel';panel.setAttribute('aria-labelledby','echoOfflineModelTitle');
   panel.innerHTML=`<h4 id="echoOfflineModelTitle">Автономный голос на телефоне</h4><p>Экспериментальная мобильная интеграция. Автономная модель пока не входит в приложение. Записи и голос устройства доступны.</p><button type="button" id="echoOfflineCheck">Проверить офлайн-модель</button><p id="echoOfflineModelStatus" role="status" aria-live="polite"></p><p>Системный голос и сохранённые записи остаются доступны. Новые фразы Chatterbox требуют локального сервера на ПК.</p><div class="echo-local-actions"><button type="button" id="echoOfflineUseDevice">Голос устройства</button><button type="button" id="echoOfflineUseRecordings">Сохранённые записи</button></div>`;
   document.getElementById('echoLocalVoicePanel').querySelector('.echo-studio-compose').before(panel);
-  const pcNote=document.createElement('p');pcNote.id='echoPCRequirement';pcNote.textContent='Синтез ниже использует Chatterbox на локальном сервере ПК. Это не автономный ИИ телефона.';
+  const pcNote=document.createElement('p');pcNote.id='echoPCRequirement';pcNote.setAttribute('role','status');pcNote.setAttribute('aria-live','polite');pcNote.textContent='Синтез ниже использует Chatterbox на локальном сервере ПК. Это не автономный ИИ телефона.';
   const generate=document.getElementById('echoStudioGenerate');generate.parentElement.before(pcNote);generate.setAttribute('aria-describedby','echoPCRequirement');
   const pcLocal=['localhost','127.0.0.1'].includes(location.hostname);
   const androidNative=!!window.EchoAndroid && typeof window.echoNativeVoice?.synthesize==='function';
@@ -69,6 +69,9 @@
   unavailableObserver.observe(generate,{attributes:true,attributeFilter:['disabled']});
   if(androidNative) {
     const studio=document.getElementById('echoLocalVoicePanel');
+    studio.querySelector('.echo-local-note').textContent='Образец используется только локально. PocketTTS поддерживает английский; RU, KK и BE используют голос устройства или записи. Сходство голоса требует проверки владельцем.';
+    document.getElementById('echoStudioSetup').innerHTML='<summary>О локальной модели</summary><p>Модель: PocketTTS English int8, sherpa-onnx 2.0.1. Веса: Kyutai, конвертация k2-fsa/sherpa-onnx, CC BY 4.0; веса не изменены ECHO. Полная лицензия включена в APK. При ошибке подготовки освободите место и повторите проверку модели.</p>';
+
     for(const paragraph of studio.querySelectorAll(':scope > p')){
       const note=paragraph.textContent||'';
       if(note.includes('Персональный голос создаёт новые фразы') || note.includes('Новая генерация ИИ требует локального компьютера')){
@@ -91,7 +94,7 @@
       try{
         nativeState=await window.echoNativeVoice.status();
         const note=nativeState.ready?'Модель готова к генерации. Нужны сохранённый образец, согласие, текст и английский язык интерфейса.':
-          phases[nativeState.phase]||phases.error;
+          nativeState.phase==='error' && nativeState.errorCode?window.echoNativeVoice.describeError(nativeState.errorCode):phases[nativeState.phase]||phases.error;
         if(pcNote.textContent!==note)pcNote.textContent=note;
         const title=nativeState.ready?'Синтезировать моим голосом':'Проверяю локальную AI-модель…';
         if(generate.textContent!==title)generate.textContent=title;
