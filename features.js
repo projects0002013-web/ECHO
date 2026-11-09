@@ -299,6 +299,22 @@
     </section>
     <h4>Записанные фразы</h4><div id="echoRecordingsList"></div>`;
   voicePanel.prepend(panel);
+  if (window.EchoAndroid) {
+    // An Android APK already bundles its AI model; desktop server setup is
+    // neither needed nor a useful recovery instruction on a phone.
+    const summary = panel.querySelector('.echo-local-note');
+    if (summary) summary.textContent =
+      'На Android персональный PocketTTS сейчас поддерживает только английский. ' +
+      'Для русского, казахского и белорусского используйте голос устройства ' +
+      'или свои записанные фразы. Сходство голоса зависит от образца.';
+    const setup = panel.querySelector('#echoStudioSetup');
+    if (setup) setup.innerHTML =
+      '<summary>Подготовка локального ИИ на Android</summary>' +
+      '<p>Модель уже входит в ECHO Тест. При первом запуске она проверяется и ' +
+      'копируется в закрытое хранилище телефона — дождитесь сообщения о готовности. ' +
+      'Сервер или подключение к интернету для синтеза не нужны. ' +
+      'Если модель не загружается, проверьте свободное место и перезапустите ECHO Тест.</p>';
+  }
   const voiceEntry = document.createElement("button");
   voiceEntry.type = "button"; voiceEntry.id = "echoVoiceStudioNav"; voiceEntry.className = "echo-voice-entry"; voiceEntry.textContent = "Мой голос";
   document.querySelector(".header").insertBefore(voiceEntry, document.querySelector(".settings-btn"));
@@ -328,7 +344,9 @@
       studioStatus("Новый WAV создан локальным ИИ. Нажмите «Прослушать результат»." + (result.cacheWarning ? " · не сохранено офлайн: проверьте свободное место" : ""));
     } catch (error) {
       if (operation !== studioOperation || job !== speechJob) return;
-      studioStatus(error.name === "AbortError" ? "Время ожидания истекло. Повторите после загрузки модели." : error instanceof TypeError ? "Не удалось связаться с локальным ИИ. Запустите сервер по инструкции ниже." : errorText(error));
+      studioStatus(error.name === "AbortError" ? "Время ожидания истекло. Повторите после загрузки модели." : error instanceof TypeError ? (window.EchoAndroid
+        ? "Ошибка локального AI-движка Android. Проверьте статус модели и свободное место."
+        : "Не удалось связаться с локальным ИИ. Запустите сервер по инструкции ниже.") : errorText(error));
       $("echoStudioSetup").open = true;
     } finally {
       if (operation === studioOperation) { $("echoStudioGenerate").disabled = false; $("echoStudioText").removeAttribute("aria-busy"); if (job !== speechJob) studioStatus("Синтез и воспроизведение остановлены."); }
