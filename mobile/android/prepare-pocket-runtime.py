@@ -7,6 +7,8 @@ The model itself remains an explicit offline user-installed prerequisite.
 from hashlib import sha256
 from pathlib import Path
 from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+import time
 from zipfile import ZipFile
 from io import BytesIO
 
@@ -28,8 +30,24 @@ def obtain(name):
     cached = cache / name
     if cached.is_file() and sha256(cached.read_bytes()).hexdigest() == ASSETS[name]:
         return cached.read_bytes()
-    with urlopen(BASE + name, timeout=120) as response:
-        payload = response.read()
+    payload = None
+    for attempt in range(6):
+        try:
+            with urlopen(BASE + name, timeout=120) as response:
+                payload = response.read()
+            break
+        except (HTTPError, URLError, TimeoutError) as error:
+            # Retry transient GitHub Releases 5xx/429 and connection failures,
+            # but never bypass the pinned asset SHA-256.
+            if isinstance(error, HTTPError) and error.code not in (429, 500, 502, 503, 504):
+                raise
+            if attempt == 5:
+                raise
+            delay = min(4 * (2 ** attempt), 30)
+            print(f"Temporary official release download failure ({type(error).__name__}); retry {attempt+1}/5 in {delay}s", flush=True)
+            time.sleep(delay)
+    if payload is None:
+        raise RuntimeError("Verified runtime download produced no bytes")
     digest = sha256(payload).hexdigest()
     if digest != ASSETS[name]:
         raise RuntimeError(f"Official checksum mismatch: {name} {digest}")
