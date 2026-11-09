@@ -44,12 +44,12 @@ public final class PocketWebViewFlowTest {
             evaluate(web[0],"window.nativeSecurityReplies={};(()=>{const old=window.echoNativeReply;window.echoNativeReply=(id,data)=>{nativeSecurityReplies[id]=data;old?.(id,data)};})()");
             evaluate(web[0],"EchoAndroid.request(JSON.stringify({id:'missing-owner-consent',type:'synthesize',text:'Hello',language:'en',referenceWavBase64:'UklGRg==',consent:false}))");
             until(web[0],"!!nativeSecurityReplies['missing-owner-consent']",10);
-            assertEquals("false",evaluate(web[0],"String(nativeSecurityReplies['missing-owner-consent'].wavBase64!==undefined)"));
-            assertEquals("true",evaluate(web[0],"String(typeof nativeSecurityReplies['missing-owner-consent'].error==='string')"));
+            assertEquals("false",evaluate(web[0],"nativeSecurityReplies['missing-owner-consent'].wavBase64!==undefined"));
+            assertEquals("true",evaluate(web[0],"typeof nativeSecurityReplies['missing-owner-consent'].error==='string'"));
             evaluate(web[0],"EchoAndroid.request(JSON.stringify({id:'wrong-language',type:'synthesize',text:'Hello',language:'ru',referenceWavBase64:'UklGRg==',consent:true}))");
             until(web[0],"!!nativeSecurityReplies['wrong-language']",10);
-            assertEquals("false",evaluate(web[0],"String(nativeSecurityReplies['wrong-language'].wavBase64!==undefined)"));
-            assertEquals("true",evaluate(web[0],"String(typeof nativeSecurityReplies['wrong-language'].error==='string')"));
+            assertEquals("false",evaluate(web[0],"nativeSecurityReplies['wrong-language'].wavBase64!==undefined"));
+            assertEquals("true",evaluate(web[0],"typeof nativeSecurityReplies['wrong-language'].error==='string'"));
         }finally{instrumentation.runOnMainSync(activity::finish);}
     }
     @Test public void savedSampleConsentNewTextAndRealNativeWav()throws Exception{
