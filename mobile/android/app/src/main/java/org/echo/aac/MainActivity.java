@@ -337,9 +337,8 @@ public final class MainActivity extends Activity {
                     answer.put("engine","sherpa-onnx-pocket");
                     answer.put("localOnly",true);
                     answer.put("supportsReference",true);
-                    answer.put("modelReady",false);
+                    answer.put("modelReady",bundled);
                     answer.put("licenseVerified",bundled);
-                    answer.put("languages", new org.json.JSONArray());
                 } else {
                     answer.put("error", "Мобильный AI-движок ещё не установлен. Используйте сохранённые записи или системный голос.");
                 }
