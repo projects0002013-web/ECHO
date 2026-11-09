@@ -36,6 +36,18 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify on-device AI voice reference WAV decoder
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/echo-voice-test
+          javac -encoding UTF-8 -d /tmp/echo-voice-test \
+            mobile/android/app/src/main/java/org/echo/aac/PocketReferenceAudio.java \
+            tests/java/PocketReferenceAudioTest.java
+          java -cp /tmp/echo-voice-test PocketReferenceAudioTest
       - name: Install isolated browser test runtime
         run: |
           python -m pip install --upgrade pip
