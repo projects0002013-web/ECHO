@@ -72,12 +72,8 @@
     studio.querySelector('.echo-local-note').textContent='Образец используется только локально. PocketTTS поддерживает английский; RU, KK и BE используют голос устройства или записи. Сходство голоса требует проверки владельцем.';
     document.getElementById('echoStudioSetup').innerHTML='<summary>О локальной модели</summary><p>Модель: PocketTTS English int8, sherpa-onnx 2.0.1. Веса: Kyutai, конвертация k2-fsa/sherpa-onnx, CC BY 4.0; веса не изменены ECHO. Полная лицензия включена в APK. При ошибке подготовки освободите место и повторите проверку модели.</p>';
 
-    for(const paragraph of studio.querySelectorAll(':scope > p')){
-      const note=paragraph.textContent||'';
-      if(note.includes('Персональный голос создаёт новые фразы') || note.includes('Новая генерация ИИ требует локального компьютера')){
-        paragraph.textContent='В ECHO Тест на Android английская модель PocketTTS работает локально без сервера. Системные голоса и сохранённые записи доступны отдельно. Реальное качество AI-голоса на этом телефоне ещё не проверено.';
-      }
-    }
+    document.getElementById('echoStudioPrivacyNote').textContent='Персональный голос создаёт новые английские фразы на этом Android по вашему образцу. Записи хранятся приватно на устройстве и не отправляются в облако.';
+    document.getElementById('echoStudioSourceNote').textContent='Голос устройства использует установленные офлайн-голоса Android. PocketTTS создаёт новые фразы только на английском; для других языков доступны голос устройства и записи.';
     panel.querySelector('p').textContent='Английская модель PocketTTS включена в тестовую Android-сборку. При подготовке проверяются файлы модели и загружается движок. Может потребоваться дополнительное свободное место. Генерация не скачивает модель.';
     const paragraphs=panel.querySelectorAll(':scope > p');if(paragraphs[2])paragraphs[2].textContent='Создание новых фраз выполняется без облака. Русский, казахский и белорусский остаются доступны через системный голос или сохранённые записи.';
     let nativeState=null;

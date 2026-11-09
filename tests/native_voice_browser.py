@@ -32,6 +32,8 @@ class NativeVoice(unittest.TestCase):
  def test_android_messages_translate_in_all_four_languages(self):
   for language in ['ru','kk','en','be']:
    self.q.locator('.settings-btn').click();self.q.locator('[data-language="'+language+'"]').click();self.q.locator('#echoVoiceStudioNav').click();self.q.locator('#echoOfflineCheck').click()
+   for element,key in [('#echoStudioPrivacyNote','Персональный голос создаёт новые английские фразы на этом Android по вашему образцу. Записи хранятся приватно на устройстве и не отправляются в облако.'),('#echoStudioSourceNote','Голос устройства использует установленные офлайн-голоса Android. PocketTTS создаёт новые фразы только на английском; для других языков доступны голос устройства и записи.')]:
+    expect(self.q.locator(element)).to_have_text(self.q.evaluate('(key)=>echoI18n.t(key)',key))
    expect(self.q.locator('#echoOfflineModelStatus')).to_have_text(self.q.evaluate("echoI18n.t('Офлайн-модель PocketTTS найдена. Можно запустить английский AI-синтез с собственным WAV-образцом. Работа на устройстве ещё требует проверки.')"))
   self.assertEqual(self.q.evaluate('[...echoI18n.missing]'),[])
  def test_cache_quota_rolls_back_eviction_of_existing_audio(self):

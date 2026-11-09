@@ -272,9 +272,9 @@
   const panel = document.createElement("section");
   panel.id = "echoLocalVoicePanel"; panel.className = "echo-local-panel";
   panel.innerHTML = `<h3 id="echoStudioTitle" tabindex="-1">Мой голос</h3><button type="button" id="echoOpenStudio">Открыть студию голоса</button><button type="button" id="echoStudioBack" hidden>Назад к фразам</button>
-    <p>Записи хранятся в этом браузере. Персональный голос создаёт новые фразы по вашему образцу на локальном компьютере — аудио не отправляется в облако.</p>
+    <p id="echoStudioPrivacyNote">Записи хранятся в этом браузере. Персональный голос создаёт новые фразы по вашему образцу на локальном компьютере — аудио не отправляется в облако.</p>
     <label for="echoSpeechMode">Как произносить сообщения</label><select id="echoSpeechMode"><option value="device">Голос устройства / Piper</option><option value="recordings">Записи фраз · иначе голос устройства</option><option value="personal">Мой персональный голос · локальный ИИ</option></select>
-    <p>Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. Новая генерация ИИ требует локального компьютера; на телефоне доступны записи и голоса устройства.</p>
+    <p id="echoStudioSourceNote">Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. Новая генерация ИИ требует локального компьютера; на телефоне доступны записи и голоса устройства.</p>
     <label for="echoRecordTarget">Что записать</label><select id="echoRecordTarget"><option value="sample">Образец моего голоса · 6–30 секунд</option><option value="phrase">Озвучку одной фразы · до 30 секунд</option></select>
     <div id="echoPhraseRecordingFields" hidden><label for="echoRecordText">Текст записываемой фразы</label><input id="echoRecordText" list="echoRecordPhrases" maxlength="300" placeholder="Я хочу пить"><datalist id="echoRecordPhrases"></datalist></div>
     <p id="echoRecordHint">Спокойно прочитайте: «Привет! Это мой голос. Я хочу свободно общаться, говорить о своих желаниях, просить о помощи и благодарить близких. Сегодня хороший день».</p>
@@ -547,7 +547,8 @@
       voiceMessage("Проверка голосового образца…");
       try{
         const info=await window.echoNativeVoice.checkReferenceWav(reference.blob);
-        if(sample===reference && info.valid===true)verifiedNativeSample=reference.id;
+        if(sample===reference && info.valid===true){verifiedNativeSample=reference.id;voiceMessage("Образец проверен для локального AI-синтеза.");}
+        else if(sample===reference)voiceMessage("Нужна слышимая запись: моно PCM WAV, 16 бит, 5–30 секунд.");
       }catch(error){voiceMessage(errorText(error));}
       window.dispatchEvent(new Event('echo-sample-validated'));
     }
