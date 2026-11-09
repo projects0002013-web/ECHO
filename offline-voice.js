@@ -91,6 +91,13 @@
   });
   unavailableObserver.observe(generate,{attributes:true,attributeFilter:['disabled']});
   if(androidNative) {
+    const studio=document.getElementById('echoLocalVoicePanel');
+    for(const paragraph of studio.querySelectorAll(':scope > p')){
+      const note=paragraph.textContent||'';
+      if(note.includes('Персональный голос создаёт новые фразы') || note.includes('Новая генерация ИИ требует локального компьютера')){
+        paragraph.textContent='В ECHO Тест на Android английская модель PocketTTS работает локально без сервера. Системные голоса и сохранённые записи доступны отдельно. Реальное качество AI-голоса на этом телефоне ещё не проверено.';
+      }
+    }
     panel.querySelector('p').textContent='Английская модель PocketTTS включена в тестовую Android-сборку. При первой генерации проверяются файлы модели и может потребоваться дополнительное свободное место.';
     const paragraphs=panel.querySelectorAll(':scope > p');if(paragraphs[2])paragraphs[2].textContent='Создание новых фраз выполняется без облака. Русский, казахский и белорусский остаются доступны через системный голос или сохранённые записи.';
     generate.disabled=true;
