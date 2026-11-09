@@ -59,6 +59,12 @@ jobs:
               assert len(pages)==10, len(pages)
           print('Science deck validated: 10 slides')
           PY
+      - name: Upload ten-slide competition presentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: echo-science-presentation
+          path: /tmp/ECHO-science.pptx
+          if-no-files-found: error
       - name: Install isolated browser test runtime
         run: |
           python -m pip install --upgrade pip
