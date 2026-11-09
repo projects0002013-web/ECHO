@@ -105,17 +105,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: |
-            # Android x86_64 emulator may have no telephony/phone service.
-            # Airplane mode and Wi-Fi are disabled before testing; a missing
-            # cellular radio must not stop JUnit instrumentation from running.
-            adb shell cmd connectivity airplane-mode enable
-            adb shell svc wifi disable
-            adb shell svc data disable || echo "No cellular radio in this emulator; airplane mode and Wi-Fi isolation remain enabled."
-            # android-emulator-runner executes every script line in a fresh shell.
-            # Assert airplane mode is active before the real model receives any data.
-            adb shell settings get global airplane_mode_on | grep -qx '1'
-            echo "Network isolation requested; actual inference tests must still pass."
-            gradle -p mobile/android --no-daemon connectedDebugAndroidTest
+            bash mobile/run-android-inference-tests.sh
       - name: Assert and summarize executed Android inference tests
         if: always()
         run: python3 mobile/summarize-android-tests.py
@@ -127,4 +117,6 @@ jobs:
           path: |
             mobile/android/app/build/reports/androidTests/
             mobile/android/app/build/outputs/androidTest-results/
+            mobile/android/app/build/outputs/androidTest-results/echo-emulator-*.txt
+            mobile/android/app/build/outputs/androidTest-results/echo-emulator-*.log
           if-no-files-found: warn
