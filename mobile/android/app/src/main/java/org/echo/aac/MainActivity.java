@@ -50,6 +50,7 @@ public final class MainActivity extends Activity {
         java.util.concurrent.Executors.newSingleThreadExecutor();
     private volatile PocketTtsEngine activePocketEngine;
     private volatile String activePocketRequest;
+    private volatile boolean pocketCancelRequested;
     private final Object pocketLock = new Object();
     private java.io.File pocketModelDirectory(){return new java.io.File(getFilesDir(),"pockettts");}
 
@@ -213,8 +214,10 @@ public final class MainActivity extends Activity {
                 String type = request.optString("type", "");
                 if (id.isEmpty() || id.length() > 40) return;
                 if ("cancel".equals(type)) {
-                    if(id.equals(activePocketRequest) && activePocketEngine!=null)
-                        activePocketEngine.cancel();
+                    if(id.equals(activePocketRequest)){
+                        pocketCancelRequested=true;
+                        if(activePocketEngine!=null)activePocketEngine.cancel();
+                    }
                     return;
                 }
                 if ("synthesize".equals(type)) {
@@ -238,6 +241,7 @@ public final class MainActivity extends Activity {
                             answer.put("error","ИИ уже генерирует фразу.");reply(id,answer);return;
                         }
                         activePocketRequest=id;
+                        pocketCancelRequested=false;
                     }
                     pocketWorker.execute(()->{
                         JSONObject result=new JSONObject();
@@ -245,8 +249,10 @@ public final class MainActivity extends Activity {
                             PocketReferenceAudio reference=PocketReferenceAudio.decode(
                                 Base64.decode(encoded,Base64.NO_WRAP));
                             java.io.File installed=PocketModelInstaller.ensureInstalled(MainActivity.this);
+                            if(pocketCancelRequested)throw new java.io.IOException("Voice generation cancelled");
                             try(PocketTtsEngine engine=new PocketTtsEngine(installed)){
                                 activePocketEngine=engine;
+                                if(pocketCancelRequested)throw new java.io.IOException("Voice generation cancelled");
                                 byte[] wav=engine.generate(input,reference);
                                 if(wav.length>8*1024*1024)throw new Exception("generated audio too large");
                                 result.put("wavBase64",Base64.encodeToString(wav,Base64.NO_WRAP));
