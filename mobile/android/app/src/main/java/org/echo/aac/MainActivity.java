@@ -46,6 +46,13 @@ public final class MainActivity extends Activity {
     private final Object saveLock=new Object();
     private TextToSpeech deviceTts;
     private volatile boolean ttsReady;
+    private final java.util.concurrent.ExecutorService pocketWorker =
+        java.util.concurrent.Executors.newSingleThreadExecutor();
+    private volatile PocketTtsEngine activePocketEngine;
+    private volatile String activePocketRequest;
+    private final Object pocketLock = new Object();
+    private java.io.File pocketModelDirectory(){return new java.io.File(getFilesDir(),"pockettts");}
+
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -205,7 +212,54 @@ public final class MainActivity extends Activity {
                 String id = request.optString("id", "");
                 String type = request.optString("type", "");
                 if (id.isEmpty() || id.length() > 40) return;
-                if ("cancel".equals(type)) return;
+                if ("cancel".equals(type)) {
+                    if(id.equals(activePocketRequest) && activePocketEngine!=null)
+                        activePocketEngine.cancel();
+                    return;
+                }
+                if ("synthesize".equals(type)) {
+                    // All inference remains on-device; never upload a private reference.
+                    final String input=request.optString("text","");
+                    final String language=request.optString("language","");
+                    final String encoded=request.optString("referenceWavBase64","");
+                    final boolean consent=request.optBoolean("consent",false);
+                    JSONObject answer=new JSONObject();
+                    if(!consent || !"en".equals(language) || input.trim().isEmpty() ||
+                       input.length()>300 || encoded.length()>((PocketReferenceAudio.MAX_BYTES+2L)/3L)*4L+8L) {
+                        answer.put("error","Требуются согласие владельца, английский текст и WAV до 8 МБ.");
+                        reply(id,answer);return;
+                    }
+                    if(!PocketTtsEngine.hasModel(pocketModelDirectory())) {
+                        answer.put("error","Локальные файлы PocketTTS ещё не установлены.");
+                        reply(id,answer);return;
+                    }
+                    synchronized(pocketLock){
+                        if(activePocketRequest!=null){
+                            answer.put("error","ИИ уже генерирует фразу.");reply(id,answer);return;
+                        }
+                        activePocketRequest=id;
+                    }
+                    pocketWorker.execute(()->{
+                        JSONObject result=new JSONObject();
+                        try {
+                            PocketReferenceAudio reference=PocketReferenceAudio.decode(
+                                Base64.decode(encoded,Base64.NO_WRAP));
+                            try(PocketTtsEngine engine=new PocketTtsEngine(pocketModelDirectory())){
+                                activePocketEngine=engine;
+                                byte[] wav=engine.generate(input,reference);
+                                if(wav.length>8*1024*1024)throw new Exception("generated audio too large");
+                                result.put("wavBase64",Base64.encodeToString(wav,Base64.NO_WRAP));
+                                result.put("sampleRate",24000);
+                            }
+                        }catch(Throwable error){
+                            try{result.put("error","Не удалось синтезировать фразу. Проверьте модель и образец.");}catch(Exception ignored){}
+                        }finally{
+                            synchronized(pocketLock){activePocketEngine=null;activePocketRequest=null;}
+                        }
+                        reply(id,result);
+                    });
+                    return;
+                }
                 if("ttsVoices".equals(type) || "ttsSpeak".equals(type) || "ttsStop".equals(type)){runOnUiThread(()->handleTts(id,type,request));return;}
                 if ("aiReferenceCheck".equals(type)) {
                     // Explicit user-selected WAV; decode on a worker, never on the UI thread.
@@ -276,6 +330,12 @@ public final class MainActivity extends Activity {
                 if ("status".equals(type)) {
                     answer.put("platform", "android");
                     answer.put("ready", false);
+                    answer.put("modelFilesPresent",PocketTtsEngine.hasModel(pocketModelDirectory()));
+                    answer.put("engine","sherpa-onnx-pocket");
+                    answer.put("localOnly",true);
+                    answer.put("supportsReference",true);
+                    answer.put("modelReady",false);
+                    answer.put("licenseVerified",false);
                     answer.put("languages", new org.json.JSONArray());
                 } else {
                     answer.put("error", "Мобильный AI-движок ещё не установлен. Используйте сохранённые записи или системный голос.");
@@ -289,6 +349,8 @@ public final class MainActivity extends Activity {
         web.evaluateJavascript("(()=>{const cat=document.querySelector('.echo-category-modal');if(cat && !cat.hidden){echoCloseCategoryModal();return true;}const modal=document.getElementById('addPhraseModal');if(modal && modal.classList.contains('open')){closeAddModal();return true;}if(document.body.dataset.echoSection && document.body.dataset.echoSection!=='phrases'){document.getElementById('phrasesTab').click();return true;}return false;})()",result->{if(!"true".equals(result))finish();});
     }
     @Override protected void onDestroy() {
+        if(activePocketEngine!=null)activePocketEngine.cancel();
+        pocketWorker.shutdownNow();
         if(deviceTts!=null){deviceTts.stop();deviceTts.shutdown();deviceTts=null;}
         closeSave();
         if(pendingFiles!=null){pendingFiles.onReceiveValue(null);pendingFiles=null;}
