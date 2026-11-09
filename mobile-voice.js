@@ -65,8 +65,20 @@
       }catch(error){await request("saveAbort",{session}).catch(()=>{});throw error;}
     }
   });
+  async function checkReferenceWav(blob,signal) {
+    if(!android)throw new Error("Проверка WAV доступна в Android-приложении.");
+    if(!(blob instanceof Blob) || !blob.size || blob.size>8*1024*1024)
+      throw new Error("Нужен WAV-файл до 8 МБ.");
+    const bytes=new Uint8Array(await blob.arrayBuffer());
+    signal?.throwIfAborted();
+    let binary='';
+    for(let offset=0;offset<bytes.length;offset+=8192)
+      binary+=String.fromCharCode(...bytes.subarray(offset,offset+8192));
+    return request("aiReferenceCheck",{referenceWavBase64:btoa(binary)},signal);
+  }
   window.echoNativeVoice = Object.freeze({
     status: () => request("status"),
+    checkReferenceWav,
     requestMicrophonePermission: () => request("microphonePermission"),
     synthesize: ({ text, language, referenceWavBase64, signal }) => {
       if (typeof text !== "string" || text.length === 0 || text.length > 300)
