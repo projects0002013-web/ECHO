@@ -14,6 +14,20 @@ class Executive(unittest.TestCase):
  def tearDown(self):self.assertEqual(self.errors,[]);self.c.close()
  def ready(self):self.q.wait_for_selector('#echoDataPanel',state='attached');self.q.wait_for_selector('#echoOfflineModelPanel',state='attached')
  def studio(self):self.q.locator('#echoVoiceStudioNav').click()
+ def test_voice_studio_ai_shortcut_is_visible_keyboard_accessible_and_no_fake_web_ai(self):
+  q=self.q
+  entry=q.locator('#echoVoiceStudioNav')
+  expect(entry).to_be_visible()
+  entry.click()
+  shortcut=q.locator('#echoVoiceGoToAI')
+  expect(shortcut).to_be_visible()
+  expect(shortcut).to_have_attribute('aria-controls','echoStudioText')
+  shortcut.click()
+  expect(q.locator('#echoStudioText')).to_be_focused()
+  expect(q.locator('#echoStudioGenerate')).to_be_disabled()
+  self.assertTrue(q.evaluate("document.getElementById('echoVoiceHeroTitle').textContent.includes('фразу')"))
+  self.assertTrue(q.evaluate("document.documentElement.scrollWidth<=window.innerWidth+1"))
+
  def test_keyboard_arrows_home_end_on_cards_preserve_tab(self):
   q=self.q
   cards=q.locator('.phrase-card:not(.custom-card)')
