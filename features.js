@@ -272,6 +272,12 @@
   const panel = document.createElement("section");
   panel.id = "echoLocalVoicePanel"; panel.className = "echo-local-panel";
   panel.innerHTML = `<h3 id="echoStudioTitle" tabindex="-1">Мой голос</h3><button type="button" id="echoOpenStudio">Открыть студию голоса</button><button type="button" id="echoStudioBack" hidden>Назад к фразам</button>
+    <div class="echo-voice-hero" aria-labelledby="echoVoiceHeroTitle">
+      <span class="echo-voice-eyebrow">ГОЛОСОВАЯ СТУДИЯ · ECHO</span>
+      <h4 id="echoVoiceHeroTitle">Создай новую фразу своим голосом</h4>
+      <p>Запиши образец, выбери английский и получи новую озвучку без облачного сервера на Android.</p>
+      <button type="button" class="echo-voice-hero-action" id="echoVoiceGoToAI" aria-controls="echoStudioText">Перейти к ИИ-синтезу ↓</button>
+    </div>
     <p id="echoStudioPrivacyNote">Записи хранятся в этом браузере. Персональный голос создаёт новые фразы по вашему образцу на локальном компьютере — аудио не отправляется в облако.</p>
     <label for="echoSpeechMode">Как произносить сообщения</label><select id="echoSpeechMode"><option value="device">Голос устройства / Piper</option><option value="recordings">Записи фраз · иначе голос устройства</option><option value="personal">Мой персональный голос · локальный ИИ</option></select>
     <p id="echoStudioSourceNote">Источник «Голос устройства / Piper» использует Piper только при включённой настройке ниже. Новая генерация ИИ требует локального компьютера; на телефоне доступны записи и голоса устройства.</p>
@@ -319,6 +325,11 @@
   voiceEntry.type = "button"; voiceEntry.id = "echoVoiceStudioNav"; voiceEntry.className = "echo-voice-entry"; voiceEntry.textContent = window.EchoAndroid ? "ИИ · Мой голос" : "Мой голос";
   document.querySelector(".header").insertBefore(voiceEntry, document.querySelector(".settings-btn"));
   voiceEntry.onclick = $("echoOpenStudio").onclick = () => { route("voice"); $("echoStudioTitle").focus(); };
+  $("echoVoiceGoToAI").onclick = () => {
+    const editor = $("echoStudioText");
+    editor.scrollIntoView({block:"center",behavior:"instant"});
+    editor.focus({preventScroll:true});
+  };
   if (window.EchoAndroid) {
     // Make the AI studio discoverable from the first screen, not only a small header item.
     const shortcut = document.createElement("section");
