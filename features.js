@@ -316,9 +316,35 @@
       'Если модель не загружается, проверьте свободное место и перезапустите ECHO Тест.</p>';
   }
   const voiceEntry = document.createElement("button");
-  voiceEntry.type = "button"; voiceEntry.id = "echoVoiceStudioNav"; voiceEntry.className = "echo-voice-entry"; voiceEntry.textContent = "Мой голос";
+  voiceEntry.type = "button"; voiceEntry.id = "echoVoiceStudioNav"; voiceEntry.className = "echo-voice-entry"; voiceEntry.textContent = window.EchoAndroid ? "ИИ · Мой голос" : "Мой голос";
   document.querySelector(".header").insertBefore(voiceEntry, document.querySelector(".settings-btn"));
   voiceEntry.onclick = $("echoOpenStudio").onclick = () => { route("voice"); $("echoStudioTitle").focus(); };
+  if (window.EchoAndroid) {
+    // Make the AI studio discoverable from the first screen, not only a small header item.
+    const shortcut = document.createElement("section");
+    shortcut.className = "echo-ai-shortcut";
+    shortcut.setAttribute("aria-labelledby", "echoAiShortcutTitle");
+    const text = document.createElement("div");
+    text.className = "echo-ai-shortcut-copy";
+    const label = document.createElement("p");
+    label.className = "echo-ai-eyebrow";
+    label.textContent = "POCKETTTS · OFFLINE AI";
+    const title = document.createElement("h2");
+    title.id = "echoAiShortcutTitle";
+    title.textContent = "Создай фразу своим голосом";
+    const detail = document.createElement("p");
+    detail.textContent = "Запиши образец и озвучь новый английский текст. Всё на устройстве.";
+    text.append(label, title, detail);
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "echo-ai-shortcut-action";
+    open.textContent = "Открыть ИИ-студию";
+    open.setAttribute("aria-controls", "echoLocalVoicePanel");
+    open.onclick = () => voiceEntry.click();
+    shortcut.append(text, open);
+    const welcome = document.querySelector(".welcome");
+    if (welcome) welcome.after(shortcut);
+  }
   $("echoStudioBack").onclick = () => { route("phrases"); voiceEntry.focus(); };
   let studioResult = null, studioOperation = 0, verifiedNativeSample = null;
   // Read-only state for the native model gate; no audio bytes or storage changes.
