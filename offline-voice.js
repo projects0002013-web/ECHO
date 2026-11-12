@@ -76,11 +76,57 @@
     document.getElementById('echoStudioSourceNote').textContent='Голос устройства использует установленные офлайн-голоса Android. PocketTTS создаёт новые фразы только на английском; для других языков доступны голос устройства и записи.';
     panel.querySelector('p').textContent='Английская модель PocketTTS включена в тестовую Android-сборку. При подготовке проверяются файлы модели и загружается движок. Может потребоваться дополнительное свободное место. Генерация не скачивает модель.';
     const paragraphs=panel.querySelectorAll(':scope > p');if(paragraphs[2])paragraphs[2].textContent='Создание новых фраз выполняется без облака. Русский, казахский и белорусский остаются доступны через системный голос или сохранённые записи.';
+    // Plain-language readiness checklist: avoids a mysterious disabled synthesis button.
+    const guide=document.createElement('section');
+    guide.className='echo-ai-readiness';
+    guide.setAttribute('aria-labelledby','echoAiReadinessTitle');
+    const heading=document.createElement('h4');
+    heading.id='echoAiReadinessTitle';heading.textContent='Что нужно для ИИ-синтеза';
+    const checklist=document.createElement('ol');
+    checklist.className='echo-ai-readiness-list';
+    const checkpoints=[
+      ['model','Модель PocketTTS готова'],
+      ['language','Выбран английский язык'],
+      ['sample','Сохранён голосовой образец'],
+      ['consent','Подтверждено согласие'],
+      ['text','Введён текст новой фразы']
+    ];
+    const rows=new Map();
+    for(const [key,label] of checkpoints){
+      const item=document.createElement('li');
+      item.dataset.check=key;
+      item.textContent=label;
+      item.setAttribute('data-state','waiting');
+      rows.set(key,item);checklist.append(item);
+    }
+    const hint=document.createElement('p');
+    hint.className='echo-ai-readiness-hint';
+    hint.textContent='Сначала проверьте модель, затем выполните остальные шаги.';
+    guide.append(heading,checklist,hint);
+    const compose=document.querySelector('.echo-studio-compose');
+    if(compose)compose.prepend(guide);
     let nativeState=null;
     const phases={installing:'Проверка и установка файлов модели…',loading:'Загрузка локального AI-движка…',
       not_installed:'Модель не установлена.',error:'Не удалось подготовить модель. Используйте голос устройства или записи.'};
     const updateGate=()=>{
       const state=window.echoVoiceStudioState?.();
+      const checks={
+        model:nativeState?.ready===true && nativeState?.phase==='ready',
+        language:document.documentElement.lang==='en',
+        sample:!!state?.sampleReady,
+        consent:document.getElementById('echoStudioConsent').checked,
+        text:!!document.getElementById('echoStudioText').value.trim()
+      };
+      for(const [key,done] of Object.entries(checks)){
+        const row=rows.get(key);
+        if(row)row.setAttribute('data-state',done?'ready':'waiting');
+      }
+      const next=checks.model?'Модель готова. ':'Дождитесь загрузки модели. ';
+      const pending=Object.keys(checks).filter(key=>!checks[key]);
+      const descriptions={language:'переключите язык на English',sample:'сохраните образец WAV',consent:'поставьте отметку согласия',text:'введите новый текст'};
+      const nextStep=pending.map(key=>descriptions[key]).find(Boolean);
+      const guideMessage=next+(nextStep?'Следующий шаг: '+nextStep+'.':'Можно нажать «Синтезировать моим голосом».');
+      if(hint.textContent!==guideMessage)hint.textContent=guideMessage;
       const enabled=nativeState?.ready===true && nativeState?.phase==='ready' &&
         state?.sampleReady && !state.busy && document.getElementById('echoStudioConsent').checked &&
         document.documentElement.lang==='en' && !!document.getElementById('echoStudioText').value.trim();
