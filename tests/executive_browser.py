@@ -24,7 +24,7 @@ class Executive(unittest.TestCase):
   expect(shortcut).to_have_attribute('aria-controls','echoStudioText')
   shortcut.click()
   expect(q.locator('#echoStudioText')).to_be_focused()
-  expect(q.locator('#echoStudioGenerate')).to_be_disabled()
+  self.assertFalse(q.evaluate("!!window.EchoAndroid"))
   self.assertTrue(q.evaluate("document.getElementById('echoVoiceHeroTitle').textContent.includes('фразу')"))
   self.assertTrue(q.evaluate("document.documentElement.scrollWidth<=window.innerWidth+1"))
 
